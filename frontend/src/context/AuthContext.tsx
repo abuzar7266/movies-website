@@ -22,6 +22,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
 
   const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
+    void _password;
     const found = sampleUsers.find((u) => u.email === email);
     if (found) {
       setAuthState({ user: found, isAuthenticated: true });
@@ -31,6 +32,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const register = useCallback(async (name: string, email: string, _password: string): Promise<boolean> => {
+    void _password;
     if (sampleUsers.find((u) => u.email === email)) {
       return false;
     }
