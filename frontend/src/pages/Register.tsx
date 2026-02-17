@@ -1,26 +1,47 @@
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Input } from "../components/ui/input"
+import { Button } from "../components/ui/button"
+import { useAuth } from "../context/AuthContext"
+import { toast } from "../hooks/use-toast"
 
 function Register() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [submitting, setSubmitting] = useState(false)
+  const { register } = useAuth()
+  const navigate = useNavigate()
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    const ok = await register(name, email, password)
+    setSubmitting(false)
+    if (ok) {
+      toast.success("Account created")
+      navigate("/")
+    } else {
+      toast.error("Email already registered")
+    }
+    return ok
+  }
   return (
-    <div className="max-w-sm space-y-4">
+    <form onSubmit={onSubmit} className="max-w-sm space-y-4">
       <h1 className="text-2xl font-semibold">Register</h1>
       <div className="space-y-2">
         <label className="block text-sm">Name</label>
-        <input className="w-full rounded border px-3 py-2" value={name} onChange={e => setName(e.target.value)} />
+        <Input value={name} onChange={e => setName(e.target.value)} required />
       </div>
       <div className="space-y-2">
         <label className="block text-sm">Email</label>
-        <input className="w-full rounded border px-3 py-2" value={email} onChange={e => setEmail(e.target.value)} />
+        <Input value={email} onChange={e => setEmail(e.target.value)} required />
       </div>
       <div className="space-y-2">
         <label className="block text-sm">Password</label>
-        <input type="password" className="w-full rounded border px-3 py-2" value={password} onChange={e => setPassword(e.target.value)} />
+        <Input type="password" value={password} onChange={e => setPassword(e.target.value)} required />
       </div>
-      <button className="rounded bg-indigo-600 px-4 py-2 text-white">Create account</button>
-    </div>
+      <Button type="submit" disabled={submitting}>{submitting ? "Creating..." : "Create account"}</Button>
+    </form>
   )
 }
 
