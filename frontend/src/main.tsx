@@ -8,6 +8,8 @@ import Login from "./pages/Login"
 import Register from "./pages/Register"
 import MovieDetail from "./pages/MovieDetail"
 import NotFound from "./pages/NotFound"
+import { AuthProvider } from "./context/AuthContext"
+import { MovieProvider } from "./context/MovieContext"
 
 const router = createBrowserRouter([
   {
@@ -25,6 +27,10 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AuthProvider>
+      <MovieProvider>
+        <RouterProvider router={router} />
+      </MovieProvider>
+    </AuthProvider>
   </StrictMode>
 )
