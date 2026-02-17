@@ -8,7 +8,7 @@ interface AuthState {
 }
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -21,14 +21,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isAuthenticated: false,
   });
 
-  const login = useCallback(async (email: string, _password: string): Promise<boolean> => {
-    void _password;
-    const found = sampleUsers.find((u) => u.email === email);
-    if (found) {
-      setAuthState({ user: found, isAuthenticated: true });
-      return true;
-    }
-    return false;
+  const login = useCallback(async (email: string, password: string): Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }> => {
+    const creds = [
+      { email: "alex@example.com", password: "password123" },
+      { email: "sam@example.com", password: "password123" },
+      { email: "jordan@example.com", password: "password123" },
+    ];
+    const user = sampleUsers.find((u) => u.email === email);
+    if (!user) return { ok: false, reason: "not_found" };
+    const match = creds.find((c) => c.email === email && c.password === password);
+    if (!match) return { ok: false, reason: "wrong_password" };
+    setAuthState({ user, isAuthenticated: true });
+    return { ok: true };
   }, []);
 
   const register = useCallback(async (name: string, email: string, _password: string): Promise<boolean> => {

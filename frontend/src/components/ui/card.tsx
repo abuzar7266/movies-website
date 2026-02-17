@@ -2,7 +2,7 @@ import * as React from "react"
 import { cn } from "../../lib/utils"
 
 function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-lg border bg-white text-gray-900 shadow-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-100", className)} {...props} />
+  return <div className={cn("rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] text-[hsl(var(--card-foreground))] shadow-sm", className)} {...props} />
 }
 
 function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
@@ -14,7 +14,7 @@ function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElem
 }
 
 function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-gray-500 dark:text-gray-400", className)} {...props} />
+  return <p className={cn("text-sm text-[hsl(var(--muted-foreground))]", className)} {...props} />
 }
 
 function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

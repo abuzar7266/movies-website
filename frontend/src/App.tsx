@@ -5,9 +5,9 @@ import { Toaster } from "./components/ui/toaster"
 
 function App() {
   return (
-    <div className="flex min-h-screen flex-col bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <main className="mx-auto w-full max-w-6xl flex-1 p-6">
+      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 sm:px-5 lg:px-6 pt-0 pb-8">
         <Outlet />
       </main>
       <Footer />

@@ -15,7 +15,7 @@ const StarRating = ({ rating, maxStars = 5, size = 16, interactive = false, onRa
         <Star
           key={i}
           size={size}
-          className={`${i < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"} ${interactive ? "cursor-pointer transition-transform hover:scale-125" : ""}`}
+          className={`${i < rating ? "star-filled fill-current" : "star-empty"} ${interactive ? "cursor-pointer transition-transform hover:scale-125" : ""}`}
           onClick={() => interactive && onRate?.(i + 1)}
         />
       ))}
