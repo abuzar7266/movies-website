@@ -1,11 +1,11 @@
 import { useState } from "react"
 import HeroSection from "../components/HeroSection"
 import SearchBar from "../components/SearchBar"
-import RankBadge from "../components/RankBadge"
-import StarRating from "../components/StarRating"
 import { useMovies } from "../context/MovieContext"
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
-import { Link } from "react-router-dom"
+import { MovieGrid } from "../components/movies/MovieGrid"
+import { Button } from "../components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../components/ui/dialog"
+import { MovieForm } from "../components/movies/MovieForm"
 
 function Index() {
   const { searchMovies } = useMovies()
@@ -20,23 +20,20 @@ function Index() {
           <h2 className="text-xl font-semibold">Top Movies</h2>
           <SearchBar onSearch={setQuery} />
         </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {results.map((m) => (
-            <Link key={m.id} to={`/movie/${m.id}`}>
-              <Card className="relative overflow-hidden">
-                <RankBadge rank={m.rank} />
-                <img src={m.posterUrl} alt={m.title} className="h-64 w-full object-cover" />
-                <CardHeader>
-                  <CardTitle className="text-base">{m.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between pt-0">
-                  <span className="text-xs text-gray-500">{new Date(m.releaseDate).getFullYear()}</span>
-                  <StarRating rating={Math.round(m.averageRating)} />
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+        <div className="mb-4 flex justify-end">
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>Add Movie</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add a New Movie</DialogTitle>
+              </DialogHeader>
+              <MovieForm />
+            </DialogContent>
+          </Dialog>
         </div>
+        <MovieGrid movies={results} />
       </div>
     </div>
   )
