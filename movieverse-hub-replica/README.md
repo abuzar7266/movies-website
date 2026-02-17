@@ -1,6 +1,6 @@
-# QuasarReel — Replica (Fresh Setup)
+# MovieShelf — Replica (Fresh Setup)
 
-This repository is a clean, history‑free re‑initialization of the QuasarReel frontend using the latest stable libraries.
+This repository is a clean, history‑free re‑initialization of the MovieShelf frontend using the latest stable libraries.
 
 What’s included:
 - React + TypeScript + Vite (latest)

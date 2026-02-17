@@ -5,7 +5,7 @@ function Navbar() {
     <header className="border-b bg-white/70 backdrop-blur dark:bg-gray-950/70">
       <div className="mx-auto flex max-w-6xl items-center justify-between p-4">
         <Link to="/" className="text-lg font-semibold">
-          QuasarReel
+          MovieShelf
         </Link>
         <nav className="flex items-center gap-4 text-sm">
           <NavLink to="/" className={({ isActive }) => isActive ? "text-indigo-600" : "text-gray-600 dark:text-gray-300"}>
