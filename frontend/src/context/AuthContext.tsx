@@ -13,6 +13,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateAvatar: (dataUrl: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -63,8 +64,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthState({ user: null, isAuthenticated: false });
   }, []);
 
+  const updateAvatar = useCallback((dataUrl: string) => {
+    setAuthState(prev => {
+      if (!prev.user) return prev;
+      const nextUser = { ...prev.user, avatarUrl: dataUrl };
+      const users = loadJSON<StoredUser[]>(STORAGE_USERS, []);
+      const idx = users.findIndex(u => u.id === nextUser.id);
+      if (idx !== -1) {
+        users[idx] = { ...users[idx], avatarUrl: dataUrl };
+        saveJSON(STORAGE_USERS, users);
+      }
+      return { ...prev, user: nextUser };
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ ...authState, login, register, logout }}>
+    <AuthContext.Provider value={{ ...authState, login, register, logout, updateAvatar }}>
       {children}
     </AuthContext.Provider>
   );

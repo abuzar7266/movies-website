@@ -16,7 +16,10 @@ const createStorage = () => {
 
 describe("storage utils", () => {
   beforeEach(() => {
-    (globalThis as any).localStorage = createStorage();
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: createStorage(),
+    });
   });
   it("returns fallback when key is missing", () => {
     const result = loadJSON("missing", { a: 1 });

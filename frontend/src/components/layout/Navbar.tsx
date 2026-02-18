@@ -1,11 +1,33 @@
 import { Link, useNavigate } from "react-router-dom"
+import { useRef } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { Button } from "../ui/button"
-import { Film, LogOut, Plus } from "lucide-react"
+import { Film, LogOut, Plus, Camera } from "lucide-react"
 import { toast } from "../../hooks/use-toast"
 
 function Navbar() {
-  const { isAuthenticated, user, logout } = useAuth()
+  const { isAuthenticated, user, logout, updateAvatar } = useAuth()
+  const fileRef = useRef<HTMLInputElement | null>(null)
+  const onPick = () => fileRef.current?.click()
+  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (!f.type.startsWith("image/")) {
+      toast.error("Please select an image")
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const url = String(reader.result || "")
+      if (url) {
+        updateAvatar(url)
+        toast.success("Profile image updated")
+      }
+    }
+    reader.onerror = () => toast.error("Failed to read file")
+    reader.readAsDataURL(f)
+    e.currentTarget.value = ""
+  }
   const navigate = useNavigate()
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[hsl(var(--border))] glass-surface">
@@ -21,9 +43,27 @@ function Navbar() {
                 <Plus size={15} />
                 <span className="hidden sm:inline">Add Movie</span>
               </Button>
-              <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.5)] py-1 pl-1 pr-3">
-                {user?.avatarUrl && <img src={user.avatarUrl} alt={user.name} className="h-7 w-7 rounded-full object-cover" />}
+              <div className="flex items-center gap-2 rounded-full border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.5)] py-1 pl-2 pr-3">
+                <div className="relative h-7 w-7">
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} alt={user.name} className="h-7 w-7 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-7 w-7 rounded-full bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] grid place-items-center text-xs font-semibold">
+                      {user?.name?.[0]?.toUpperCase() || "U"}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onPick}
+                    aria-label="Change profile picture"
+                    className="absolute -right-1 -bottom-1 grid place-items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow ring-1 ring-[hsl(var(--border))] hover:opacity-90 transition-opacity cursor-pointer"
+                    style={{ width: 16, height: 16 }}
+                  >
+                    <Camera size={10} />
+                  </button>
+                </div>
                 <span className="hidden text-sm sm:inline">{user?.name}</span>
+                <input ref={fileRef} type="file" accept="image/*" onChange={onFile} className="hidden" />
               </div>
               <button
                 onClick={() => { logout(); toast.success("Logged out"); navigate("/"); }}
