@@ -4,7 +4,7 @@ import { prisma } from "../db.js";
 import { validate } from "../middleware/validate.js";
 import argon2 from "argon2";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/jwt.js";
-import { config } from "../config.js";
+import { config } from "../config/index.js";
 import { HttpError } from "../middleware/errors.js";
 
 const router = Router();
