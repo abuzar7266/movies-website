@@ -5,6 +5,11 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import pinoHttp from "pino-http";
 import { logger } from "./logger.js";
+import { notFound, errorHandler } from "./middleware/errors.js";
+import authRouter from "./routes/auth.js";
+import usersRouter from "./routes/users.js";
+import moviesRouter from "./routes/movies.js";
+import { authenticate } from "./middleware/auth.js";
 
 const app = express();
 const isDev = process.env.NODE_ENV !== "production";
@@ -19,6 +24,7 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(authenticate);
 app.use(
   rateLimit({
     windowMs: 60_000,
@@ -46,5 +52,12 @@ app.use(
 app.get("/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.use("/auth", authRouter);
+app.use("/users", usersRouter);
+app.use("/movies", moviesRouter);
+
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;
