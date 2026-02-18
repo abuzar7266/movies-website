@@ -35,6 +35,25 @@ router.post("/", requireAuth(), validate({ body: createBody }), async (req, res,
   }
 });
 
+router.get("/suggest", async (req, res, next) => {
+  try {
+    const q = typeof req.query.q === "string" ? req.query.q : undefined;
+    if (!q || q.trim() === "") {
+      res.json({ success: true, data: [] });
+      return;
+    }
+    const items = await prisma.movie.findMany({
+      where: { title: { contains: q, mode: "insensitive" } },
+      orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }],
+      take: 5,
+      select: { id: true, title: true, posterMediaId: true }
+    });
+    res.json({ success: true, data: items });
+  } catch (e) {
+    next(e);
+  }
+});
+
 const idParam = z.object({ id: z.string().uuid() });
 
 router.get("/:id", validate({ params: idParam }), async (req, res, next) => {
@@ -97,7 +116,8 @@ router.get("/", async (req, res, next) => {
   try {
     const q = typeof req.query.q === "string" ? req.query.q : undefined;
     const minStarsRaw = typeof req.query.minStars === "string" ? req.query.minStars : undefined;
-    const sort = typeof req.query.sort === "string" ? req.query.sort : "createdAt_desc";
+    const sort = typeof req.query.sort === "string" ? req.query.sort : "uploaded_desc";
+    const reviewScope = typeof req.query.reviewScope === "string" ? req.query.reviewScope : "all";
     const page = Number.parseInt(typeof req.query.page === "string" ? req.query.page : "1", 10) || 1;
     const pageSize = Number.parseInt(typeof req.query.pageSize === "string" ? req.query.pageSize : "12", 10) || 12;
     const minStars = minStarsRaw ? Number(minStarsRaw) : undefined;
@@ -111,13 +131,22 @@ router.get("/", async (req, res, next) => {
     if (typeof minStars === "number" && !Number.isNaN(minStars)) {
       where.averageRating = { gte: minStars };
     }
+    if (reviewScope !== "all" && req.user?.id) {
+      if (reviewScope === "mine") {
+        where.reviews = { some: { userId: req.user.id } };
+      } else if (reviewScope === "not_mine") {
+        where.NOT = { reviews: { some: { userId: req.user.id } } };
+      }
+    }
     const orderBy =
-      sort === "rank_desc"
-        ? { rank: "desc" as const }
+      sort === "reviews_desc"
+        ? { reviewCount: "desc" as const }
         : sort === "rating_desc"
         ? { averageRating: "desc" as const }
-        : sort === "title_asc"
-        ? { title: "asc" as const }
+        : sort === "release_desc"
+        ? { releaseDate: "desc" as const }
+        : sort === "release_asc"
+        ? { releaseDate: "asc" as const }
         : { createdAt: "desc" as const };
 
     const [total, items] = await prisma.$transaction([
@@ -134,6 +163,8 @@ router.get("/", async (req, res, next) => {
     next(e);
   }
 });
+
+ 
 
 const posterBody = z.object({ mediaId: z.string().uuid() });
 router.patch("/:id/poster", requireAuth(), validate({ params: idParam, body: posterBody }), async (req, res, next) => {

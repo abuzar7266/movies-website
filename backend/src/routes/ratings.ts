@@ -40,4 +40,17 @@ router.post("/", requireAuth(), validate({ body: upsertBody }), async (req, res,
   }
 });
 
+const idParam = z.object({ movieId: z.string().uuid() });
+router.get("/:movieId", requireAuth(), validate({ params: idParam }), async (req, res, next) => {
+  try {
+    const { movieId } = req.params as any;
+    const r = await prisma.rating.findUnique({
+      where: { movieId_userId: { movieId, userId: req.user!.id } }
+    });
+    res.json({ success: true, data: { value: r?.value ?? null } });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;
