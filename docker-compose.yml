@@ -1,0 +1,17 @@
+name: movieshelf
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: movieshelf-frontend:latest
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    driver: bridge
+
