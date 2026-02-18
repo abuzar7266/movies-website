@@ -1,32 +1,56 @@
-# MovieShelf — Replica (Fresh Setup)
+# Frontend (MovieShelf Web)
 
-This repository is a clean, history‑free re‑initialization of the MovieShelf frontend using the latest stable libraries.
+Vite + React SPA that showcases movie discovery, ranking, and reviewing with a modern UI.
 
-What’s included:
-- React + TypeScript + Vite (latest)
-- Tailwind CSS v4 (no config file needed)
-- ESLint (latest) via the Vite template
+## Design & Architecture
+- Vite + React with file‑scoped components and a small context layer.
+- State:
+  - `AuthContext` provides a demo auth flow stored in localStorage.
+  - `MovieContext` manages movie lists, filters, rankings, and review statistics.
+- UI: component library under `src/components/ui` for cohesive look and feel.
+- Routing: React Router with pages under `src/pages`.
+- Utility modules in `src/lib` (e.g., `movieQuery` for filtering/sorting, `utils` for helpers).
 
-## Getting Started
-- Install dependencies: `npm i`
-- Run dev server: `npm run dev` (http://localhost:5173)
-- Build: `npm run build`
-- Preview build: `npm run preview`
+## Key Tradeoffs & Optimizations
+- Local demo data and auth for instant UX and easy evaluation.
+- Query helpers pre‑compute ranks and aggregates to render quickly.
+- Bundled as static assets served by Nginx in production for simplicity.
 
-## Styling
-Tailwind v4 is enabled via a single import in `src/index.css`:
+## Project Structure
+```
+src/
+  components/       # UI building blocks + domain widgets (cards, forms)
+  context/          # Auth and Movie providers
+  lib/              # query logic, utilities
+  pages/            # routed pages
+  assets/           # static assets
+```
 
-@import "tailwindcss";
+## Running
+### With Docker Compose (recommended)
+From repo root:
+```bash
+docker compose up -d --build
+```
+Site available at http://localhost:8080
 
-No Tailwind config is required for basic usage.
+### Local Dev
+```bash
+cd project/frontend
+npm ci
+npm run dev
+```
 
-## Change Log
-- Initial scaffold: Vite React + TS, Tailwind v4 wired in.
-- Routing + base layout: react-router-dom, Navbar/Footer, skeleton pages.
+## Tools & Tech
+- React 18, Vite, TypeScript
+- UI: modern composition with small, reusable primitives
+- Testing: vitest
 
-## Routing
-- `/` Home
-- `/login` Login
-- `/register` Register
-- `/movie/:id` Movie details
-- `*` Not found
+## Integrating With Backend
+This SPA ships with demo data and local auth. To integrate with the API:
+- Point your API client to http://localhost:4000
+- Map endpoints to the backend’s OpenAPI spec (`/openapi.json`). Add a thin API layer in `src/lib` and wire into contexts.
+
+## Notes
+- Keep frontend concerns here; API details and server operations live in the backend README.
+
