@@ -135,4 +135,22 @@ router.get("/", async (req, res, next) => {
   }
 });
 
+const posterBody = z.object({ mediaId: z.string().uuid() });
+router.patch("/:id/poster", requireAuth(), validate({ params: idParam, body: posterBody }), async (req, res, next) => {
+  try {
+    const { id } = req.params as any;
+    const { mediaId } = req.body as any;
+    const movie = await prisma.movie.findUnique({ where: { id } });
+    if (!movie) throw new HttpError(404, "Movie not found", "not_found");
+    if (movie.createdBy !== req.user!.id) throw new HttpError(403, "Forbidden", "forbidden");
+    const media = await prisma.media.findUnique({ where: { id: mediaId } });
+    if (!media) throw new HttpError(404, "Media not found", "not_found");
+    if (media.ownerUserId && media.ownerUserId !== req.user!.id) throw new HttpError(403, "Forbidden", "forbidden");
+    const updated = await prisma.movie.update({ where: { id }, data: { posterMediaId: mediaId } });
+    res.json({ success: true, data: updated });
+  } catch (e) {
+    next(e);
+  }
+});
+
 export default router;
