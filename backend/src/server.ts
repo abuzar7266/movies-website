@@ -1,12 +1,13 @@
 import "dotenv/config";
 import app from "./app.js";
 import { prisma } from "./db.js";
-import { logger } from "./logger.js";
+import { logger } from "./config/logger.js";
 import { execSync } from "node:child_process";
 import os from "node:os";
 import process from "node:process";
+import { config } from "./config/index.js";
 
-const port = Number(process.env.PORT || 4000);
+const port = config.port;
 
 function killPort(p: number) {
   try {
@@ -23,8 +24,8 @@ async function start() {
   try {
     await prisma.$connect();
     logger.info("DB connected");
-  } catch (e: any) {
-    logger.error("DB connection failed");
+  } catch (err: any) {
+    logger.error({ err }, "DB connection failed");
   }
 
   let server: import("node:http").Server;

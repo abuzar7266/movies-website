@@ -1,5 +1,6 @@
-import { prisma } from "../db.js";
 import { HttpError } from "../middleware/errors.js";
+import { prisma } from "../db.js";
+import { ratingsRepo } from "../repositories/ratings.js";
 
 export async function upsertRating(userId: string, data: { movieId: string; value: number }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
@@ -25,9 +26,8 @@ export async function upsertRating(userId: string, data: { movieId: string; valu
 }
 
 export async function getUserRating(userId: string, movieId: string) {
-  const r = await prisma.rating.findUnique({
-    where: { movieId_userId: { movieId, userId } }
-  });
+  const Ratings = ratingsRepo();
+  const r = await Ratings.findUserMovieRating(userId, movieId);
   return r?.value ?? null;
 }
 

@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { z } from "zod";
 import { validate } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { users as Users } from "../services/index.js";

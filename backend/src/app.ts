@@ -5,8 +5,9 @@ import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { redisRateLimit } from "./middleware/redisRateLimit.js";
 import pinoHttp from "pino-http";
-import { logger } from "./logger.js";
+import { logger } from "./config/logger.js";
 import { notFound, errorHandler } from "./middleware/errors.js";
+import { requestId } from "./middleware/requestId.js";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
 import moviesRouter from "./routes/movies.js";
@@ -16,14 +17,16 @@ import mediaRouter from "./routes/media.js";
 import { authenticate } from "./middleware/auth.js";
 import swaggerUi from "swagger-ui-express";
 import { openapi } from "./docs/openapi.js";
+import { config } from "./config/index.js";
+import { metricsMiddleware, metricsHandler } from "./config/metrics.js";
 
 const app = express();
-const isDev = process.env.NODE_ENV !== "production";
+const isDev = process.env.NODE_ENV === "development";
 
 app.use(helmet());
 app.use(
   cors({
-    origin: true,
+    origin: config.cors.origins ? config.cors.origins : true,
     credentials: true
   })
 );
@@ -31,6 +34,8 @@ app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(authenticate);
+app.use(requestId);
+app.use(metricsMiddleware);
 const rlWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
 const rlLimit = Number(process.env.RATE_LIMIT_LIMIT || 120);
 if (process.env.REDIS_URL) {
@@ -63,13 +68,18 @@ app.use(
   pinoHttp({
     logger,
     autoLogging: false,
-    redact: ["req.headers.authorization", "req.headers.cookie"]
+    redact: ["req.headers.authorization", "req.headers.cookie"],
+    customProps: (req) => ({ requestId: (req as any).requestId })
   })
 );
 
 app.get("/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+if (process.env.METRICS_ENABLED !== "false") {
+  app.get("/metrics", metricsHandler);
+}
 
 app.get("/openapi.json", (_req, res) => {
   res.json(openapi);

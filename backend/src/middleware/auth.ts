@@ -1,4 +1,4 @@
-import type { Request, Response, NextFunction, RequestHandler } from "express";
+import type { RequestHandler } from "express";
 import { verifyAccessToken } from "../auth/jwt.js";
 import { HttpError } from "./errors.js";
 

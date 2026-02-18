@@ -1,29 +1,24 @@
-import { prisma } from "../db.js";
 import { HttpError } from "../middleware/errors.js";
-import { userPublicSelect } from "../selects.js";
+import { usersRepo } from "../repositories/users.js";
+import { mediaRepo } from "../repositories/media.js";
 
 export async function getUserPublic(userId: string) {
-  return prisma.user.findUnique({ where: { id: userId }, select: userPublicSelect });
+  const Users = usersRepo();
+  return Users.findPublicById(userId);
 }
 
 export async function updateUserName(userId: string, name: string) {
-  return prisma.user.update({
-    where: { id: userId },
-    data: { name },
-    select: userPublicSelect
-  });
+  const Users = usersRepo();
+  return Users.updateName(userId, name);
 }
 
 export async function setUserAvatar(userId: string, mediaId: string | null) {
+  const Users = usersRepo();
+  const Media = mediaRepo();
   if (mediaId) {
-    const media = await prisma.media.findUnique({ where: { id: mediaId } });
+    const media = await Media.findById(mediaId);
     if (!media) throw new HttpError(404, "Media not found", "not_found");
     if (media.ownerUserId && media.ownerUserId !== userId) throw new HttpError(403, "Forbidden", "forbidden");
   }
-  return prisma.user.update({
-    where: { id: userId },
-    data: { avatarMediaId: mediaId ?? null },
-    select: userPublicSelect
-  });
+  return Users.updateAvatar(userId, mediaId);
 }
-

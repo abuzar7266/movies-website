@@ -1,6 +1,7 @@
-import { prisma } from "../db.js";
 import { HttpError } from "../middleware/errors.js";
 import { reviewSelect } from "../selects.js";
+import { prisma } from "../db.js";
+import { reviewsRepo } from "../repositories/reviews.js";
 
 export async function createReview(userId: string, data: { movieId: string; content: string }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
@@ -20,26 +21,20 @@ export async function createReview(userId: string, data: { movieId: string; cont
 }
 
 export async function listReviewsByMovie(movieId: string, page: number, pageSize: number) {
-  const [total, items] = await prisma.$transaction([
-    prisma.review.count({ where: { movieId } }),
-    prisma.review.findMany({
-      where: { movieId },
-      orderBy: { createdAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      select: reviewSelect
-    })
-  ]);
+  const { total, items } = await prisma.$transaction(async (tx) => {
+    const Reviews = reviewsRepo(tx);
+    const total = await Reviews.countByMovie(movieId);
+    const items = await Reviews.findManyByMovie(movieId, (page - 1) * pageSize, pageSize);
+    return { total, items };
+  });
   return { items, total, page, pageSize };
 }
 
 export async function updateReview(userId: string, id: string, content: string) {
-  const updatedCount = await prisma.review.updateMany({
-    where: { id, userId },
-    data: { content }
-  });
+  const Reviews = reviewsRepo();
+  const updatedCount = await Reviews.updateContentIfOwned(id, userId, content);
   if (updatedCount.count === 0) throw new HttpError(404, "Review not found", "not_found");
-  return prisma.review.findUnique({ where: { id }, select: reviewSelect });
+  return Reviews.findById(id);
 }
 
 export async function deleteReview(userId: string, id: string) {

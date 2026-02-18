@@ -1,24 +1,23 @@
-import { prisma } from "../db.js";
 import { HttpError } from "../middleware/errors.js";
-import { movieSelect } from "../selects.js";
+import { moviesRepo } from "../repositories/movies.js";
+import { prisma } from "../db.js";
 
 export async function createMovie(userId: string, data: { title: string; releaseDate: string; trailerUrl?: string; synopsis: string }) {
-  const exists = await prisma.movie.findUnique({ where: { title: data.title } });
+  const Repo = moviesRepo();
+  const exists = await Repo.findUnique({ title: data.title });
   if (exists) throw new HttpError(409, "Movie title already exists", "title_taken");
-  return prisma.movie.create({
-    data: {
-      title: data.title,
-      releaseDate: new Date(data.releaseDate),
-      trailerUrl: data.trailerUrl || "",
-      synopsis: data.synopsis,
-      createdBy: userId
-    },
-    select: movieSelect
-  });
+  return Repo.create({
+    title: data.title,
+    releaseDate: new Date(data.releaseDate),
+    trailerUrl: data.trailerUrl || "",
+    synopsis: data.synopsis,
+    createdByUser: { connect: { id: userId } }
+  } as any);
 }
 
 export async function getMovieOrThrow(id: string) {
-  const movie = await prisma.movie.findUnique({ where: { id } });
+  const Repo = moviesRepo();
+  const movie = await Repo.findUnique({ id });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
   return movie;
 }
@@ -59,21 +58,23 @@ export async function listMovies(opts: {
       : opts.sort === "release_asc"
       ? { releaseDate: "asc" as const }
       : { createdAt: "desc" as const };
-  const [total, items] = await prisma.$transaction([
-    prisma.movie.count({ where }),
-    prisma.movie.findMany({
+  const { total, items } = await prisma.$transaction(async (tx) => {
+    const Repo = moviesRepo(tx);
+    const total = await Repo.count({ where });
+    const items = await Repo.findMany({
       where,
       orderBy,
       skip: (opts.page - 1) * opts.pageSize,
-      take: opts.pageSize,
-      select: movieSelect
-    })
-  ]);
+      take: opts.pageSize
+    });
+    return { total, items };
+  });
   return { items, total, page: opts.page, pageSize: opts.pageSize };
 }
 
 export async function ensureOwnedMovie(userId: string, id: string) {
-  const movie = await prisma.movie.findUnique({ where: { id } });
+  const Repo = moviesRepo();
+  const movie = await Repo.findUnique({ id });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
   if (movie.createdBy !== userId) throw new HttpError(403, "Forbidden", "forbidden");
   return movie;
@@ -81,25 +82,26 @@ export async function ensureOwnedMovie(userId: string, id: string) {
 
 export async function updateMovie(userId: string, id: string, updates: { title?: string; releaseDate?: string; trailerUrl?: string; synopsis?: string }) {
   const movie = await ensureOwnedMovie(userId, id);
+  const Repo = moviesRepo();
   if (updates.title && updates.title !== movie.title) {
-    const exists = await prisma.movie.findUnique({ where: { title: updates.title } });
+    const exists = await Repo.findUnique({ title: updates.title });
     if (exists) throw new HttpError(409, "Movie title already exists", "title_taken");
   }
-  return prisma.movie.update({
-    where: { id },
-    data: {
+  return Repo.update(
+    { id },
+    {
       title: updates.title ?? undefined,
       releaseDate: updates.releaseDate ? new Date(updates.releaseDate) : undefined,
       trailerUrl: updates.trailerUrl ?? undefined,
       synopsis: updates.synopsis ?? undefined
-    },
-    select: movieSelect
-  });
+    }
+  );
 }
 
 export async function deleteMovie(userId: string, id: string) {
   await ensureOwnedMovie(userId, id);
-  await prisma.movie.delete({ where: { id } });
+  const Repo = moviesRepo();
+  await Repo.remove({ id });
 }
 
 export async function setPoster(userId: string, id: string, mediaId: string) {
@@ -107,16 +109,13 @@ export async function setPoster(userId: string, id: string, mediaId: string) {
   const media = await prisma.media.findUnique({ where: { id: mediaId } });
   if (!media) throw new HttpError(404, "Media not found", "not_found");
   if (media.ownerUserId && media.ownerUserId !== userId) throw new HttpError(403, "Forbidden", "forbidden");
-  return prisma.movie.update({ where: { id }, data: { posterMediaId: mediaId } });
+  const Repo = moviesRepo();
+  return Repo.setPoster({ id }, mediaId);
 }
 
 export async function suggestMovies(q: string) {
   if (!q.trim()) return [];
-  return prisma.movie.findMany({
-    where: { title: { contains: q, mode: "insensitive" } },
-    orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }],
-    take: 5,
-    select: { id: true, title: true, posterMediaId: true }
-  });
+  const Repo = moviesRepo();
+  return Repo.suggest(q);
 }
 
