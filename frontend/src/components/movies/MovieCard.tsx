@@ -18,6 +18,13 @@ export function MovieCard({ movie }: MovieCardProps) {
             src={movie.posterUrl}
             alt={movie.title}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            onError={(e) => {
+              const t = e.currentTarget
+              if (!t.dataset.fallback) {
+                t.dataset.fallback = "1"
+                t.src = "https://placehold.co/480x720?text=Poster"
+              }
+            }}
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--card))] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

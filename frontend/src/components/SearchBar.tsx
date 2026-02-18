@@ -4,10 +4,11 @@ import { useState } from "react";
 interface SearchBarProps {
   onSearch: (query: string) => void;
   placeholder?: string;
+  initialValue?: string;
 }
 
-const SearchBar = ({ onSearch, placeholder = "Search movies by title..." }: SearchBarProps) => {
-  const [value, setValue] = useState("");
+const SearchBar = ({ onSearch, placeholder = "Search movies by title...", initialValue = "" }: SearchBarProps) => {
+  const [value, setValue] = useState(initialValue);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setValue(e.target.value);
