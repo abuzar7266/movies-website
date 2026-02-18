@@ -2,26 +2,29 @@
 
 ## Architecture Overview
 - Layered structure per module (auth, users, movies, reviews, ratings).
-- Fastify server with plugins for routes, auth guards, validation, and error handling.
-- PostgreSQL via Prisma; Zod schemas for request/response validation.
+- Express.js app with modular routers, middlewares, and a centralized error handler.
+- PostgreSQL via Prisma; Zod schemas for request/response validation (middleware).
 - Optional Redis for rate-limits and caching computed aggregates.
-- Media stored in S3-compatible storage via pre-signed upload URLs.
+- Images stored in PostgreSQL (BYTEA); uploaded via multipart, served via /media
 
 ## Modules & Responsibilities
 - Auth
   - Issue JWT access (short) and refresh (long) tokens.
   - Middleware to protect routes; role-based access for admin-only actions.
 - Users
-  - Get/update profile; store avatarUrl.
-  - Generate pre-signed URL for avatar upload.
+  - Get/update profile; set avatarMediaId and expose avatar URL /media/:id.
+  - Upload avatar via multipart (limits + MIME validation).
 - Movies
   - CRUD; enforce owner/admin for destructive operations.
   - Surfaces computed fields: averageRating, reviewCount, rank.
+  - Upload poster via multipart and link posterMediaId.
 - Reviews
   - CRUD with ownership; sanitize/validate content.
   - Hooks to update movie reviewCount.
 - Ratings
   - Upsert [user,movie] rating; maintain averageRating transactionally.
+ - Media
+  - Store image rows in media table and stream by ID with caching headers.
 
 ## Data Model (summary)
 - User(id, name, email, passwordHash, avatarUrl, role, createdAt)
@@ -38,7 +41,7 @@
 - Users
   - GET /users/me
   - PATCH /users/me
-  - POST /users/me/avatar/presign  → { url, fields } (form-data S3 upload)
+  - POST /users/me/avatar (multipart/form-data) → { mediaId, url }
 - Movies
   - GET /movies?q=&stars=&scope=&sort=&page=&pageSize=
     - q: substring match on title (case-insensitive)
@@ -49,6 +52,7 @@
   - POST /movies
   - PATCH /movies/:id
   - DELETE /movies/:id
+  - POST /movies/:id/poster (multipart/form-data) → { mediaId, url }
 - Reviews
   - GET /movies/:id/reviews
   - POST /movies/:id/reviews
@@ -56,17 +60,20 @@
   - DELETE /reviews/:id
 - Ratings
   - PUT /movies/:id/rating   → { value: 1..5 }
+ - Media
+  - GET /media/:id → streams image by ID with proper content-type and cache-control
 
 ## Validation & Error Handling
 - Zod schemas per route; respond with 400 for validation errors.
 - Unified error envelope: { success:false, error:{ code, message, details? } }
-- Map known cases: auth_failed, forbidden, not_found, conflict, validation_error.
+- Centralized Express error middleware; map known cases: auth_failed, forbidden, not_found, conflict, validation_error.
 
 ## Security
 - argon2id for passwords; JWTs in httpOnly cookies (secure in prod).
+- helmet for security headers; cors configured to frontend origins.
 - RBAC: admin can moderate reviews/movies; users limited to own edits.
-- Rate-limits on auth routes; per-IP and per-user ceilings via Redis.
-- CORS configured to frontend origins.
+- Rate-limits on auth routes; per-IP and per-user ceilings via Redis (express-rate-limit).
+ - Multipart upload limits and MIME allowlist (jpeg/png/webp); reject oversized uploads.
 
 ## Caching & Aggregation
 - Maintain averageRating and reviewCount transactionally:
@@ -92,11 +99,11 @@
 2. Server verifies refresh token; issues new access token (and optional rotated refresh).
 3. Return new access; client replaces in memory.
 
-### 3) Upload Avatar (Pre-signed)
-1. Client requests /users/me/avatar/presign (auth required) with filename/contentType.
-2. Server creates pre-signed POST/PUT for S3/MinIO and returns it.
-3. Client uploads directly to storage using returned fields.
-4. Client PATCH /users/me with avatarUrl pointing to uploaded object.
+### 3) Upload Avatar (Direct to DB)
+1. Client POST /users/me/avatar with multipart/form-data (file field: image).
+2. Server validates auth, MIME, size; stores image in media table (BYTEA).
+3. Server returns { mediaId, url: /media/:id } and updates users.avatarMediaId.
+4. Client uses returned URL for subsequent image loads.
 
 ### 4) Add Movie
 1. Client POST /movies with metadata; auth required.
@@ -126,13 +133,13 @@
 3. (Optional) clean up media via background job if using owned storage.
 
 ## Deployment
-- Dockerfile builds Node service.
-- docker-compose: api + postgres + minio in dev; env via .env files.
+- Dockerfile builds Node service (multi-stage).
+- docker-compose: api + postgres in dev; env via .env files.
 - Nginx (or API behind reverse proxy) with TLS termination.
 
 ## Testing
 - Unit tests: services/handlers with mocked Prisma.
-- Integration tests: Supertest against Fastify with a test DB.
+- Integration tests: Supertest against Express with a test DB.
 - Migrations applied per test suite; seed minimal fixtures.
 
 ## Roadmap Notes
