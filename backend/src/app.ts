@@ -14,6 +14,8 @@ import reviewsRouter from "./routes/reviews.js";
 import ratingsRouter from "./routes/ratings.js";
 import mediaRouter from "./routes/media.js";
 import { authenticate } from "./middleware/auth.js";
+import swaggerUi from "swagger-ui-express";
+import { openapi } from "./docs/openapi.js";
 
 const app = express();
 const isDev = process.env.NODE_ENV !== "production";
@@ -68,6 +70,11 @@ app.use(
 app.get("/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
+
+app.get("/openapi.json", (_req, res) => {
+  res.json(openapi);
+});
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
