@@ -9,6 +9,7 @@ import { notFound, errorHandler } from "./middleware/errors.js";
 import authRouter from "./routes/auth.js";
 import usersRouter from "./routes/users.js";
 import moviesRouter from "./routes/movies.js";
+import reviewsRouter from "./routes/reviews.js";
 import { authenticate } from "./middleware/auth.js";
 
 const app = express();
@@ -56,6 +57,7 @@ app.get("/healthz", (_req, res) => {
 app.use("/auth", authRouter);
 app.use("/users", usersRouter);
 app.use("/movies", moviesRouter);
+app.use("/reviews", reviewsRouter);
 
 app.use(notFound);
 app.use(errorHandler);
