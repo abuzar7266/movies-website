@@ -6,12 +6,7 @@ import { movies as Movies } from "../services/index.js";
 
 const router = Router();
 
-const createBody = z.object({
-  title: z.string().min(1),
-  releaseDate: z.string().datetime(),
-  trailerUrl: z.string().url().optional().default(""),
-  synopsis: z.string().min(1)
-});
+import { createMovieBody as createBody, updateMovieBody as updateBody, movieIdParam as idParam, posterBody } from "../dtos/movies.js";
 
 router.post("/", requireAuth(), validate({ body: createBody }), async (req, res, next) => {
   try {
@@ -34,8 +29,6 @@ router.get("/suggest", async (req, res, next) => {
   }
 });
 
-const idParam = z.object({ id: z.string().uuid() });
-
 router.get("/:id", validate({ params: idParam }), async (req, res, next) => {
   try {
     const { id } = req.params as any;
@@ -46,12 +39,6 @@ router.get("/:id", validate({ params: idParam }), async (req, res, next) => {
   }
 });
 
-const updateBody = z.object({
-  title: z.string().min(1).optional(),
-  releaseDate: z.string().datetime().optional(),
-  trailerUrl: z.string().url().optional(),
-  synopsis: z.string().min(1).optional()
-});
 router.patch("/:id", requireAuth(), validate({ params: idParam, body: updateBody }), async (req, res, next) => {
   try {
     const { id } = req.params as any;
@@ -99,7 +86,6 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-const posterBody = z.object({ mediaId: z.string().uuid() });
 router.patch("/:id/poster", requireAuth(), validate({ params: idParam, body: posterBody }), async (req, res, next) => {
   try {
     const { id } = req.params as any;

@@ -3,13 +3,9 @@ import { z } from "zod";
 import { validate } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ratings as Ratings } from "../services/index.js";
+import { upsertRatingBody as upsertBody, ratingMovieIdParam as idParam } from "../dtos/ratings.js";
 
 const router = Router();
-
-const upsertBody = z.object({
-  movieId: z.string().uuid(),
-  value: z.coerce.number().int().min(1).max(5)
-});
 
 router.post("/", requireAuth(), validate({ body: upsertBody }), async (req, res, next) => {
   try {
@@ -21,7 +17,6 @@ router.post("/", requireAuth(), validate({ body: upsertBody }), async (req, res,
   }
 });
 
-const idParam = z.object({ movieId: z.string().uuid() });
 router.get("/:movieId", requireAuth(), validate({ params: idParam }), async (req, res, next) => {
   try {
     const { movieId } = req.params as any;

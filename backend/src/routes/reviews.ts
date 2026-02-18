@@ -4,13 +4,9 @@ import { validate } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errors.js";
 import { reviews as Reviews } from "../services/index.js";
+import { createReviewBody as createBody, reviewIdParam as idParam, updateReviewBody as updateBody } from "../dtos/reviews.js";
 
 const router = Router();
-
-const createBody = z.object({
-  movieId: z.string().uuid(),
-  content: z.string().min(1)
-});
 
 router.post("/", requireAuth(), validate({ body: createBody }), async (req, res, next) => {
   try {
@@ -35,10 +31,6 @@ router.get("/", async (req, res, next) => {
   }
 });
 
-const idParam = z.object({ id: z.string().uuid() });
-const updateBody = z.object({
-  content: z.string().min(1)
-});
 router.patch("/:id", requireAuth(), validate({ params: idParam, body: updateBody }), async (req, res, next) => {
   try {
     const { id } = req.params as any;

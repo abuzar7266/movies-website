@@ -9,11 +9,7 @@ import { HttpError } from "../middleware/errors.js";
 
 const router = Router();
 
-const registerBody = z.object({
-  name: z.string().min(1),
-  email: z.string().email(),
-  password: z.string().min(8)
-});
+import { registerBody, loginBody } from "../dtos/auth.js";
 
 router.post("/register", validate({ body: registerBody }), async (req, res, next) => {
   try {
@@ -31,10 +27,6 @@ router.post("/register", validate({ body: registerBody }), async (req, res, next
   }
 });
 
-const loginBody = z.object({
-  email: z.string().email(),
-  password: z.string().min(8)
-});
 router.post("/login", validate({ body: loginBody }), async (req, res, next) => {
   try {
     const { email, password } = req.body as z.infer<typeof loginBody>;

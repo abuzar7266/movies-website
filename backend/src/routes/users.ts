@@ -3,6 +3,7 @@ import { z } from "zod";
 import { validate } from "../middleware/validate.js";
 import { requireAuth } from "../middleware/auth.js";
 import { users as Users } from "../services/index.js";
+import { updateUserBody as updateBody, avatarBody } from "../dtos/users.js";
 
 const router = Router();
 
@@ -11,15 +12,11 @@ router.get("/me", requireAuth(), async (req, res) => {
   res.json({ success: true, data: me });
 });
 
-const updateBody = z.object({
-  name: z.string().min(1)
-});
 router.patch("/me", requireAuth(), validate({ body: updateBody }), async (req, res) => {
   const updated = await Users.updateUserName(req.user!.id, (req.body as any).name);
   res.json({ success: true, data: updated });
 });
 
-const avatarBody = z.object({ mediaId: z.string().uuid().nullable() });
 router.patch("/me/avatar", requireAuth(), validate({ body: avatarBody }), async (req, res, next) => {
   try {
     const mediaId = (req.body as any).mediaId as string | null;
