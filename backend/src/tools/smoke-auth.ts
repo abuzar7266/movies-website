@@ -24,7 +24,6 @@ async function main() {
   const password = "pass12345";
   const name = "Smoke User";
 
-  // Register
   let res = await fetch(`${base}/auth/register`, {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -37,7 +36,6 @@ async function main() {
   parseSetCookie(res.headers, jar);
   console.log("register:", res.status);
 
-  // If already exists, do login
   if (res.status === 409) {
     res = await fetch(`${base}/auth/login`, {
       method: "POST",
@@ -52,13 +50,11 @@ async function main() {
     console.log("login:", res.status);
   }
 
-  // Me
   res = await fetch(`${base}/users/me`, {
     headers: { cookie: cookieHeader(jar) },
   });
   console.log("users/me:", res.status, await res.text());
 
-  // Logout
   res = await fetch(`${base}/auth/logout`, {
     method: "POST",
     headers: { cookie: cookieHeader(jar) },
