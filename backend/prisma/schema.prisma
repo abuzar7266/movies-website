@@ -1,0 +1,82 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["partialIndexes"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("user")
+  avatarMediaId String? @unique
+  createdAt    DateTime @default(now())
+  movies       Movie[]  @relation("UserMovies")
+  reviews      Review[]
+  ratings      Rating[]
+}
+
+model Movie {
+  id            String   @id @default(uuid())
+  title         String
+  releaseDate   DateTime
+  posterMediaId String?
+  trailerUrl    String
+  synopsis      String
+  createdBy     String
+  createdAt     DateTime @default(now())
+  rank          Int      @default(0)
+  reviews       Review[]
+  ratings       Rating[]
+  averageRating Float    @default(0)
+  reviewCount   Int      @default(0)
+  createdByUser User     @relation("UserMovies", fields: [createdBy], references: [id])
+
+  @@unique([title])
+  @@index([rank, createdAt])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  movieId   String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([movieId])
+  @@index([userId])
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  movieId   String
+  userId    String
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([movieId, userId])
+}
+
+model Media {
+  id          String   @id @default(uuid())
+  contentType String
+  size        Int
+  data        Bytes
+  ownerUserId String?
+  createdAt   DateTime @default(now())
+
+  @@index([ownerUserId])
+}
