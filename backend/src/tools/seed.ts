@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { prisma } from "../db.js";
 import argon2 from "argon2";
+import { recomputeMovieRanks } from "../services/movies.js";
 
 async function main() {
   const basePwd = process.env.SEED_USER_PASSWORD || "demo1234";
@@ -37,57 +38,102 @@ async function main() {
       })
     )
   );
-  const buf = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x00, 0x00, 0x00]);
-  const posters = await Promise.all(
-    Array.from({ length: 30 }).map(() =>
-      prisma.media.create({
-        data: { contentType: "image/png", size: buf.length, data: buf }
-      })
-    )
-  );
-  const titles: { title: string; synopsis: string; trailerUrl: string }[] = [
-    { title: "The Iron Code", synopsis: "A team hunts a rogue algorithm.", trailerUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-    { title: "Neon Skies", synopsis: "Pilots race above a cyberpunk city.", trailerUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ" },
-    { title: "Quantum Echo", synopsis: "Scientists chase repeating signals.", trailerUrl: "https://www.youtube.com/watch?v=2Vv-BfVoq4g" },
-    { title: "Silent Harbor", synopsis: "A mystery unravels in a coastal town.", trailerUrl: "https://www.youtube.com/watch?v=9bZkp7q19f0" },
-    { title: "Lunar Market", synopsis: "Smugglers clash on a moon outpost.", trailerUrl: "https://www.youtube.com/watch?v=ftZAZQ3k5V0" },
-    { title: "Glass Garden", synopsis: "Botanists protect a living archive.", trailerUrl: "https://www.youtube.com/watch?v=3JZ_D3ELwOQ" },
-    { title: "Afterlight", synopsis: "Survivors navigate a dimmed world.", trailerUrl: "https://www.youtube.com/watch?v=04854XqcfCY" },
-    { title: "Digital Nomads", synopsis: "Hackers on the run find a cause.", trailerUrl: "https://www.youtube.com/watch?v=Zi_XLOBDo_Y" },
-    { title: "Parallel Lines", synopsis: "Two lives cross different realities.", trailerUrl: "https://www.youtube.com/watch?v=kXYiU_JCYtU" },
-    { title: "City of Brass", synopsis: "Archaeologists awaken a legend.", trailerUrl: "https://www.youtube.com/watch?v=ktvTqknDobU" },
-    { title: "Starfall Fleet", synopsis: "Cadets face their first war.", trailerUrl: "https://www.youtube.com/watch?v=FkzRyHa2r6w" },
-    { title: "Velvet Circuit", synopsis: "An underground racer seeks freedom.", trailerUrl: "https://www.youtube.com/watch?v=fLexgOxsZu0" },
-    { title: "Echoes of Clay", synopsis: "An artist rebuilds a fractured city.", trailerUrl: "https://www.youtube.com/watch?v=YQHsXMglC9A" },
-    { title: "Clockwork Sea", synopsis: "Sailors chart mechanical waters.", trailerUrl: "https://www.youtube.com/watch?v=LRP8d7hhpoQ" },
-    { title: "Firefly Station", synopsis: "A crew uncovers a conspiracy.", trailerUrl: "https://www.youtube.com/watch?v=CGyEd0aKWZE" },
-    { title: "Mirage Run", synopsis: "Smugglers race across shifting dunes.", trailerUrl: "https://www.youtube.com/watch?v=VbfpW0pbvaU" },
-    { title: "Paper Wings", synopsis: "Dreamers attempt human flight.", trailerUrl: "https://www.youtube.com/watch?v=ktvTqknDobU" },
-    { title: "Crimson Orchard", synopsis: "Secrets linger among autumn trees.", trailerUrl: "https://www.youtube.com/watch?v=hT_nvWreIhg" },
-    { title: "Sable Horizon", synopsis: "Explorers cross a living desert.", trailerUrl: "https://www.youtube.com/watch?v=QK8mJJJvaes" },
-    { title: "Azure Divide", synopsis: "Divers find a lost civilization.", trailerUrl: "https://www.youtube.com/watch?v=fJ9rUzIMcZQ" },
-    { title: "Gossamer Thread", synopsis: "A detective follows invisible clues.", trailerUrl: "https://www.youtube.com/watch?v=uelHwf8o7_U" },
-    { title: "Ivory Tower", synopsis: "Scholars clash over forbidden tech.", trailerUrl: "https://www.youtube.com/watch?v=NUsoVlDFqZg" },
-    { title: "Broken Constellations", synopsis: "Astronomers decode a star map.", trailerUrl: "https://www.youtube.com/watch?v=pRpeEdMmmQ0" },
-    { title: "Wild Circuitry", synopsis: "A coder retreats into the forest.", trailerUrl: "https://www.youtube.com/watch?v=YQHsXMglC9A" },
-    { title: "Halcyon Drift", synopsis: "Two drifters chase a mythic island.", trailerUrl: "https://www.youtube.com/watch?v=OPf0YbXqDm0" },
-    { title: "Northern Sparks", synopsis: "A town rallies under polar lights.", trailerUrl: "https://www.youtube.com/watch?v=IdneKLhsWOQ" },
-    { title: "Sapphire Key", synopsis: "A heist targets a royal vault.", trailerUrl: "https://www.youtube.com/watch?v=RubBzkZzpUA" },
-    { title: "Whisper Grid", synopsis: "Signals leak from a silent network.", trailerUrl: "https://www.youtube.com/watch?v=JGwWNGJdvx8" },
-    { title: "Tide of Cinders", synopsis: "Miners face a planet on fire.", trailerUrl: "https://www.youtube.com/watch?v=2Vv-BfVoq4g" },
-    { title: "Gilded Null", synopsis: "A city’s elite vanish overnight.", trailerUrl: "https://www.youtube.com/watch?v=papuvlVeZg8" }
+  const seeds: { title: string; synopsis: string; trailerUrl: string; posterUrl: string; releaseDate: Date }[] = [
+    {
+      title: "Inception",
+      synopsis: "A skilled thief is offered a chance at redemption if he can successfully perform inception.",
+      trailerUrl: "https://www.youtube.com/watch?v=YoHD9XEInc0",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/7/7f/Inception_ver3.jpg",
+      releaseDate: new Date("2010-07-16T00:00:00.000Z")
+    },
+    {
+      title: "The Dark Knight",
+      synopsis: "Batman faces the Joker as Gotham descends into chaos.",
+      trailerUrl: "https://www.youtube.com/watch?v=EXeTwQWrcwY",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/8/8a/Dark_Knight.jpg",
+      releaseDate: new Date("2008-07-18T00:00:00.000Z")
+    },
+    {
+      title: "Interstellar",
+      synopsis: "Explorers travel through a wormhole in space in an attempt to ensure humanity’s survival.",
+      trailerUrl: "https://www.youtube.com/watch?v=zSWdZVtXT7E",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/b/bc/Interstellar_film_poster.jpg",
+      releaseDate: new Date("2014-11-07T00:00:00.000Z")
+    },
+    {
+      title: "The Matrix",
+      synopsis: "A hacker discovers the world is a simulated reality and joins a rebellion against its controllers.",
+      trailerUrl: "https://www.youtube.com/watch?v=vKQi3bBA1y8",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/c/c1/The_Matrix_Poster.jpg",
+      releaseDate: new Date("1999-03-31T00:00:00.000Z")
+    },
+    {
+      title: "Parasite",
+      synopsis: "A poor family schemes to become employed by a wealthy household, with unforeseen consequences.",
+      trailerUrl: "https://www.youtube.com/watch?v=5xH0HfJHsaY",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/5/53/Parasite_%282019_film%29.png",
+      releaseDate: new Date("2019-05-30T00:00:00.000Z")
+    },
+    {
+      title: "Pulp Fiction",
+      synopsis: "Interwoven stories of crime and redemption unfold in Los Angeles.",
+      trailerUrl: "https://www.youtube.com/watch?v=s7EdQ4FqbhY",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/8/82/Pulp_Fiction_cover.jpg",
+      releaseDate: new Date("1994-10-14T00:00:00.000Z")
+    },
+    {
+      title: "Spirited Away",
+      synopsis: "A girl enters a spirit world and must find a way to save her parents and return home.",
+      trailerUrl: "https://www.youtube.com/watch?v=ByXuk9QqQkk",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/d/db/Spirited_Away_Japanese_poster.png",
+      releaseDate: new Date("2001-07-20T00:00:00.000Z")
+    },
+    {
+      title: "The Godfather",
+      synopsis: "The aging patriarch of an organized crime dynasty transfers control to his reluctant son.",
+      trailerUrl: "https://www.youtube.com/watch?v=sY1S34973zA",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/1/1c/Godfather_ver1.jpg",
+      releaseDate: new Date("1972-03-24T00:00:00.000Z")
+    },
+    {
+      title: "Fight Club",
+      synopsis: "An office worker and a soap maker form an underground fight club that evolves into something more.",
+      trailerUrl: "https://www.youtube.com/watch?v=SUXWAEX2jlg",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/f/fc/Fight_Club_poster.jpg",
+      releaseDate: new Date("1999-10-15T00:00:00.000Z")
+    },
+    {
+      title: "La La Land",
+      synopsis: "A jazz musician and an aspiring actress fall in love while pursuing their dreams in Los Angeles.",
+      trailerUrl: "https://www.youtube.com/watch?v=0pdqf4P9MB8",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/a/ab/La_La_Land_%28film%29.png",
+      releaseDate: new Date("2016-12-09T00:00:00.000Z")
+    },
+    {
+      title: "Mad Max: Fury Road",
+      synopsis: "In a post-apocalyptic wasteland, Max teams up with Furiosa to flee a tyrant.",
+      trailerUrl: "https://www.youtube.com/watch?v=hEJnMQG9ev8",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/6/6e/Mad_Max_Fury_Road.jpg",
+      releaseDate: new Date("2015-05-15T00:00:00.000Z")
+    },
+    {
+      title: "The Shawshank Redemption",
+      synopsis: "Two imprisoned men bond over years, finding solace and eventual redemption through acts of decency.",
+      trailerUrl: "https://www.youtube.com/watch?v=NmzuHjWmXOc",
+      posterUrl: "https://upload.wikimedia.org/wikipedia/en/8/81/ShawshankRedemptionMoviePoster.jpg",
+      releaseDate: new Date("1994-09-23T00:00:00.000Z")
+    }
   ];
   const movieCreators = users.map((u) => u.id);
   const movies = [];
   for (let i = 0; i < 30; i++) {
-    const t = titles[i % titles.length];
+    const t = seeds[i % seeds.length];
     const creator = movieCreators[i % movieCreators.length];
-    const poster = posters[i];
     const movie = await prisma.movie.create({
       data: {
         title: `${t.title} #${i + 1} (${runId})`,
-        releaseDate: new Date(2000 + (i % 20), (i % 12), (i % 28) + 1),
-        posterMediaId: poster.id,
+        releaseDate: t.releaseDate,
+        posterUrl: t.posterUrl,
         trailerUrl: toEmbed(t.trailerUrl),
         synopsis: t.synopsis,
         createdBy: creator
@@ -126,6 +172,7 @@ async function main() {
       data: { averageRating: Number(avg.toFixed(2)), reviewCount: count }
     });
   }
+  await recomputeMovieRanks(prisma);
   console.log(`Seeded ${users.length} users and ${movies.length} movies`);
 }
 

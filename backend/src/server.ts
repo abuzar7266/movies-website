@@ -6,6 +6,7 @@ import { execSync } from "node:child_process";
 import os from "node:os";
 import process from "node:process";
 import { config } from "./config/index.js";
+import { recomputeMovieRanks } from "./services/movies.js";
 
 const port = config.port;
 
@@ -24,6 +25,7 @@ async function start() {
   try {
     await prisma.$connect();
     logger.info("DB connected");
+    await recomputeMovieRanks(prisma);
   } catch (err: any) {
     logger.error({ err }, "DB connection failed");
   }
