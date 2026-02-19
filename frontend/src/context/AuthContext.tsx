@@ -74,15 +74,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false;
     const restore = async () => {
       try {
-        const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me");
+        const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
         if (cancelled) return;
         setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
         return;
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           try {
-            await api.post("/auth/refresh");
-            const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me");
+            await api.post("/auth/refresh", undefined, { silentError: true } as any);
+            const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
             if (cancelled) return;
             setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
             return;

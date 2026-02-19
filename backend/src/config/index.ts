@@ -24,6 +24,21 @@ const accessSecret =
 const refreshSecret =
   env.JWT_REFRESH_SECRET ?? (isProd ? (() => { throw new Error("JWT_REFRESH_SECRET required in production"); })() : "dev-refresh-secret");
 
+function normalizeCookieDomain(input?: string) {
+  if (!input) return undefined;
+  let d = input.trim();
+  if (!d) return undefined;
+  try {
+    if (d.startsWith("http://") || d.startsWith("https://")) {
+      d = new URL(d).hostname;
+    }
+  } catch {}
+  d = d.replace(/^\.+/, "").replace(/\.+$/, "");
+  if (!d) return undefined;
+  if (/[\/:]/.test(d)) return undefined;
+  return d;
+}
+
 export const config = {
   isProd,
   port: env.PORT,
@@ -34,7 +49,7 @@ export const config = {
     refreshTtlSec: env.JWT_REFRESH_TTL_SEC ?? 7 * 24 * 60 * 60
   },
   cookies: {
-    domain: env.COOKIE_DOMAIN || undefined,
+    domain: normalizeCookieDomain(env.COOKIE_DOMAIN),
     secure: isProd,
     sameSite: ("lax" as const)
   },

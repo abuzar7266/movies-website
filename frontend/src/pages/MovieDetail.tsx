@@ -186,7 +186,7 @@ function MovieDetail() {
   const [remoteStats, setRemoteStats] = useState<{ averageRating: number; reviewCount: number; rank: number } | null>(null)
   const [remoteReviews, setRemoteReviews] = useState<Array<import("../types/movie").Review>>([])
   const [userRating, setUserRating] = useState<number | null>(null)
-  const [, setLoadingReviews] = useState(false)
+  const [reviewsLoading, setLoadingReviews] = useState(false)
 
   useEffect(() => {
     if (!API_BASE || !id) return;
@@ -251,12 +251,15 @@ function MovieDetail() {
   }, [id]);
 
   useEffect(() => {
-    if (!API_BASE || !id) return;
-    api.get<Envelope<RatingValue>>(`/ratings/${id}`).then(
+    if (!API_BASE || !id || !isAuthenticated) {
+      setUserRating(null);
+      return;
+    }
+    api.get<Envelope<RatingValue>>(`/ratings/${id}`, { silentError: true } as any).then(
       (r) => setUserRating(r.data.value),
       () => setUserRating(null)
     );
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   const movie = API_BASE ? remoteMovie : getMovieById(id || "")
   if (!movie) {
@@ -423,7 +426,7 @@ function MovieDetail() {
 
         <ReviewsSection
           reviews={reviews}
-          loading={API_BASE ? loadingReviews : false}
+          loading={API_BASE ? reviewsLoading : false}
           isAuthenticated={isAuthenticated}
           onStartNew={() => { setEditingReview(null); setShowReviewForm(true); }}
           onLogin={() => setShowLoginDialog(true)}
