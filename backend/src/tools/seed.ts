@@ -5,6 +5,24 @@ import argon2 from "argon2";
 async function main() {
   const basePwd = process.env.SEED_USER_PASSWORD || "demo1234";
   const runId = process.env.SEED_RUN_ID || `${Date.now()}`;
+  const toEmbed = (url: string) => {
+    try {
+      const u = new URL(url);
+      if (u.hostname.includes("youtube.com")) {
+        const id = u.searchParams.get("v");
+        if (id) return `https://www.youtube.com/embed/${id}`;
+        const m = u.pathname.match(/\/embed\/([^/?]+)/);
+        if (m?.[1]) return `https://www.youtube.com/embed/${m[1]}`;
+      }
+      if (u.hostname === "youtu.be") {
+        const id = u.pathname.replace(/^\/+/, "");
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  };
   const usersData = Array.from({ length: 5 }).map((_, i) => ({
     email: `demo+user${i + 1}@example.com`,
     name: `Demo User ${i + 1}`
@@ -70,7 +88,7 @@ async function main() {
         title: `${t.title} #${i + 1} (${runId})`,
         releaseDate: new Date(2000 + (i % 20), (i % 12), (i % 28) + 1),
         posterMediaId: poster.id,
-        trailerUrl: t.trailerUrl,
+        trailerUrl: toEmbed(t.trailerUrl),
         synopsis: t.synopsis,
         createdBy: creator
       }
