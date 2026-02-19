@@ -2,12 +2,13 @@ import { Outlet } from "react-router-dom"
 import Navbar from "./components/layout/Navbar"
 import Footer from "./components/layout/Footer"
 import { Toaster } from "./components/ui/toaster"
+import styles from "./App.module.css"
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className={styles.app}>
       <Navbar />
-      <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 sm:px-5 lg:px-6 pt-0 pb-8">
+      <main className={styles.main}>
         <Outlet />
       </main>
       <Footer />

@@ -1,0 +1,8 @@
+.closeButton {
+  color: hsl(var(--foreground));
+  opacity: 0.9;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}

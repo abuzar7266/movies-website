@@ -1,0 +1,16 @@
+.root {
+  position: relative;
+  height: 1rem;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: hsl(var(--muted));
+}
+
+.indicator {
+  height: 100%;
+  width: 100%;
+  flex: 1 1 auto;
+  background-color: hsl(var(--primary));
+  transition: transform 150ms;
+}
