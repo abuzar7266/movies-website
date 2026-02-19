@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 import { Button } from "../ui/button";
 
 interface MovieFormData {
@@ -12,7 +12,7 @@ interface MovieFormData {
 
 interface MovieFormProps {
   initialData?: MovieFormData;
-  onSubmit: (data: MovieFormData, posterFile?: File | null) => void;
+  onSubmit: (data: MovieFormData, posterFile?: File | null) => void | Promise<void>;
   onClose: () => void;
   error?: string;
 }
@@ -28,23 +28,39 @@ const emptyForm: MovieFormData = {
 const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) => {
   const [form, setForm] = useState<MovieFormData>(initialData || emptyForm);
   const [validationError, setValidationError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [posterFile, setPosterFile] = useState<File | null>(null);
-  const [posterPreview, setPosterPreview] = useState<string>(initialData?.posterUrl || "");
+  const [posterPreview, setPosterPreview] = useState<string>("");
   useEffect(() => {
-    if (!posterFile) return;
-    const url = URL.createObjectURL(posterFile);
-    setPosterPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [posterFile]);
+    return () => {
+      if (posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview);
+    };
+  }, [posterPreview]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handlePosterFile = (file: File | null) => {
+    if (posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview);
+    setPosterFile(file);
+    if (!file) {
+      setPosterPreview("");
+      return;
+    }
+    setPosterPreview(URL.createObjectURL(file));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!form.title.trim() || !form.releaseDate) {
       setValidationError("Title and release date are required.");
       return;
     }
     setValidationError("");
-    onSubmit({ ...form, posterUrl: form.posterUrl }, posterFile);
+    try {
+      setSubmitting(true);
+      await onSubmit({ ...form, posterUrl: form.posterUrl }, posterFile);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleChange = (field: keyof MovieFormData, value: string) => {
@@ -63,7 +79,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
           <h2 className="font-display text-xl font-bold text-foreground">
             {initialData ? "Edit Movie" : "Add New Movie"}
           </h2>
-          <button onClick={onClose} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors" aria-label="Close">
+          <button onClick={onClose} disabled={submitting} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors disabled:opacity-50" aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -99,7 +115,8 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(e) => setPosterFile(e.target.files?.[0] || null)}
+                  disabled={submitting}
+                  onChange={(e) => handlePosterFile(e.target.files?.[0] || null)}
                   className="text-sm"
                 />
                 <span className="text-xs text-[hsl(var(--muted-foreground))]">Max 2MB (png, jpg, webp, gif)</span>
@@ -110,6 +127,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
               <input
                 type="url"
                 value={form.posterUrl}
+                disabled={submitting}
                 onChange={(e) => handleChange("posterUrl", e.target.value)}
                 placeholder="https://..."
                 className={inputClasses}
@@ -140,6 +158,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
             <input
               type="url"
               value={form.trailerUrl}
+              disabled={submitting}
               onChange={(e) => handleChange("trailerUrl", e.target.value)}
               placeholder="https://www.youtube.com/embed/..."
               className={inputClasses}
@@ -150,6 +169,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Synopsis</label>
             <textarea
               value={form.synopsis}
+              disabled={submitting}
               onChange={(e) => handleChange("synopsis", e.target.value)}
               placeholder="Brief description of the movie..."
               rows={3}
@@ -162,11 +182,12 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
           )}
 
           <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} className="flex-1">
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitting} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              {initialData ? "Save Changes" : "Add Movie"}
+            <Button type="submit" disabled={submitting} className="flex-1">
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {initialData ? (submitting ? "Saving…" : "Save Changes") : (submitting ? "Adding…" : "Add Movie")}
             </Button>
           </div>
         </form>

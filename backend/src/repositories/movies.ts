@@ -31,14 +31,14 @@ export function moviesRepo(client: any = defaultClient) {
       return client.movie.delete({ where });
     },
     setPoster(where: Prisma.MovieWhereUniqueInput, mediaId: string) {
-      return client.movie.update({ where, data: { posterMediaId: mediaId } });
+      return client.movie.update({ where, data: { posterMediaId: mediaId, posterUrl: `/media/${mediaId}` }, select: movieSelect });
     },
     suggest(q: string) {
       return client.movie.findMany({
         where: { title: { contains: q, mode: "insensitive" } },
         orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }],
         take: 5,
-        select: { id: true, title: true, posterMediaId: true }
+        select: { id: true, title: true, posterMediaId: true, posterUrl: true }
       });
     }
   };

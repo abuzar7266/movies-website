@@ -26,7 +26,7 @@ router.post("/", requireAuth(), upload.single("file"), async (req, res, next) =>
       },
       select: { id: true, contentType: true, size: true, createdAt: true }
     });
-    res.json({ success: true, data: media });
+    res.json({ success: true, data: { ...media, url: `/media/${media.id}` } });
   } catch (e) {
     next(e);
   }

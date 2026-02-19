@@ -7,6 +7,7 @@ export const movieSelect = {
   averageRating: true,
   reviewCount: true,
   posterMediaId: true,
+  posterUrl: true,
   createdBy: true
 } as const;
 

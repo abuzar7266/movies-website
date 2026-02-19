@@ -11,7 +11,7 @@ vi.mock("../hooks/use-toast", () => {
 import { toast as mockedToast } from "../hooks/use-toast";
 
 describe("api client", () => {
-  const g: any = globalThis;
+  const g = globalThis as typeof globalThis & { fetch: typeof fetch };
   const originalFetch = g.fetch;
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -28,9 +28,9 @@ describe("api client", () => {
       text: () => Promise.resolve(JSON.stringify({ success: true })),
       headers: new Headers(),
     });
-    const res = await api.get<{ success: true }>("/ok", { silentError: true } as any);
+    const res = await api.get<{ success: true }>("/ok", { silentError: true });
     expect(res).toEqual({ success: true });
-    expect((mockedToast.error as any)).not.toHaveBeenCalled();
+    expect(mockedToast.error as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
   });
 
   it("shows toast on 5xx unless silent", async () => {
@@ -41,8 +41,8 @@ describe("api client", () => {
       text: () => Promise.resolve(JSON.stringify({ error: { message: "Boom" } })),
       headers: new Headers(),
     });
-    await expect(api.get("/err" as any)).rejects.toThrow();
-    expect((mockedToast.error as any)).toHaveBeenCalled();
+    await expect(api.get("/err")).rejects.toThrow();
+    expect(mockedToast.error as unknown as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
 
   it("suppresses toast when silentError is true", async () => {
@@ -53,13 +53,13 @@ describe("api client", () => {
       text: () => Promise.resolve("{\"error\":{\"message\":\"Boom\"}}"),
       headers: new Headers(),
     });
-    await expect(api.get("/err" as any, { silentError: true } as any)).rejects.toThrow();
-    expect((mockedToast.error as any)).not.toHaveBeenCalled();
+    await expect(api.get("/err", { silentError: true })).rejects.toThrow();
+    expect(mockedToast.error as unknown as ReturnType<typeof vi.fn>).not.toHaveBeenCalled();
   });
 
   it("shows toast on network error", async () => {
     g.fetch = vi.fn().mockRejectedValue(new TypeError("Network failed"));
-    await expect(api.get("/net" as any)).rejects.toThrow();
-    expect((mockedToast.error as any)).toHaveBeenCalled();
+    await expect(api.get("/net")).rejects.toThrow();
+    expect(mockedToast.error as unknown as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
 });

@@ -2,7 +2,10 @@ import { HttpError } from "../middleware/errors.js";
 import { moviesRepo } from "../repositories/movies.js";
 import { prisma } from "../db.js";
 
-export async function createMovie(userId: string, data: { title: string; releaseDate: string; trailerUrl?: string; synopsis: string }) {
+export async function createMovie(
+  userId: string,
+  data: { title: string; releaseDate: string; trailerUrl?: string; synopsis: string; posterUrl?: string }
+) {
   const Repo = moviesRepo();
   const exists = await Repo.findUnique({ title: data.title });
   if (exists) throw new HttpError(409, "Movie title already exists", "title_taken");
@@ -11,8 +14,9 @@ export async function createMovie(userId: string, data: { title: string; release
     releaseDate: new Date(data.releaseDate),
     trailerUrl: data.trailerUrl || "",
     synopsis: data.synopsis,
+    posterUrl: data.posterUrl ?? undefined,
     createdByUser: { connect: { id: userId } }
-  } as any);
+  });
 }
 
 export async function getMovieOrThrow(id: string) {
@@ -80,7 +84,11 @@ export async function ensureOwnedMovie(userId: string, id: string) {
   return movie;
 }
 
-export async function updateMovie(userId: string, id: string, updates: { title?: string; releaseDate?: string; trailerUrl?: string; synopsis?: string }) {
+export async function updateMovie(
+  userId: string,
+  id: string,
+  updates: { title?: string; releaseDate?: string; trailerUrl?: string; synopsis?: string; posterUrl?: string }
+) {
   const movie = await ensureOwnedMovie(userId, id);
   const Repo = moviesRepo();
   if (updates.title && updates.title !== movie.title) {
@@ -93,7 +101,8 @@ export async function updateMovie(userId: string, id: string, updates: { title?:
       title: updates.title ?? undefined,
       releaseDate: updates.releaseDate ? new Date(updates.releaseDate) : undefined,
       trailerUrl: updates.trailerUrl ?? undefined,
-      synopsis: updates.synopsis ?? undefined
+      synopsis: updates.synopsis ?? undefined,
+      posterUrl: updates.posterUrl ?? undefined
     }
   );
 }

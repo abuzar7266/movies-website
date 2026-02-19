@@ -12,8 +12,52 @@ import { ArrowLeft, Calendar, MessageSquare, Trash2, Trophy } from "lucide-react
 import MovieForm from "../components/movies/MovieForm"
 import { toEmbedUrl } from "../lib/utils"
 import { toast } from "../hooks/use-toast"
-import { api, API_BASE } from "../lib/api"
+import { api, API_BASE, ApiError } from "../lib/api"
 import type { Envelope, MovieDTO, Paginated, ReviewDTO, RatingAverage, RatingValue } from "../types/api"
+
+function MovieDetailSkeleton() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <main className="mx-auto w-full max-w-7xl px-4 py-8">
+        <div className="mb-6 h-8 w-40 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+        <div className="flex flex-col md:flex-row gap-8">
+          <div className="w-full md:w-80 flex-shrink-0">
+            <div className="h-[480px] w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] animate-pulse" />
+          </div>
+          <div className="flex-1 space-y-4">
+            <div className="space-y-3">
+              <div className="h-10 w-3/4 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+              <div className="h-4 w-1/3 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="h-7 w-28 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+              <div className="h-5 w-24 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+              <div className="ml-auto h-7 w-40 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-4 w-24 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+              <div className="h-4 w-full rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+              <div className="h-4 w-11/12 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+              <div className="h-4 w-10/12 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+            </div>
+          </div>
+        </div>
+        <section className="mt-10">
+          <div className="mb-4 h-6 w-28 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+          <div className="aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] animate-pulse" />
+        </section>
+        <section className="mt-10">
+          <div className="mb-4 h-6 w-40 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+          <div className="space-y-3">
+            <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+            <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+            <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+          </div>
+        </section>
+      </main>
+    </div>
+  )
+}
 
 function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRating, onRate }: {
   movie: import("../types/movie").Movie;
@@ -120,7 +164,7 @@ function ReviewsSection({ reviews, loading, isAuthenticated, onStartNew, onLogin
   isAuthenticated: boolean;
   onStartNew: () => void;
   onLogin: () => void;
-  onSubmit: (rating: number, content: string) => void;
+  onSubmit: (rating: number, content: string) => void | Promise<void>;
   onCancel: () => void;
   onEdit: (r: import("../types/movie").Review) => void;
   onDelete: (id: string) => void;
@@ -155,7 +199,11 @@ function ReviewsSection({ reviews, loading, isAuthenticated, onStartNew, onLogin
         </div>
       )}
       {loading ? (
-        <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading reviews…</p>
+        <div className="space-y-3 py-2">
+          <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+          <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+          <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+        </div>
       ) : (
         <div className="space-y-3">
           {reviews.length === 0 ? (
@@ -187,16 +235,30 @@ function MovieDetail() {
   const [remoteReviews, setRemoteReviews] = useState<Array<import("../types/movie").Review>>([])
   const [userRating, setUserRating] = useState<number | null>(null)
   const [reviewsLoading, setLoadingReviews] = useState(false)
+  const [movieLoading, setMovieLoading] = useState(false)
+  const [movieNotFound, setMovieNotFound] = useState(false)
+  const [movieLoadFailed, setMovieLoadFailed] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     if (!API_BASE || !id) return;
     let cancelled = false;
     const run = async () => {
+      setMovieLoading(true)
+      setMovieNotFound(false)
+      setMovieLoadFailed(false)
       try {
         const res = await api.get<Envelope<MovieDTO>>(`/movies/${id}`);
         if (cancelled) return;
         const m = res.data;
-        const posterUrl = m.posterMediaId ? `${API_BASE}/media/${m.posterMediaId}` : "https://placehold.co/480x720?text=Poster";
+        const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
+        const posterUrl = candidate
+          ? candidate.startsWith("http://") || candidate.startsWith("https://")
+            ? candidate
+            : import.meta.env.DEV
+            ? candidate
+            : new URL(candidate, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
+          : "https://placehold.co/480x720?text=Poster"
         const mapped: import("../types/movie").Movie = {
           id: m.id,
           title: m.title,
@@ -213,14 +275,22 @@ function MovieDetail() {
           reviewCount: m.reviewCount ?? 0,
           rank: m.rank ?? 0,
         });
-      } catch {
-        setRemoteMovie(null);
-        setRemoteStats(null);
+      } catch (e) {
+        if (cancelled) return
+        setRemoteMovie(null)
+        setRemoteStats(null)
+        if (e instanceof ApiError && (e.status === 404 || e.status === 400)) {
+          setMovieNotFound(true)
+        } else {
+          setMovieLoadFailed(true)
+        }
+      } finally {
+        if (!cancelled) setMovieLoading(false)
       }
     };
     run();
     return () => { cancelled = true };
-  }, [id]);
+  }, [id, reloadKey]);
 
   useEffect(() => {
     if (!API_BASE || !id) return;
@@ -255,13 +325,39 @@ function MovieDetail() {
       setUserRating(null);
       return;
     }
-    api.get<Envelope<RatingValue>>(`/ratings/${id}`, { silentError: true } as any).then(
+    api.get<Envelope<RatingValue>>(`/ratings/${id}`, { silentError: true }).then(
       (r) => setUserRating(r.data.value),
       () => setUserRating(null)
     );
   }, [id, isAuthenticated]);
 
   const movie = API_BASE ? remoteMovie : getMovieById(id || "")
+  if (API_BASE) {
+    if (movieLoading && !movie) return <MovieDetailSkeleton />
+    if (movieLoadFailed && !movie) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center space-y-3">
+            <h1 className="font-display text-2xl font-bold text-foreground">Failed to load movie</h1>
+            <Button variant="outline" onClick={() => setReloadKey((k) => k + 1)}>Retry</Button>
+          </div>
+        </div>
+      )
+    }
+    if (movieNotFound && !movie) {
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="font-display text-2xl font-bold text-foreground">Movie not found</h1>
+            <Button variant="ghost" className="mt-4" onClick={() => navigate("/")}>
+              <ArrowLeft size={16} className="mr-2" /> Back to Home
+            </Button>
+          </div>
+        </div>
+      )
+    }
+    if (!movie) return <MovieDetailSkeleton />
+  }
   if (!movie) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -300,7 +396,7 @@ function MovieDetail() {
       }
     })();
   };
-  const handleSubmitMovie = (data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string }, posterFile?: File | null) => {
+  const handleSubmitMovie = async (data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string }, posterFile?: File | null) => {
     if (!API_BASE) {
       updateMovie(movie.id, {
         title: data.title,
@@ -313,33 +409,38 @@ function MovieDetail() {
       toast.success("Movie updated");
       return;
     }
-    (async () => {
-      try {
-        await api.patch(`/movies/${movie.id}`, {
-          title: data.title,
-          releaseDate: data.releaseDate,
-          trailerUrl: data.trailerUrl,
-          synopsis: data.synopsis,
-        });
-        if (posterFile) {
-          const form = new FormData();
-          form.append("file", posterFile);
-          const upload = await fetch(`${API_BASE}/media`, { method: "POST", body: form, credentials: "include" });
-          if (!upload.ok) throw new Error("Upload failed");
-          const uploadJson = await upload.json() as { success: true; data: { id: string } };
-          const mediaId = uploadJson.data.id;
-          await api.patch(`/movies/${movie.id}/poster`, { mediaId });
-        }
-        toast.success("Movie updated");
-        setShowEditMovie(false);
-      } catch {
-        toast.error("Failed to update movie");
+    try {
+      await api.patch(`/movies/${movie.id}`, {
+        title: data.title,
+        releaseDate: data.releaseDate,
+        ...(data.trailerUrl ? { trailerUrl: toEmbedUrl(data.trailerUrl) } : {}),
+        synopsis: data.synopsis,
+        ...(posterFile ? {} : data.posterUrl ? { posterUrl: data.posterUrl } : {}),
+      });
+      if (posterFile) {
+        const form = new FormData();
+        form.append("file", posterFile);
+        const mediaUrl = import.meta.env.DEV
+          ? "/media"
+          : new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString();
+        const upload = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" });
+        if (!upload.ok) throw new Error("Upload failed");
+        const uploadJson = await upload.json() as Envelope<{ id: string; url: string }>;
+        const mediaId = uploadJson.data.id;
+        await api.patch(`/movies/${movie.id}/poster`, { mediaId });
       }
-    })();
+      toast.success("Movie updated");
+      setShowEditMovie(false);
+    } catch {
+      toast.error("Failed to update movie");
+    }
   }
 
-  const handleSubmitReview = (rating: number, content: string) => {
-    if (!user) return
+  const handleSubmitReview = async (rating: number, content: string) => {
+    if (!user) {
+      setShowLoginDialog(true)
+      return
+    }
     const doLocal = () => {
       if (editingReview) {
         updateReview(editingReview.id, { rating, content })
@@ -355,29 +456,32 @@ function MovieDetail() {
       doLocal();
       return;
     }
-    (async () => {
-      try {
-        await api.post("/ratings", { movieId: movie.id, value: rating });
-        if (editingReview) {
-          await api.patch(`/reviews/${editingReview.id}`, { content });
-          setEditingReview(null);
-          toast.success("Review updated");
-        } else {
-          await api.post("/reviews", { movieId: movie.id, content });
-          toast.success("Review added");
-        }
-        const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
-        const items = res.data.items.map((r) => ({
-          id: r.id, movieId: r.movieId, userId: r.userId, rating: 0, content: r.content,
-          createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
-        })) as Array<import("../types/movie").Review>;
-        setRemoteReviews(items);
-      } catch {
-        toast.error("Failed to submit review");
-      } finally {
-        setShowReviewForm(false);
+    try {
+      await api.post("/ratings", { movieId: movie.id, value: rating });
+      if (editingReview) {
+        await api.patch(`/reviews/${editingReview.id}`, { content });
+        setEditingReview(null);
+        toast.success("Review updated");
+      } else {
+        await api.post("/reviews", { movieId: movie.id, content });
+        toast.success("Review added");
       }
-    })();
+      const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
+      const items = res.data.items.map((r) => ({
+        id: r.id, movieId: r.movieId, userId: r.userId, rating: 0, content: r.content,
+        createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
+      })) as Array<import("../types/movie").Review>;
+      setRemoteReviews(items);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setShowLoginDialog(true);
+        toast.error("Please log in to submit a review");
+      } else {
+        toast.error("Failed to submit review");
+      }
+    } finally {
+      setShowReviewForm(false);
+    }
   }
 
   const handleEditReview = (review: import("../types/movie").Review) => {

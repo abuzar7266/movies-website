@@ -19,9 +19,14 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const persisted = loadJSON<AuthState>(STORAGE_AUTH, { user: null, isAuthenticated: false });
-  const [authState, setAuthState] = useState<AuthState>(persisted);
-  useEffect(() => { saveJSON(STORAGE_AUTH, authState) }, [authState]);
+  const [authState, setAuthState] = useState<AuthState>(() => loadJSON<AuthState>(STORAGE_AUTH, { user: null, isAuthenticated: false }));
+  useEffect(() => {
+    if (authState.isAuthenticated) {
+      saveJSON(STORAGE_AUTH, authState);
+    } else {
+      localStorage.removeItem(STORAGE_AUTH);
+    }
+  }, [authState]);
 
   const login = useCallback(async (email: string, password: string): Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }> => {
     try {
@@ -59,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = useCallback(() => {
     api.post("/auth/logout").catch(() => {});
+    localStorage.removeItem(STORAGE_AUTH);
     setAuthState({ user: null, isAuthenticated: false });
   }, []);
 
@@ -73,21 +79,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let cancelled = false;
     const restore = async () => {
+      const persisted = loadJSON<AuthState>(STORAGE_AUTH, { user: null, isAuthenticated: false });
+      if (!persisted.isAuthenticated) {
+        if (!cancelled) setAuthState({ user: null, isAuthenticated: false });
+        return;
+      }
       try {
-        const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
+        const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true });
         if (cancelled) return;
-        setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
+        setAuthState(prev => ({
+          user: {
+            id: me.data.id,
+            name: me.data.name,
+            email: me.data.email,
+            avatarUrl: prev.user?.avatarUrl,
+            createdAt: prev.user?.createdAt ?? new Date().toISOString(),
+          },
+          isAuthenticated: true,
+        }));
         return;
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
-          try {
-            await api.post("/auth/refresh", undefined, { silentError: true } as any);
-            const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
-            if (cancelled) return;
-            setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
-            return;
-          } catch {}
+          const refreshOk = await (async (): Promise<boolean> => {
+            try {
+              await api.post<unknown>("/auth/refresh", undefined, { silentError: true });
+              return true;
+            } catch {
+              return false;
+            }
+          })();
+          if (refreshOk) {
+            try {
+              const me2 = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true });
+              if (cancelled) return;
+              setAuthState(prev => ({
+                user: {
+                  id: me2.data.id,
+                  name: me2.data.name,
+                  email: me2.data.email,
+                  avatarUrl: prev.user?.avatarUrl,
+                  createdAt: prev.user?.createdAt ?? new Date().toISOString(),
+                },
+                isAuthenticated: true,
+              }));
+              return;
+            } catch {
+              void 0;
+            }
+          }
         }
+        return;
       }
       if (!cancelled) setAuthState({ user: null, isAuthenticated: false });
     };

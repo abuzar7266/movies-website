@@ -9,6 +9,7 @@ const envSchema = z.object({
   JWT_ACCESS_TTL_SEC: z.coerce.number().int().positive().optional(),
   JWT_REFRESH_TTL_SEC: z.coerce.number().int().positive().optional(),
   COOKIE_DOMAIN: z.string().optional(),
+  COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).optional(),
   CORS_ORIGINS: z.string().optional()
 });
 
@@ -51,7 +52,7 @@ export const config = {
   cookies: {
     domain: normalizeCookieDomain(env.COOKIE_DOMAIN),
     secure: isProd,
-    sameSite: ("lax" as const)
+    sameSite: (env.COOKIE_SAMESITE ?? (isProd ? "none" : "lax")) as "lax" | "strict" | "none"
   },
   cors: {
     origins: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean) : null

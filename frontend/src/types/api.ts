@@ -23,6 +23,7 @@ export interface MovieDTO {
   title: string;
   releaseDate: string;
   posterMediaId?: string | null;
+  posterUrl?: string | null;
   trailerUrl: string;
   synopsis: string;
   createdBy: string;
@@ -77,5 +78,5 @@ export interface UploadMediaResponse {
   contentType: string;
   size: number;
   createdAt: string;
+  url: string;
 }
-
