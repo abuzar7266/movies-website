@@ -39,9 +39,11 @@ export default function ReviewCard({ review, onEdit, onDelete }: ReviewCardProps
           </button>
         </div>
       </div>
-      <div className="mb-2">
-        <StarRating rating={review.rating} />
-      </div>
+      {review.rating > 0 && (
+        <div className="mb-2">
+          <StarRating rating={review.rating} />
+        </div>
+      )}
       <p className="text-sm leading-relaxed text-[hsl(var(--foreground))]">{review.content}</p>
     </div>
   );

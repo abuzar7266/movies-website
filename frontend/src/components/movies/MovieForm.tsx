@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "../ui/button";
 
@@ -12,7 +12,7 @@ interface MovieFormData {
 
 interface MovieFormProps {
   initialData?: MovieFormData;
-  onSubmit: (data: MovieFormData) => void;
+  onSubmit: (data: MovieFormData, posterFile?: File | null) => void;
   onClose: () => void;
   error?: string;
 }
@@ -28,6 +28,14 @@ const emptyForm: MovieFormData = {
 const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) => {
   const [form, setForm] = useState<MovieFormData>(initialData || emptyForm);
   const [validationError, setValidationError] = useState("");
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string>(initialData?.posterUrl || "");
+  useEffect(() => {
+    if (!posterFile) return;
+    const url = URL.createObjectURL(posterFile);
+    setPosterPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [posterFile]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +44,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
       return;
     }
     setValidationError("");
-    onSubmit(form);
+    onSubmit({ ...form, posterUrl: form.posterUrl }, posterFile);
   };
 
   const handleChange = (field: keyof MovieFormData, value: string) => {
@@ -84,15 +92,47 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Poster Image URL</label>
-            <input
-              type="url"
-              value={form.posterUrl}
-              onChange={(e) => handleChange("posterUrl", e.target.value)}
-              placeholder="https://..."
-              className={inputClasses}
-            />
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Poster Image</label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setPosterFile(e.target.files?.[0] || null)}
+                  className="text-sm"
+                />
+                <span className="text-xs text-[hsl(var(--muted-foreground))]">Max 2MB (png, jpg, webp, gif)</span>
+              </div>
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Or Poster Image URL</label>
+              <input
+                type="url"
+                value={form.posterUrl}
+                onChange={(e) => handleChange("posterUrl", e.target.value)}
+                placeholder="https://..."
+                className={inputClasses}
+              />
+            </div>
+            {(posterPreview || form.posterUrl) && (
+              <div className="mt-1">
+                <div className="overflow-hidden rounded-md border border-[hsl(var(--border))] w-32">
+                  <img
+                    src={posterPreview || form.posterUrl}
+                    alt="Poster preview"
+                    className="block h-48 w-32 object-cover"
+                    onError={(e) => {
+                      const t = e.currentTarget;
+                      if (!t.dataset.fallback) {
+                        t.dataset.fallback = "1";
+                        t.src = "https://placehold.co/320x480?text=Poster";
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <div>

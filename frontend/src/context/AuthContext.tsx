@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import type { User } from "../types/movie";
-import { sampleUsers } from "../data/sample-data";
 import { loadJSON, saveJSON } from "../lib/utils";
-import { STORAGE_AUTH, STORAGE_USERS } from "../lib/keys";
+import { STORAGE_AUTH } from "../lib/keys";
+import { api, ApiError } from "../lib/api";
 
 interface AuthState {
   user: User | null;
@@ -23,44 +23,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authState, setAuthState] = useState<AuthState>(persisted);
   useEffect(() => { saveJSON(STORAGE_AUTH, authState) }, [authState]);
 
-  type StoredUser = { id: string; name: string; email: string; avatarUrl?: string; createdAt: string; password: string };
   const login = useCallback(async (email: string, password: string): Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }> => {
-    const store = loadJSON<StoredUser[]>(STORAGE_USERS, []);
-    const fixed = [
-      { email: "alex@example.com", password: "password123" },
-      { email: "sam@example.com", password: "password123" },
-      { email: "jordan@example.com", password: "password123" },
-    ];
-    const user = sampleUsers.find((u) => u.email === email) || store.find((u) => u.email === email);
-    if (!user) return { ok: false, reason: "not_found" };
-    const ok =
-      (fixed.find((c) => c.email === email && c.password === password) !== undefined) ||
-      (store.find((u) => u.email === email && u.password === password) !== undefined);
-    if (!ok) return { ok: false, reason: "wrong_password" };
-    const asUser: User = { id: user.id, name: user.name, email: user.email, avatarUrl: user.avatarUrl, createdAt: user.createdAt };
-    setAuthState({ user: asUser, isAuthenticated: true });
-    return { ok: true };
+    try {
+      const resp = await api.post<{ success: true; data: { id: string; name: string; email: string; role: string } }>("/auth/login", { email, password });
+      const u: User = {
+        id: resp.data.id,
+        name: resp.data.name,
+        email: resp.data.email,
+        createdAt: new Date().toISOString(),
+      };
+      setAuthState({ user: u, isAuthenticated: true });
+      return { ok: true };
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) return { ok: false, reason: "wrong_password" };
+      return { ok: false, reason: "not_found" };
+    }
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
-    if (sampleUsers.find((u) => u.email === email)) return false;
-    const users = loadJSON<StoredUser[]>(STORAGE_USERS, []);
-    if (users.find((u) => u.email === email)) return false;
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name,
-      email,
-      avatarUrl: `https://i.pravatar.cc/150?u=${email}`,
-      createdAt: new Date().toISOString(),
-      password,
-    };
-    users.push(newUser);
-    saveJSON(STORAGE_USERS, users);
-    setAuthState({ user: { id: newUser.id, name, email, avatarUrl: newUser.avatarUrl, createdAt: newUser.createdAt }, isAuthenticated: true });
-    return true;
+    try {
+      const resp = await api.post<{ success: true; data: { id: string; name: string; email: string; role: string } }>("/auth/register", { name, email, password });
+      const u: User = {
+        id: resp.data.id,
+        name: resp.data.name,
+        email: resp.data.email,
+        createdAt: new Date().toISOString(),
+      };
+      setAuthState({ user: u, isAuthenticated: true });
+      return true;
+    } catch (e) {
+      if (e instanceof ApiError && (e.status === 409 || e.status === 400)) return false;
+      return false;
+    }
   }, []);
 
   const logout = useCallback(() => {
+    api.post("/auth/logout").catch(() => {});
     setAuthState({ user: null, isAuthenticated: false });
   }, []);
 
@@ -68,14 +66,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthState(prev => {
       if (!prev.user) return prev;
       const nextUser = { ...prev.user, avatarUrl: dataUrl };
-      const users = loadJSON<StoredUser[]>(STORAGE_USERS, []);
-      const idx = users.findIndex(u => u.id === nextUser.id);
-      if (idx !== -1) {
-        users[idx] = { ...users[idx], avatarUrl: dataUrl };
-        saveJSON(STORAGE_USERS, users);
-      }
       return { ...prev, user: nextUser };
     });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const restore = async () => {
+      try {
+        const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
+        if (cancelled) return;
+        setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
+        return;
+      } catch (e) {
+        if (e instanceof ApiError && e.status === 401) {
+          try {
+            await api.post("/auth/refresh", undefined, { silentError: true } as any);
+            const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
+            if (cancelled) return;
+            setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
+            return;
+          } catch {}
+        }
+      }
+      if (!cancelled) setAuthState({ user: null, isAuthenticated: false });
+    };
+    restore();
+    return () => { cancelled = true };
   }, []);
 
   return (
