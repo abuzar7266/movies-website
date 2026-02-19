@@ -1,58 +1,58 @@
 import { useEffect, useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { useMovies } from "../context/MovieContext"
-import { useAuth } from "../context/AuthContext"
-import { sampleUsers } from "../data/sample-data"
-import StarRating from "../components/StarRating"
-import ReviewCard from "../components/review/ReviewCard"
-import ReviewForm from "../components/review/ReviewForm"
-import { Button } from "../components/ui/button"
-import LoginRequiredDialog from "../components/auth/LoginRequiredDialog"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog"
+import { useMovies } from "../../context/MovieContext"
+import { useAuth } from "../../context/AuthContext"
+import { sampleUsers } from "../../data/sample-data"
+import StarRating from "../../components/StarRating"
+import ReviewCard from "../../components/review/ReviewCard"
+import ReviewForm from "../../components/review/ReviewForm"
+import { Button } from "../../components/ui/button"
+import LoginRequiredDialog from "../../components/auth/LoginRequiredDialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog"
 import { ArrowLeft, Calendar, Loader2, MessageSquare, Trash2, Trophy } from "lucide-react"
-import MovieForm from "../components/movies/MovieForm"
-import { toEmbedUrl } from "../lib/utils"
-import { toast } from "../hooks/use-toast"
-import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi } from "../api"
-import type { MovieDTO, ReviewDTO } from "../types/api"
+import MovieForm from "../../components/movies/MovieForm"
+import { toEmbedUrl } from "../../lib/utils"
+import { toast } from "../../hooks/use-toast"
+import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi } from "../../api"
+import type { MovieDTO, ReviewDTO } from "../../types/api"
+import styles from "./MovieDetail.module.css"
 
 function MovieDetailSkeleton() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <main className="mx-auto w-full max-w-7xl px-4 py-8">
-        <div className="mb-6 h-8 w-40 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-        <div className="flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-80 flex-shrink-0">
-            <div className="h-[480px] w-full rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] animate-pulse" />
+    <div className={styles.page}>
+      <main className={styles.main}>
+        <div className={`${styles.skeletonTitleBlock} ${styles.pulse}`} />
+        <div className={styles.skeletonLayout}>
+          <div className={styles.posterCol}>
+            <div className={`${styles.skeletonPosterBlock} ${styles.pulse}`} />
           </div>
-          <div className="flex-1 space-y-4">
-            <div className="space-y-3">
-              <div className="h-10 w-3/4 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-              <div className="h-4 w-1/3 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+          <div className={styles.skeletonContent}>
+            <div className={styles.skeletonStackSm}>
+              <div className={`${styles.skeletonLineLg} ${styles.pulse}`} />
+              <div className={`${styles.skeletonLineSm} ${styles.pulse}`} />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="h-7 w-28 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-              <div className="h-5 w-24 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-              <div className="ml-auto h-7 w-40 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+            <div className={styles.skeletonRow}>
+              <div className={`${styles.skeletonChip} ${styles.pulse}`} />
+              <div className={`${styles.skeletonChipSm} ${styles.pulse}`} />
+              <div className={`${styles.skeletonChipWide} ${styles.pulse}`} />
             </div>
-            <div className="space-y-2">
-              <div className="h-4 w-24 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-              <div className="h-4 w-full rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-              <div className="h-4 w-11/12 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-              <div className="h-4 w-10/12 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
+            <div className={styles.skeletonParagraph}>
+              <div className={`${styles.skeletonParaLine} ${styles.pulse}`} />
+              <div className={`${styles.skeletonParaLine} ${styles.skeletonParaLine90} ${styles.pulse}`} />
+              <div className={`${styles.skeletonParaLine} ${styles.skeletonParaLine80} ${styles.pulse}`} />
             </div>
           </div>
         </div>
-        <section className="mt-10">
-          <div className="mb-4 h-6 w-28 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-          <div className="aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] animate-pulse" />
+        <section className={styles.section}>
+          <div className={`${styles.skeletonChip} ${styles.skeletonSectionTitleShort} ${styles.pulse}`} />
+          <div className={`${styles.trailerFrame} ${styles.skeletonTrailerFrame} ${styles.pulse}`} />
         </section>
-        <section className="mt-10">
-          <div className="mb-4 h-6 w-40 rounded-md bg-[hsl(var(--secondary))] animate-pulse" />
-          <div className="space-y-3">
-            <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
-            <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
-            <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+        <section className={styles.section}>
+          <div className={`${styles.skeletonChip} ${styles.skeletonSectionTitleLong} ${styles.pulse}`} />
+          <div className={styles.reviewsLoading}>
+            <div className={`${styles.skeletonCard} ${styles.pulse}`} />
+            <div className={`${styles.skeletonCard} ${styles.pulse}`} />
+            <div className={`${styles.skeletonCard} ${styles.pulse}`} />
           </div>
         </section>
       </main>
@@ -61,7 +61,7 @@ function MovieDetailSkeleton() {
 }
 
 function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRating, onRate }: {
-  movie: import("../types/movie").Movie;
+  movie: import("../../types/movie").Movie;
   stats: { averageRating: number; reviewCount: number; rank: number };
   owner?: { name: string } | undefined;
   isOwner: boolean;
@@ -71,13 +71,13 @@ function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRati
   onRate?: (value: number) => void;
 }) {
   return (
-    <div className="flex flex-col md:flex-row gap-8 animate-fade-in">
-      <div className="w-full md:w-80 flex-shrink-0">
-        <div className="overflow-hidden rounded-lg border border-[hsl(var(--border))]">
+    <div className={`${styles.header} animate-fade-in`}>
+      <div className={styles.posterCol}>
+        <div className={styles.posterFrame}>
           <img
             src={movie.posterUrl}
             alt={movie.title}
-            className="w-full object-cover"
+            className={styles.posterImg}
             onError={(e) => {
               const t = e.currentTarget
               if (!t.dataset.fallback) {
@@ -89,52 +89,52 @@ function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRati
           />
         </div>
       </div>
-      <div className="flex-1 space-y-4">
-        <div className="flex items-start justify-between gap-4">
+      <div className={styles.headerBody}>
+        <div className={styles.titleRow}>
           <div>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-foreground">{movie.title}</h1>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[hsl(var(--muted-foreground))]">
-              <span className="flex items-center gap-1">
+            <h1 className={styles.title}>{movie.title}</h1>
+            <div className={styles.meta}>
+              <span className={styles.metaItem}>
                 <Calendar size={14} /> {new Date(movie.releaseDate).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}
               </span>
               {owner && <span>Added by {owner.name}</span>}
             </div>
           </div>
           {stats.rank > 0 && (
-            <div className="rank-badge flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-[hsl(var(--primary-foreground))]">
+            <div className={styles.rankBadge}>
               <Trophy size={14} />
               <span>Rank #{stats.rank}</span>
             </div>
           )}
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+        <div className={styles.statsRow}>
+          <div className={styles.ratingGroup}>
             <StarRating rating={Math.round(stats.averageRating)} size={20} />
-            <span className="text-lg font-semibold text-foreground">{stats.averageRating.toFixed(1)}</span>
+            <span className={styles.avgRating}>{stats.averageRating.toFixed(1)}</span>
           </div>
-          <span className="flex items-center gap-1 text-sm text-[hsl(var(--muted-foreground))]">
+          <span className={styles.reviewCount}>
             <MessageSquare size={14} /> {stats.reviewCount} reviews
           </span>
           {onRate && (
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-sm text-[hsl(var(--muted-foreground))]">Your rating</span>
+            <div className={styles.userRating}>
+              <span className={styles.userRatingLabel}>Your rating</span>
               <StarRating rating={userRating ?? 0} interactive onRate={onRate} />
             </div>
           )}
         </div>
         {isOwner && (
-          <div className="flex gap-2">
+          <div className={styles.ownerActions}>
             <Button variant="outline" size="sm" onClick={onEdit}>
               Edit
             </Button>
-            <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:bg-destructive/10 border-destructive/30">
-              <Trash2 size={14} className="mr-1.5" /> Delete
+            <Button variant="outline" size="sm" onClick={onDelete} className={styles.destructiveButton}>
+              <Trash2 size={14} className={styles.deleteIcon} /> Delete
             </Button>
           </div>
         )}
         <div>
-          <h3 className="font-display text-sm font-semibold text-[hsl(var(--muted-foreground))] uppercase tracking-wider mb-2">Synopsis</h3>
-          <p className="text-[hsl(var(--secondary-foreground))] leading-relaxed">{movie.synopsis}</p>
+          <h3 className={styles.synopsisTitle}>Synopsis</h3>
+          <p className={styles.synopsisText}>{movie.synopsis}</p>
         </div>
       </div>
     </div>
@@ -144,13 +144,13 @@ function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRati
 function TrailerSection({ title, url }: { title: string; url: string }) {
   if (!url) return null;
   return (
-    <section className="mt-10 animate-slide-up">
-      <h3 className="font-display text-lg font-bold text-foreground mb-4">Trailer</h3>
-      <div className="aspect-video w-full max-w-3xl overflow-hidden rounded-lg border border-[hsl(var(--border))]">
+    <section className={`${styles.section} animate-slide-up`}>
+      <h3 className={styles.sectionTitle}>Trailer</h3>
+      <div className={styles.trailerFrame}>
         <iframe
           src={toEmbedUrl(url)}
           title={`${title} Trailer`}
-          className="h-full w-full"
+          className={styles.trailerIframe}
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
         />
@@ -160,7 +160,7 @@ function TrailerSection({ title, url }: { title: string; url: string }) {
 }
 
 function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canStartNew, initialRating, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
-  reviews: Array<import("../types/movie").Review>;
+  reviews: Array<import("../../types/movie").Review>;
   loading?: boolean;
   isAuthenticated: boolean;
   currentUserId?: string;
@@ -170,15 +170,15 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
   onLogin: () => void;
   onSubmit: (rating: number, content: string) => void | Promise<void>;
   onCancel: () => void;
-  onEdit: (r: import("../types/movie").Review) => void;
+  onEdit: (r: import("../../types/movie").Review) => void;
   onDelete: (id: string) => void;
   showReviewForm: boolean;
-  editingReview: import("../types/movie").Review | null;
+  editingReview: import("../../types/movie").Review | null;
 }) {
   return (
-    <section className="mt-10">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-display text-lg font-bold text-foreground">Reviews ({reviews.length})</h3>
+    <section className={styles.section}>
+      <div className={styles.reviewsHeader}>
+        <h3 className={styles.reviewsTitle}>Reviews ({reviews.length})</h3>
         {!showReviewForm && (
           isAuthenticated ? (
             canStartNew ? (
@@ -194,7 +194,7 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
         )}
       </div>
       {showReviewForm && (
-        <div className="mb-6">
+        <div className={styles.reviewFormWrap}>
           <ReviewForm
             initialRating={initialRating}
             initialContent={editingReview?.content}
@@ -205,15 +205,15 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
         </div>
       )}
       {loading ? (
-        <div className="space-y-3 py-2">
-          <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
-          <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
-          <div className="h-20 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] animate-pulse" />
+        <div className={styles.reviewsLoading}>
+          <div className={`${styles.skeletonCard} ${styles.pulse}`} />
+          <div className={`${styles.skeletonCard} ${styles.pulse}`} />
+          <div className={`${styles.skeletonCard} ${styles.pulse}`} />
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className={styles.reviewsList}>
           {reviews.length === 0 ? (
-            <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No reviews yet. Be the first to share your thoughts!</p>
+            <p className={styles.emptyReviews}>No reviews yet. Be the first to share your thoughts!</p>
           ) : (
             reviews.map((review) => (
               <ReviewCard key={review.id} review={review} currentUserId={currentUserId} onEdit={onEdit} onDelete={onDelete} />
@@ -227,7 +227,7 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
 
 type RemoteStats = { averageRating: number; reviewCount: number; rank: number }
 
-function mapMovieDtoToMovie(m: MovieDTO): import("../types/movie").Movie {
+function mapMovieDtoToMovie(m: MovieDTO): import("../../types/movie").Movie {
   const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
   const posterUrl = candidate
     ? candidate.startsWith("http://") || candidate.startsWith("https://")
@@ -246,7 +246,7 @@ function mapMovieDtoToMovie(m: MovieDTO): import("../types/movie").Movie {
   }
 }
 
-function mapReviewDtoToReview(r: ReviewDTO): import("../types/movie").Review {
+function mapReviewDtoToReview(r: ReviewDTO): import("../../types/movie").Review {
   return {
     id: r.id,
     movieId: r.movieId,
@@ -262,11 +262,11 @@ function mapReviewDtoToReview(r: ReviewDTO): import("../types/movie").Review {
     content: r.content,
     createdAt: new Date(r.createdAt).toISOString(),
     updatedAt: new Date(r.updatedAt).toISOString(),
-  } as import("../types/movie").Review
+  } as import("../../types/movie").Review
 }
 
 function useRemoteMovieData(id: string | undefined, reloadKey: number) {
-  const [movie, setMovie] = useState<import("../types/movie").Movie | null>(null)
+  const [movie, setMovie] = useState<import("../../types/movie").Movie | null>(null)
   const [stats, setStats] = useState<RemoteStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -309,7 +309,7 @@ function useRemoteMovieData(id: string | undefined, reloadKey: number) {
 }
 
 function useRemoteReviewsData(id: string | undefined) {
-  const [reviews, setReviews] = useState<Array<import("../types/movie").Review>>([])
+  const [reviews, setReviews] = useState<Array<import("../../types/movie").Review>>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -353,7 +353,7 @@ function MovieDetail() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
 
   const [showReviewForm, setShowReviewForm] = useState(false)
-  const [editingReview, setEditingReview] = useState<import("../types/movie").Review | null>(null)
+  const [editingReview, setEditingReview] = useState<import("../../types/movie").Review | null>(null)
   const [draftReviewRating, setDraftReviewRating] = useState<number | undefined>(undefined)
   const [showEditMovie, setShowEditMovie] = useState(false)
   const reviewsSectionRef = useRef<HTMLDivElement | null>(null)
@@ -372,9 +372,9 @@ function MovieDetail() {
     if (remoteMovie.loading && !movie) return <MovieDetailSkeleton />
     if (remoteMovie.loadFailed && !movie) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center space-y-3">
-            <h1 className="font-display text-2xl font-bold text-foreground">Failed to load movie</h1>
+        <div className={`${styles.page} ${styles.centerPage}`}>
+          <div className={styles.centerContent}>
+            <h1 className={styles.centerTitle}>Failed to load movie</h1>
             <Button variant="outline" onClick={() => setReloadKey((k) => k + 1)}>Retry</Button>
           </div>
         </div>
@@ -382,11 +382,11 @@ function MovieDetail() {
     }
     if (remoteMovie.notFound && !movie) {
       return (
-        <div className="min-h-screen bg-background flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="font-display text-2xl font-bold text-foreground">Movie not found</h1>
-            <Button variant="ghost" className="mt-4" onClick={() => navigate("/")}>
-              <ArrowLeft size={16} className="mr-2" /> Back to Home
+        <div className={`${styles.page} ${styles.centerPage}`}>
+          <div className={styles.centerContent}>
+            <h1 className={styles.centerTitle}>Movie not found</h1>
+            <Button variant="ghost" onClick={() => navigate("/")}>
+              <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
             </Button>
           </div>
         </div>
@@ -396,11 +396,11 @@ function MovieDetail() {
   }
   if (!movie) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="font-display text-2xl font-bold text-foreground">Movie not found</h1>
-          <Button variant="ghost" className="mt-4" onClick={() => navigate("/")}>
-            <ArrowLeft size={16} className="mr-2" /> Back to Home
+      <div className={`${styles.page} ${styles.centerPage}`}>
+        <div className={styles.centerContent}>
+          <h1 className={styles.centerTitle}>Movie not found</h1>
+          <Button variant="ghost" onClick={() => navigate("/")}>
+            <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
           </Button>
         </div>
       </div>
@@ -546,7 +546,7 @@ function MovieDetail() {
     }
   }
 
-  const handleEditReview = (review: import("../types/movie").Review) => {
+  const handleEditReview = (review: import("../../types/movie").Review) => {
     if (!user || review.userId !== user.id) {
       toast.error("You can only edit your own review")
       return
@@ -608,13 +608,11 @@ function MovieDetail() {
     setConfirmDeleteReviewId(reviewId)
   }
 
-  // reserved for future edit modal; keeping layout parity with sample
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <main className="mx-auto w-full max-w-7xl px-4 py-8">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="mb-6 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
-          <ArrowLeft size={16} className="mr-1.5" /> Back to Movies
+    <div className={styles.page}>
+      <main className={styles.main}>
+        <Button variant="ghost" size="sm" onClick={() => navigate("/")} className={styles.backButton}>
+          <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Movies
         </Button>
 
         <DetailHeader
@@ -677,7 +675,7 @@ function MovieDetail() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDeleteMovieOpen(false)} disabled={deleting}>Cancel</Button>
-            <Button onClick={deleteMovieConfirmed} disabled={deleting} className="text-destructive hover:bg-destructive/10 border-destructive/30">
+            <Button onClick={deleteMovieConfirmed} disabled={deleting} className={styles.destructiveButton}>
               Delete
             </Button>
           </DialogFooter>
@@ -695,9 +693,9 @@ function MovieDetail() {
             <Button
               onClick={() => confirmDeleteReviewId && void deleteReviewConfirmed(confirmDeleteReviewId)}
               disabled={deleting}
-              className="text-destructive hover:bg-destructive/10 border-destructive/30"
+              className={styles.destructiveButton}
             >
-              {deleting && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {deleting && <Loader2 size={16} className={`${styles.deleteIcon} ${styles.spin}`} />}
               {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
