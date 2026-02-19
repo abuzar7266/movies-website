@@ -15,6 +15,18 @@ import { toast } from "../hooks/use-toast"
 import { api, API_BASE, ApiError } from "../lib/api"
 import type { Envelope, MovieDTO, Paginated, ReviewDTO, RatingAverage, RatingValue } from "../types/api"
 
+function resolveMediaUrl(path: string): string {
+  if (import.meta.env.DEV) return path.startsWith("/") ? path : `/${path}`
+  if (API_BASE) {
+    try {
+      return new URL(path, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
+    } catch {
+      return (API_BASE || "") + path
+    }
+  }
+  return path.startsWith("/") ? path : `/${path}`
+}
+
 function MovieDetailSkeleton() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -158,10 +170,11 @@ function TrailerSection({ title, url }: { title: string; url: string }) {
   );
 }
 
-function ReviewsSection({ reviews, loading, isAuthenticated, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
+function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
   reviews: Array<import("../types/movie").Review>;
   loading?: boolean;
   isAuthenticated: boolean;
+  currentUserId?: string;
   onStartNew: () => void;
   onLogin: () => void;
   onSubmit: (rating: number, content: string) => void | Promise<void>;
@@ -210,7 +223,7 @@ function ReviewsSection({ reviews, loading, isAuthenticated, onStartNew, onLogin
             <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No reviews yet. Be the first to share your thoughts!</p>
           ) : (
             reviews.map((review) => (
-              <ReviewCard key={review.id} review={review} onEdit={onEdit} onDelete={onDelete} />
+              <ReviewCard key={review.id} review={review} currentUserId={currentUserId} onEdit={onEdit} onDelete={onDelete} />
             ))
           )}
         </div>
@@ -304,6 +317,13 @@ function MovieDetail() {
           id: r.id,
           movieId: r.movieId,
           userId: r.userId,
+          author: r.user
+            ? {
+                id: r.user.id,
+                name: r.user.name,
+                avatarUrl: r.user.avatarMediaId ? resolveMediaUrl(`/media/${r.user.avatarMediaId}`) : undefined,
+              }
+            : undefined,
           rating: 0,
           content: r.content,
           createdAt: new Date(r.createdAt).toISOString(),
@@ -468,7 +488,18 @@ function MovieDetail() {
       }
       const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
       const items = res.data.items.map((r) => ({
-        id: r.id, movieId: r.movieId, userId: r.userId, rating: 0, content: r.content,
+        id: r.id,
+        movieId: r.movieId,
+        userId: r.userId,
+        author: r.user
+          ? {
+              id: r.user.id,
+              name: r.user.name,
+              avatarUrl: r.user.avatarMediaId ? resolveMediaUrl(`/media/${r.user.avatarMediaId}`) : undefined,
+            }
+          : undefined,
+        rating: 0,
+        content: r.content,
         createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
       })) as Array<import("../types/movie").Review>;
       setRemoteReviews(items);
@@ -485,12 +516,25 @@ function MovieDetail() {
   }
 
   const handleEditReview = (review: import("../types/movie").Review) => {
+    if (!user || review.userId !== user.id) {
+      toast.error("You can only edit your own review")
+      return
+    }
     setEditingReview(review)
     setShowReviewForm(true)
   }
 
   const handleDeleteReview = (reviewId: string) => {
     if (!window.confirm("Delete this review?")) return;
+    if (!user) {
+      setShowLoginDialog(true)
+      return
+    }
+    const target = reviews.find((r) => r.id === reviewId)
+    if (target && target.userId !== user.id) {
+      toast.error("You can only delete your own review")
+      return
+    }
     if (!API_BASE) {
       deleteReview(reviewId);
       toast.success("Review deleted");
@@ -532,6 +576,7 @@ function MovieDetail() {
           reviews={reviews}
           loading={API_BASE ? reviewsLoading : false}
           isAuthenticated={isAuthenticated}
+          currentUserId={user?.id}
           onStartNew={() => { setEditingReview(null); setShowReviewForm(true); }}
           onLogin={() => setShowLoginDialog(true)}
           onSubmit={handleSubmitReview}

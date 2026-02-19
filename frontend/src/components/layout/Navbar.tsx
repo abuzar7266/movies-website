@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { useAuth } from "../../context/AuthContext"
 import { Button } from "../ui/button"
 import { Film, LogOut, Plus, Camera } from "lucide-react"
@@ -7,26 +7,24 @@ import { toast } from "../../hooks/use-toast"
 
 function Navbar() {
   const { isAuthenticated, user, logout, updateAvatar } = useAuth()
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileRef = useRef<HTMLInputElement | null>(null)
-  const onPick = () => fileRef.current?.click()
-  const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPick = () => {
+    if (uploadingAvatar) return
+    fileRef.current?.click()
+  }
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]
     if (!f) return
-    if (!f.type.startsWith("image/")) {
-      toast.error("Please select an image")
-      return
+    setUploadingAvatar(true)
+    try {
+      const ok = await updateAvatar(f)
+      if (ok) toast.success("Profile image updated")
+      else toast.error("Failed to update profile image")
+    } finally {
+      setUploadingAvatar(false)
+      e.currentTarget.value = ""
     }
-    const reader = new FileReader()
-    reader.onload = () => {
-      const url = String(reader.result || "")
-      if (url) {
-        updateAvatar(url)
-        toast.success("Profile image updated")
-      }
-    }
-    reader.onerror = () => toast.error("Failed to read file")
-    reader.readAsDataURL(f)
-    e.currentTarget.value = ""
   }
   const navigate = useNavigate()
   return (
@@ -55,8 +53,9 @@ function Navbar() {
                   <button
                     type="button"
                     onClick={onPick}
+                    disabled={uploadingAvatar}
                     aria-label="Change profile picture"
-                    className="absolute -right-1 -bottom-1 grid place-items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow ring-1 ring-[hsl(var(--border))] hover:opacity-90 transition-opacity cursor-pointer"
+                    className="absolute -right-1 -bottom-1 grid place-items-center rounded-full bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow ring-1 ring-[hsl(var(--border))] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                     style={{ width: 16, height: 16 }}
                   >
                     <Camera size={10} />

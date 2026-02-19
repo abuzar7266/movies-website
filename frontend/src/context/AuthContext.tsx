@@ -2,7 +2,21 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import type { User } from "../types/movie";
 import { loadJSON, saveJSON } from "../lib/utils";
 import { STORAGE_AUTH } from "../lib/keys";
-import { api, ApiError } from "../lib/api";
+import { api, ApiError, API_BASE } from "../lib/api";
+
+function resolveMediaUrl(path: string): string {
+  if (import.meta.env.DEV) {
+    return path.startsWith("/") ? path : `/${path}`;
+  }
+  if (API_BASE) {
+    try {
+      return new URL(path, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString();
+    } catch {
+      return (API_BASE || "") + path;
+    }
+  }
+  return path.startsWith("/") ? path : `/${path}`;
+}
 
 interface AuthState {
   user: User | null;
@@ -13,7 +27,7 @@ interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }>;
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  updateAvatar: (dataUrl: string) => void;
+  updateAvatar: (file: File) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,9 +49,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: resp.data.id,
         name: resp.data.name,
         email: resp.data.email,
+        role: resp.data.role,
         createdAt: new Date().toISOString(),
       };
       setAuthState({ user: u, isAuthenticated: true });
+      void api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true }).then(
+        (me) => {
+          setAuthState((prev) => {
+            if (!prev.user) return prev;
+            const avatarMediaId = me.data.avatarMediaId ?? null;
+            return {
+              ...prev,
+              user: {
+                ...prev.user,
+                id: me.data.id,
+                name: me.data.name,
+                email: me.data.email,
+                role: me.data.role,
+                avatarMediaId,
+                avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+              },
+            };
+          });
+        },
+        () => {}
+      );
       return { ok: true };
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) return { ok: false, reason: "wrong_password" };
@@ -52,9 +88,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: resp.data.id,
         name: resp.data.name,
         email: resp.data.email,
+        role: resp.data.role,
         createdAt: new Date().toISOString(),
       };
       setAuthState({ user: u, isAuthenticated: true });
+      void api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true }).then(
+        (me) => {
+          setAuthState((prev) => {
+            if (!prev.user) return prev;
+            const avatarMediaId = me.data.avatarMediaId ?? null;
+            return {
+              ...prev,
+              user: {
+                ...prev.user,
+                id: me.data.id,
+                name: me.data.name,
+                email: me.data.email,
+                role: me.data.role,
+                avatarMediaId,
+                avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+              },
+            };
+          });
+        },
+        () => {}
+      );
       return true;
     } catch (e) {
       if (e instanceof ApiError && (e.status === 409 || e.status === 400)) return false;
@@ -68,12 +126,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAuthState({ user: null, isAuthenticated: false });
   }, []);
 
-  const updateAvatar = useCallback((dataUrl: string) => {
-    setAuthState(prev => {
-      if (!prev.user) return prev;
-      const nextUser = { ...prev.user, avatarUrl: dataUrl };
-      return { ...prev, user: nextUser };
-    });
+  const updateAvatar = useCallback(async (file: File): Promise<boolean> => {
+    if (!file) return false;
+
+    const allowed = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+    if (!allowed.has(file.type)) return false;
+    if (file.size > 2 * 1024 * 1024) return false;
+
+    try {
+      const form = new FormData();
+      form.append("file", file);
+
+      const mediaUrl = import.meta.env.DEV
+        ? "/media"
+        : API_BASE
+          ? new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
+          : "/media";
+
+      const uploadRes = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" });
+      const uploadJson = (await uploadRes.json()) as { success: true; data: { id: string; url: string } } | { success: false };
+      if (!uploadRes.ok || !("data" in uploadJson)) return false;
+
+      const updated = await api.patch<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>(
+        "/users/me/avatar",
+        { mediaId: uploadJson.data.id }
+      );
+
+      const avatarMediaId = updated.data.avatarMediaId ?? null;
+      setAuthState((prev) => {
+        if (!prev.user) return prev;
+        return {
+          ...prev,
+          user: {
+            ...prev.user,
+            id: updated.data.id,
+            name: updated.data.name,
+            email: updated.data.email,
+            role: updated.data.role,
+            avatarMediaId,
+            avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+          },
+        };
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   useEffect(() => {
@@ -85,14 +183,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       try {
-        const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true });
+        const me = await api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true });
         if (cancelled) return;
+        const avatarMediaId = me.data.avatarMediaId ?? null;
         setAuthState(prev => ({
           user: {
             id: me.data.id,
             name: me.data.name,
             email: me.data.email,
-            avatarUrl: prev.user?.avatarUrl,
+            role: me.data.role,
+            avatarMediaId,
+            avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
             createdAt: prev.user?.createdAt ?? new Date().toISOString(),
           },
           isAuthenticated: true,
@@ -110,14 +211,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })();
           if (refreshOk) {
             try {
-              const me2 = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true });
+              const me2 = await api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true });
               if (cancelled) return;
+              const avatarMediaId = me2.data.avatarMediaId ?? null;
               setAuthState(prev => ({
                 user: {
                   id: me2.data.id,
                   name: me2.data.name,
                   email: me2.data.email,
-                  avatarUrl: prev.user?.avatarUrl,
+                  role: me2.data.role,
+                  avatarMediaId,
+                  avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
                   createdAt: prev.user?.createdAt ?? new Date().toISOString(),
                 },
                 isAuthenticated: true,

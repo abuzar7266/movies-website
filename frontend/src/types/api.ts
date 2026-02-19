@@ -50,6 +50,11 @@ export interface ReviewDTO {
   id: string;
   movieId: string;
   userId: string;
+  user?: {
+    id: string;
+    name: string;
+    avatarMediaId?: string | null;
+  };
   content: string;
   createdAt: string;
   updatedAt: string;

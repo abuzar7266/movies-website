@@ -2,6 +2,8 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  role?: string;
+  avatarMediaId?: string | null;
   avatarUrl?: string;
   createdAt: string;
 }
@@ -23,6 +25,7 @@ export interface Review {
   userId: string;
   rating: number;
   content: string;
+  author?: { id: string; name: string; avatarUrl?: string };
   createdAt: string;
   updatedAt: string;
 }
