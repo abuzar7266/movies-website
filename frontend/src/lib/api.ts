@@ -20,7 +20,8 @@ function buildUrl(path: string): string {
       return (API_BASE || "") + path;
     }
   }
-  return path;
+  const useProxy = (import.meta as any).env?.DEV ? true : false;
+  return useProxy ? `/api${path.startsWith("/") ? path : `/${path}`}` : path;
 }
 
 async function request<T>(

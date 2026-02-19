@@ -7,24 +7,32 @@ const PAGE_SIZE = 12;
 
 interface MovieGridProps {
   movies: MovieWithStats[];
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  loading?: boolean;
 }
 
-export function MovieGrid({ movies }: MovieGridProps) {
+export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading }: MovieGridProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  const hasMore = visibleCount < movies.length;
+  const hasMoreLocal = visibleCount < movies.length;
+  const isRemote = typeof onLoadMore === "function";
+  const hasMore = isRemote ? Boolean(hasMoreProp) : hasMoreLocal;
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
-      if (entry.isIntersecting && hasMore) {
+      if (!entry.isIntersecting || !hasMore) return;
+      if (isRemote) {
+        onLoadMore?.();
+      } else {
         setTimeout(() => {
           setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, movies.length));
         }, 300);
       }
     },
-    [hasMore, movies.length]
+    [hasMore, movies.length, isRemote, onLoadMore]
   );
 
   useEffect(() => {
@@ -37,7 +45,7 @@ export function MovieGrid({ movies }: MovieGridProps) {
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  if (movies.length === 0) {
+  if (movies.length === 0 && !loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <p className="text-lg font-display text-[hsl(var(--muted-foreground))]">No movies found</p>
@@ -46,7 +54,7 @@ export function MovieGrid({ movies }: MovieGridProps) {
     );
   }
 
-  const visible = movies.slice(0, visibleCount);
+  const visible = isRemote ? movies : movies.slice(0, visibleCount);
 
   return (
     <>
@@ -63,7 +71,7 @@ export function MovieGrid({ movies }: MovieGridProps) {
           <span className="ml-2 text-sm text-[hsl(var(--muted-foreground))]">Loading more movies...</span>
         </div>
       )}
-      {!hasMore && movies.length > PAGE_SIZE && (
+      {!hasMore && !loading && movies.length > PAGE_SIZE && (
         <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">You've seen all {movies.length} movies</p>
       )}
     </>

@@ -28,6 +28,7 @@ function Index() {
   const [sortBy, setSortBy] = useState<SortKey>((searchParams.get(QUERY_SORT) as SortKey) || "reviews_desc")
   const [page, setPage] = useState(1)
   const [remoteMovies, setRemoteMovies] = useState<MovieWithStats[]>([])
+  const [remoteTotal, setRemoteTotal] = useState(0)
   const [loadingRemote, setLoadingRemote] = useState(false)
 
   const wantsAdd = searchParams.get("add") === "true"
@@ -68,7 +69,8 @@ function Index() {
         if (reviewScope) params.set("reviewScope", reviewScope)
         if (sortBy) params.set("sort", sortBy)
         params.set("page", String(page))
-        params.set("pageSize", "60")
+        const pageSize = 60
+        params.set("pageSize", String(pageSize))
         const res = await api.get<Envelope<Paginated<MovieDTO>>>(`/movies?${params.toString()}`)
         if (cancelled) return
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
@@ -84,9 +86,11 @@ function Index() {
           averageRating: m.averageRating ?? 0,
           rank: m.rank ?? 0,
         }))
-        setRemoteMovies(mapped)
+        setRemoteMovies(prev => page === 1 ? mapped : [...prev, ...mapped.filter(n => !prev.some(p => p.id === n.id))])
+        setRemoteTotal(res.data.total ?? mapped.length)
       } catch {
         setRemoteMovies([])
+        setRemoteTotal(0)
       } finally {
         setLoadingRemote(false)
       }
@@ -135,11 +139,13 @@ function Index() {
             onRequireLogin={() => setShowLoginDialog(true)}
           />
         </div>
-        {loadingRemote && API_BASE ? (
-          <div className="py-16 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading movies…</div>
-        ) : (
-          <MovieGrid key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-${page}-${API_BASE ? "remote" : "local"}`} movies={moviesToShow} />
-        )}
+        <MovieGrid
+          key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-${API_BASE ? "remote" : "local"}`}
+          movies={moviesToShow}
+          loading={loadingRemote}
+          hasMore={API_BASE ? remoteMovies.length < remoteTotal : undefined}
+          onLoadMore={API_BASE ? (() => setPage((p) => p + 1)) : undefined}
+        />
       </section>
       {showAddForm && (
         <MovieForm

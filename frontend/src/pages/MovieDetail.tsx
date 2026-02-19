@@ -372,8 +372,13 @@ function MovieDetail() {
           createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
         })) as Array<import("../types/movie").Review>;
         setRemoteReviews(items);
-      } catch {
-        toast.error("Failed to submit review");
+      } catch (e: any) {
+        if (e?.status === 401) {
+          setShowLoginDialog(true);
+          toast.error("Please log in to submit a review");
+        } else {
+          toast.error("Failed to submit review");
+        }
       } finally {
         setShowReviewForm(false);
       }

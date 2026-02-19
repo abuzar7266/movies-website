@@ -3,6 +3,7 @@ import type { User } from "../types/movie";
 import { loadJSON, saveJSON } from "../lib/utils";
 import { STORAGE_AUTH } from "../lib/keys";
 import { api, ApiError } from "../lib/api";
+import { toast } from "../hooks/use-toast";
 
 interface AuthState {
   user: User | null;
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const persisted = loadJSON<AuthState>(STORAGE_AUTH, { user: null, isAuthenticated: false });
   const [authState, setAuthState] = useState<AuthState>(persisted);
   useEffect(() => { saveJSON(STORAGE_AUTH, authState) }, [authState]);
+  const hadSession = persisted.isAuthenticated;
 
   const login = useCallback(async (email: string, password: string): Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }> => {
     try {
@@ -81,7 +83,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       } catch (e) {
         if (e instanceof ApiError && e.status === 401) {
           try {
-            await api.post("/auth/refresh", undefined, { silentError: true } as any);
+            if (hadSession) {
+              await (toast as any).promise(api.post("/auth/refresh", undefined, { silentError: true } as any), {
+                loading: "Refreshing session…",
+                success: "Session refreshed",
+                error: "Session expired. Please log in",
+              });
+            } else {
+              await api.post("/auth/refresh", undefined, { silentError: true } as any);
+            }
             const me = await api.get<{ success: true; data: { id: string; name: string; email: string } }>("/users/me", { silentError: true } as any);
             if (cancelled) return;
             setAuthState({ user: { id: me.data.id, name: me.data.name, email: me.data.email, createdAt: new Date().toISOString() }, isAuthenticated: true });
