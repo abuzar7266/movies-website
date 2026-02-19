@@ -10,9 +10,11 @@ interface MovieGridProps {
   hasMore?: boolean;
   onLoadMore?: () => void;
   loading?: boolean;
+  loaded?: boolean;
+  error?: boolean;
 }
 
-export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading }: MovieGridProps) {
+export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, loaded, error }: MovieGridProps) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const loaderRef = useRef<HTMLDivElement>(null);
 
@@ -45,11 +47,37 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading }:
     return () => observer.disconnect();
   }, [handleObserver]);
 
-  if (movies.length === 0 && !loading) {
+  if (movies.length === 0 && Boolean(loading)) {
+    return (
+      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+          <div key={i} className="animate-pulse">
+            <div className="relative overflow-hidden rounded-xl bg-[hsl(var(--card))] border border-[hsl(var(--border))]">
+              <div className="aspect-[2/3] bg-[hsl(var(--muted))]" />
+              <div className="p-3 space-y-2">
+                <div className="h-4 w-3/4 rounded bg-[hsl(var(--muted))]" />
+                <div className="h-3 w-1/3 rounded bg-[hsl(var(--muted))]" />
+                <div className="flex items-center justify-between">
+                  <div className="h-3 w-20 rounded bg-[hsl(var(--muted))]" />
+                  <div className="h-3 w-8 rounded bg-[hsl(var(--muted))]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (movies.length === 0 && !loading && (loaded ?? true)) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-lg font-display text-[hsl(var(--muted-foreground))]">No movies found</p>
-        <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Try a different search or add a new movie.</p>
+        <p className="text-lg font-display text-[hsl(var(--muted-foreground))]">
+          {error ? "Failed to load movies" : "No movies found"}
+        </p>
+        <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          {error ? "Please try again." : "Try a different search or add a new movie."}
+        </p>
       </div>
     );
   }

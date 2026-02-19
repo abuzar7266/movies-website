@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import HeroSection from "../components/HeroSection"
 import FiltersBar from "../components/filters/FiltersBar"
@@ -30,8 +30,11 @@ function Index() {
   const [remoteMovies, setRemoteMovies] = useState<MovieWithStats[]>([])
   const [remoteTotal, setRemoteTotal] = useState(0)
   const [loadingRemote, setLoadingRemote] = useState(false)
+  const [remoteLoaded, setRemoteLoaded] = useState(false)
+  const [remoteFailed, setRemoteFailed] = useState(false)
   const [remoteReloadKey, setRemoteReloadKey] = useState(0)
   const [recentlyAddedMovieId, setRecentlyAddedMovieId] = useState<string | null>(null)
+  const remoteRequestSeq = useRef(0)
 
   const resolvePosterUrl = (m: MovieDTO): string => {
     const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
@@ -65,7 +68,10 @@ function Index() {
     setPage((p) => p === 1 ? p : 1)
   }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
 
+  const isRemote = Boolean(API_BASE)
+
   const resultsWithReviewScope = useMemo(() => {
+    if (isRemote) return []
     return queryMovies({
       search: searchQuery,
       minStars: Number(minStars),
@@ -73,12 +79,19 @@ function Index() {
       sortBy,
       userId: user?.id,
     })
-  }, [searchQuery, minStars, reviewScope, sortBy, user, queryMovies])
+  }, [searchQuery, minStars, reviewScope, sortBy, user, queryMovies, isRemote])
 
   useEffect(() => {
     if (!API_BASE) return;
-    let cancelled = false;
+    const seq = ++remoteRequestSeq.current
+    let active = true
     const run = async () => {
+      if (page === 1) {
+        setRemoteMovies([])
+        setRemoteTotal(0)
+        setRemoteLoaded(false)
+        setRemoteFailed(false)
+      }
       setLoadingRemote(true)
       try {
         const params = new URLSearchParams()
@@ -90,7 +103,7 @@ function Index() {
         const pageSize = 60
         params.set("pageSize", String(pageSize))
         const res = await api.get<Envelope<Paginated<MovieDTO>>>(`/movies?${params.toString()}`)
-        if (cancelled) return
+        if (!active || seq !== remoteRequestSeq.current) return
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
           id: m.id,
           title: m.title,
@@ -106,15 +119,22 @@ function Index() {
         }))
         setRemoteMovies(prev => page === 1 ? mapped : [...prev, ...mapped.filter(n => !prev.some(p => p.id === n.id))])
         setRemoteTotal(res.data.total ?? mapped.length)
+        setRemoteLoaded(true)
+        setRemoteFailed(false)
       } catch {
+        if (!active || seq !== remoteRequestSeq.current) return
         setRemoteMovies([])
         setRemoteTotal(0)
+        setRemoteLoaded(true)
+        setRemoteFailed(true)
       } finally {
-        setLoadingRemote(false)
+        if (active && seq === remoteRequestSeq.current) {
+          setLoadingRemote(false)
+        }
       }
     }
     run()
-    return () => { cancelled = true }
+    return () => { active = false }
   }, [searchQuery, minStars, reviewScope, sortBy, page, remoteReloadKey])
 
   useEffect(() => {
@@ -237,6 +257,8 @@ function Index() {
           key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-${API_BASE ? "remote" : "local"}`}
           movies={moviesToShow}
           loading={loadingRemote}
+          loaded={isRemote ? remoteLoaded : true}
+          error={isRemote ? remoteFailed : false}
           hasMore={API_BASE ? remoteMovies.length < remoteTotal : undefined}
           onLoadMore={API_BASE ? (() => setPage((p) => p + 1)) : undefined}
         />
