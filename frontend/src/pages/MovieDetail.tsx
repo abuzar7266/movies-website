@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useMovies } from "../context/MovieContext"
 import { useAuth } from "../context/AuthContext"
@@ -8,6 +8,7 @@ import ReviewCard from "../components/review/ReviewCard"
 import ReviewForm from "../components/review/ReviewForm"
 import { Button } from "../components/ui/button"
 import LoginRequiredDialog from "../components/auth/LoginRequiredDialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog"
 import { ArrowLeft, Calendar, MessageSquare, Trash2, Trophy } from "lucide-react"
 import MovieForm from "../components/movies/MovieForm"
 import { toEmbedUrl } from "../lib/utils"
@@ -170,11 +171,13 @@ function TrailerSection({ title, url }: { title: string; url: string }) {
   );
 }
 
-function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
+function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canStartNew, initialRating, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
   reviews: Array<import("../types/movie").Review>;
   loading?: boolean;
   isAuthenticated: boolean;
   currentUserId?: string;
+  canStartNew: boolean;
+  initialRating?: number;
   onStartNew: () => void;
   onLogin: () => void;
   onSubmit: (rating: number, content: string) => void | Promise<void>;
@@ -190,9 +193,11 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, onSt
         <h3 className="font-display text-lg font-bold text-foreground">Reviews ({reviews.length})</h3>
         {!showReviewForm && (
           isAuthenticated ? (
-            <Button size="sm" onClick={onStartNew}>
-              Write a Review
-            </Button>
+            canStartNew ? (
+              <Button size="sm" onClick={onStartNew}>
+                Write a Review
+              </Button>
+            ) : null
           ) : (
             <Button size="sm" variant="outline" onClick={onLogin}>
               Log in to review
@@ -203,7 +208,7 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, onSt
       {showReviewForm && (
         <div className="mb-6">
           <ReviewForm
-            initialRating={editingReview?.rating}
+            initialRating={initialRating}
             initialContent={editingReview?.content}
             isEdit={!!editingReview}
             onSubmit={onSubmit}
@@ -241,7 +246,12 @@ function MovieDetail() {
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [editingReview, setEditingReview] = useState<import("../types/movie").Review | null>(null)
+  const [draftReviewRating, setDraftReviewRating] = useState<number | undefined>(undefined)
   const [showEditMovie, setShowEditMovie] = useState(false)
+  const reviewsSectionRef = useRef<HTMLDivElement | null>(null)
+  const [confirmDeleteMovieOpen, setConfirmDeleteMovieOpen] = useState(false)
+  const [confirmDeleteReviewId, setConfirmDeleteReviewId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const [remoteMovie, setRemoteMovie] = useState<null | import("../types/movie").Movie>(null)
   const [remoteStats, setRemoteStats] = useState<{ averageRating: number; reviewCount: number; rank: number } | null>(null)
@@ -351,6 +361,13 @@ function MovieDetail() {
     );
   }, [id, isAuthenticated]);
 
+  useEffect(() => {
+    if (!API_BASE || !isAuthenticated || !user?.id) return
+    if (reviewsLoading) return
+    const hasReview = remoteReviews.some((r) => r.userId === user.id)
+    if (!hasReview) setUserRating(null)
+  }, [isAuthenticated, user?.id, reviewsLoading, remoteReviews]);
+
   const movie = API_BASE ? remoteMovie : getMovieById(id || "")
   if (API_BASE) {
     if (movieLoading && !movie) return <MovieDetailSkeleton />
@@ -395,16 +412,40 @@ function MovieDetail() {
   const stats = API_BASE ? (remoteStats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
   const owner = API_BASE ? undefined : sampleUsers.find((u) => u.id === movie.createdBy)
   const isOwner = API_BASE ? false : user?.id === movie.createdBy
+  const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
+  const canStartNewReview = Boolean(user && !hasMyReview)
 
-  const handleDeleteMovie = () => {
-    if (window.confirm("Are you sure you want to delete this movie?")) {
+  const deleteMovieConfirmed = async () => {
+    if (deleting) return
+    setDeleting(true)
+    try {
       if (!API_BASE) deleteMovie(movie.id)
       navigate("/")
       toast.success("Movie deleted")
+    } finally {
+      setDeleting(false)
+      setConfirmDeleteMovieOpen(false)
     }
   }
+
+  const handleDeleteMovie = () => {
+    setConfirmDeleteMovieOpen(true)
+  }
   const handleRateOnly = (value: number) => {
-    if (!API_BASE || !user) return;
+    if (!API_BASE) return
+    if (!user) {
+      setShowLoginDialog(true)
+      return
+    }
+    if (!hasMyReview) {
+      setEditingReview(null)
+      setDraftReviewRating(value)
+      setShowReviewForm(true)
+      window.setTimeout(() => {
+        reviewsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }, 0)
+      return
+    }
     (async () => {
       try {
         const r = await api.post<Envelope<RatingAverage>>("/ratings", { movieId: movie.id, value });
@@ -461,6 +502,12 @@ function MovieDetail() {
       setShowLoginDialog(true)
       return
     }
+    if (!editingReview && hasMyReview) {
+      toast.error("You can only submit one review per movie")
+      setShowReviewForm(false)
+      return
+    }
+    setDraftReviewRating(undefined)
     const doLocal = () => {
       if (editingReview) {
         updateReview(editingReview.id, { rating, content })
@@ -477,7 +524,13 @@ function MovieDetail() {
       return;
     }
     try {
-      await api.post("/ratings", { movieId: movie.id, value: rating });
+      const ratingRes = await api.post<Envelope<RatingAverage>>("/ratings", { movieId: movie.id, value: rating });
+      setUserRating(rating)
+      setRemoteStats((prev) => ({
+        averageRating: ratingRes.data.averageRating,
+        reviewCount: prev?.reviewCount ?? 0,
+        rank: prev?.rank ?? 0,
+      }))
       if (editingReview) {
         await api.patch(`/reviews/${editingReview.id}`, { content });
         setEditingReview(null);
@@ -485,6 +538,7 @@ function MovieDetail() {
       } else {
         await api.post("/reviews", { movieId: movie.id, content });
         toast.success("Review added");
+        setRemoteStats((prev) => prev ? ({ ...prev, reviewCount: prev.reviewCount + 1 }) : prev)
       }
       const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
       const items = res.data.items.map((r) => ({
@@ -524,8 +578,7 @@ function MovieDetail() {
     setShowReviewForm(true)
   }
 
-  const handleDeleteReview = (reviewId: string) => {
-    if (!window.confirm("Delete this review?")) return;
+  const deleteReviewConfirmed = async (reviewId: string) => {
     if (!user) {
       setShowLoginDialog(true)
       return
@@ -535,20 +588,47 @@ function MovieDetail() {
       toast.error("You can only delete your own review")
       return
     }
+    if (deleting) return
+    setDeleting(true)
     if (!API_BASE) {
-      deleteReview(reviewId);
-      toast.success("Review deleted");
-      return;
-    }
-    (async () => {
       try {
-        await api.delete(`/reviews/${reviewId}`);
-        setRemoteReviews(prev => prev.filter(r => r.id !== reviewId));
+        deleteReview(reviewId);
+        if (editingReview?.id === reviewId) {
+          setEditingReview(null)
+          setShowReviewForm(false)
+        }
         toast.success("Review deleted");
-      } catch {
+      } finally {
+        setDeleting(false)
+        setConfirmDeleteReviewId(null)
+      }
+      return
+    }
+    try {
+      await api.delete(`/reviews/${reviewId}`);
+      setRemoteReviews(prev => prev.filter(r => r.id !== reviewId));
+      if (editingReview?.id === reviewId) {
+        setEditingReview(null)
+        setShowReviewForm(false)
+      }
+      if (target?.userId === user.id) setUserRating(null)
+      setRemoteStats((prev) => prev ? ({ ...prev, reviewCount: Math.max(0, prev.reviewCount - 1) }) : prev)
+      toast.success("Review deleted");
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setShowLoginDialog(true)
+        toast.error("Please log in to delete a review")
+      } else {
         toast.error("Failed to delete review");
       }
-    })();
+    } finally {
+      setDeleting(false)
+      setConfirmDeleteReviewId(null)
+    }
+  }
+
+  const handleDeleteReview = (reviewId: string) => {
+    setConfirmDeleteReviewId(reviewId)
   }
 
   // reserved for future edit modal; keeping layout parity with sample
@@ -572,20 +652,32 @@ function MovieDetail() {
         />
         <TrailerSection title={movie.title} url={movie.trailerUrl} />
 
-        <ReviewsSection
-          reviews={reviews}
-          loading={API_BASE ? reviewsLoading : false}
-          isAuthenticated={isAuthenticated}
-          currentUserId={user?.id}
-          onStartNew={() => { setEditingReview(null); setShowReviewForm(true); }}
-          onLogin={() => setShowLoginDialog(true)}
-          onSubmit={handleSubmitReview}
-          onCancel={() => { setShowReviewForm(false); setEditingReview(null); }}
-          onEdit={handleEditReview}
-          onDelete={handleDeleteReview}
-          showReviewForm={showReviewForm}
-          editingReview={editingReview}
-        />
+        <div ref={reviewsSectionRef}>
+          <ReviewsSection
+            reviews={reviews}
+            loading={API_BASE ? reviewsLoading : false}
+            isAuthenticated={isAuthenticated}
+            currentUserId={user?.id}
+            canStartNew={canStartNewReview}
+            initialRating={editingReview ? (API_BASE ? (userRating ?? 5) : editingReview.rating) : draftReviewRating}
+            onStartNew={() => {
+              if (!canStartNewReview) {
+                toast.error("You can only submit one review per movie")
+                return
+              }
+              setEditingReview(null);
+              setDraftReviewRating(undefined);
+              setShowReviewForm(true);
+            }}
+            onLogin={() => setShowLoginDialog(true)}
+            onSubmit={handleSubmitReview}
+            onCancel={() => { setShowReviewForm(false); setEditingReview(null); setDraftReviewRating(undefined); }}
+            onEdit={handleEditReview}
+            onDelete={handleDeleteReview}
+            showReviewForm={showReviewForm}
+            editingReview={editingReview}
+          />
+        </div>
       </main>
       {showEditMovie && (
         <MovieForm
@@ -600,7 +692,41 @@ function MovieDetail() {
           onClose={() => setShowEditMovie(false)}
         />
       )}
-      <LoginRequiredDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} message="Please log in to write a review." />
+      <Dialog open={confirmDeleteMovieOpen} onOpenChange={setConfirmDeleteMovieOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete movie?</DialogTitle>
+            <DialogDescription>This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteMovieOpen(false)} disabled={deleting}>Cancel</Button>
+            <Button onClick={deleteMovieConfirmed} disabled={deleting} className="text-destructive hover:bg-destructive/10 border-destructive/30">
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(confirmDeleteReviewId)} onOpenChange={(open) => { if (!open) setConfirmDeleteReviewId(null) }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete review?</DialogTitle>
+            <DialogDescription>This will remove your review from this movie.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDeleteReviewId(null)} disabled={deleting}>Cancel</Button>
+            <Button
+              onClick={() => confirmDeleteReviewId && void deleteReviewConfirmed(confirmDeleteReviewId)}
+              disabled={deleting}
+              className="text-destructive hover:bg-destructive/10 border-destructive/30"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <LoginRequiredDialog open={showLoginDialog} onOpenChange={setShowLoginDialog} message="Please log in to continue." />
     </div>
   )
 }

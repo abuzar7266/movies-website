@@ -40,7 +40,7 @@ function buildUrl(path: string): string {
 
 async function request<T>(
   path: string,
-  init: (RequestInit & { json?: unknown }) & { silentError?: boolean } = {}
+  init: (RequestInit & { json?: unknown; silentError?: boolean; retried?: boolean }) = {}
 ): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
@@ -56,6 +56,20 @@ async function request<T>(
       headers,
       body,
     });
+    if (res.status === 401 && !init.retried && path !== "/auth/refresh") {
+      try {
+        const refresh = await fetch(buildUrl("/auth/refresh"), {
+          method: "POST",
+          credentials: "include",
+          headers: new Headers({ Accept: "application/json" }),
+        });
+        if (refresh.ok) {
+          return await request<T>(path, { ...init, retried: true });
+        }
+      } catch {
+        void 0;
+      }
+    }
     const text = await res.text();
     const maybeJson = text ? safeParseJSON(text) : null;
     if (!res.ok) {
