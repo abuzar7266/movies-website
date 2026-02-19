@@ -13,6 +13,7 @@ import { QUERY_Q, QUERY_SCOPE, QUERY_SORT, QUERY_STARS } from "../lib/keys"
 import type { StarsValue, ReviewScope, SortKey } from "../lib/options"
 import { toast } from "../hooks/use-toast"
 import type { MovieWithStats } from "../types/movie"
+import type { Envelope, Paginated, MovieDTO } from "../types/api"
 import { api, API_BASE } from "../lib/api"
 
 function Index() {
@@ -68,9 +69,9 @@ function Index() {
         if (sortBy) params.set("sort", sortBy)
         params.set("page", String(page))
         params.set("pageSize", "60")
-        const res = await api.get<{ success: true; data: { items: Array<any>; total: number; page: number; pageSize: number } }>(`/movies?${params.toString()}`)
+        const res = await api.get<Envelope<Paginated<MovieDTO>>>(`/movies?${params.toString()}`)
         if (cancelled) return
-        const mapped: MovieWithStats[] = res.data.items.map((m: any) => ({
+        const mapped: MovieWithStats[] = res.data.items.map((m) => ({
           id: m.id,
           title: m.title,
           releaseDate: new Date(m.releaseDate).toISOString(),

@@ -1,4 +1,5 @@
 export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "";
+import { toast } from "../hooks/use-toast";
 
 export class ApiError extends Error {
   status: number;
@@ -24,7 +25,7 @@ function buildUrl(path: string): string {
 
 async function request<T>(
   path: string,
-  init: RequestInit & { json?: unknown } = {}
+  init: (RequestInit & { json?: unknown }) & { silentError?: boolean } = {}
 ): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
@@ -33,22 +34,33 @@ async function request<T>(
     headers.set("Content-Type", "application/json");
     body = JSON.stringify(init.json);
   }
-  const res = await fetch(buildUrl(path), {
-    credentials: "include",
-    ...init,
-    headers,
-    body,
-  });
-  const text = await res.text();
-  const maybeJson = text ? safeParseJSON(text) : null;
-  if (!res.ok) {
-    throw new ApiError(
-      (maybeJson && (maybeJson as any).message) || res.statusText || "Request failed",
-      res.status,
-      maybeJson ?? text
-    );
+  try {
+    const res = await fetch(buildUrl(path), {
+      credentials: "include",
+      ...init,
+      headers,
+      body,
+    });
+    const text = await res.text();
+    const maybeJson = text ? safeParseJSON(text) : null;
+    if (!res.ok) {
+      const message =
+        (maybeJson && (maybeJson as any).error?.message) ||
+        (maybeJson && (maybeJson as any).message) ||
+        res.statusText ||
+        "Request failed";
+      if (!init.silentError && res.status >= 500) {
+        toast.error(message || "Server error");
+      }
+      throw new ApiError(message, res.status, maybeJson ?? text);
+    }
+    return (maybeJson as T) ?? (undefined as unknown as T);
+  } catch (e: any) {
+    if (!init.silentError && (e?.name === "TypeError" || e?.message?.includes("Network"))) {
+      toast.error("Network error. Please check your connection.");
+    }
+    throw e;
   }
-  return (maybeJson as T) ?? (undefined as unknown as T);
 }
 
 function safeParseJSON(text: string): unknown | null {
@@ -60,10 +72,9 @@ function safeParseJSON(text: string): unknown | null {
 }
 
 export const api = {
-  get: <T>(path: string, init?: RequestInit) => request<T>(path, { method: "GET", ...(init || {}) }),
-  post: <T>(path: string, json?: unknown, init?: RequestInit) => request<T>(path, { method: "POST", json, ...(init || {}) }),
-  put:  <T>(path: string, json?: unknown, init?: RequestInit) => request<T>(path, { method: "PUT", json, ...(init || {}) }),
-  patch:<T>(path: string, json?: unknown, init?: RequestInit) => request<T>(path, { method: "PATCH", json, ...(init || {}) }),
-  delete:<T>(path: string, init?: RequestInit) => request<T>(path, { method: "DELETE", ...(init || {}) }),
+  get: <T>(path: string, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "GET", ...(init || {}) }),
+  post: <T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "POST", json, ...(init || {}) }),
+  put:  <T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "PUT", json, ...(init || {}) }),
+  patch:<T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "PATCH", json, ...(init || {}) }),
+  delete:<T>(path: string, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "DELETE", ...(init || {}) }),
 };
-

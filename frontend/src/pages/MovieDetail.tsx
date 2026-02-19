@@ -13,14 +13,17 @@ import MovieForm from "../components/movies/MovieForm"
 import { toEmbedUrl } from "../lib/utils"
 import { toast } from "../hooks/use-toast"
 import { api, API_BASE } from "../lib/api"
+import type { Envelope, MovieDTO, Paginated, ReviewDTO, RatingAverage, RatingValue } from "../types/api"
 
-function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete }: {
+function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRating, onRate }: {
   movie: import("../types/movie").Movie;
   stats: { averageRating: number; reviewCount: number; rank: number };
   owner?: { name: string } | undefined;
   isOwner: boolean;
   onEdit: () => void;
   onDelete: () => void;
+  userRating?: number | null;
+  onRate?: (value: number) => void;
 }) {
   return (
     <div className="flex flex-col md:flex-row gap-8 animate-fade-in">
@@ -67,6 +70,12 @@ function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete }: {
           <span className="flex items-center gap-1 text-sm text-[hsl(var(--muted-foreground))]">
             <MessageSquare size={14} /> {stats.reviewCount} reviews
           </span>
+          {onRate && (
+            <div className="ml-auto flex items-center gap-2">
+              <span className="text-sm text-[hsl(var(--muted-foreground))]">Your rating</span>
+              <StarRating rating={userRating ?? 0} interactive onRate={onRate} />
+            </div>
+          )}
         </div>
         {isOwner && (
           <div className="flex gap-2">
@@ -105,8 +114,9 @@ function TrailerSection({ title, url }: { title: string; url: string }) {
   );
 }
 
-function ReviewsSection({ reviews, isAuthenticated, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
+function ReviewsSection({ reviews, loading, isAuthenticated, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
   reviews: Array<import("../types/movie").Review>;
+  loading?: boolean;
   isAuthenticated: boolean;
   onStartNew: () => void;
   onLogin: () => void;
@@ -144,15 +154,19 @@ function ReviewsSection({ reviews, isAuthenticated, onStartNew, onLogin, onSubmi
           />
         </div>
       )}
-      <div className="space-y-3">
-        {reviews.length === 0 ? (
-          <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No reviews yet. Be the first to share your thoughts!</p>
-        ) : (
-          reviews.map((review) => (
-            <ReviewCard key={review.id} review={review} onEdit={onEdit} onDelete={onDelete} />
-          ))
-        )}
-      </div>
+      {loading ? (
+        <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">Loading reviews…</p>
+      ) : (
+        <div className="space-y-3">
+          {reviews.length === 0 ? (
+            <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">No reviews yet. Be the first to share your thoughts!</p>
+          ) : (
+            reviews.map((review) => (
+              <ReviewCard key={review.id} review={review} onEdit={onEdit} onDelete={onDelete} />
+            ))
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -171,7 +185,7 @@ function MovieDetail() {
   const [remoteMovie, setRemoteMovie] = useState<null | import("../types/movie").Movie>(null)
   const [remoteStats, setRemoteStats] = useState<{ averageRating: number; reviewCount: number; rank: number } | null>(null)
   const [remoteReviews, setRemoteReviews] = useState<Array<import("../types/movie").Review>>([])
-  const [, setUserRating] = useState<number | null>(null)
+  const [userRating, setUserRating] = useState<number | null>(null)
   const [, setLoadingReviews] = useState(false)
 
   useEffect(() => {
@@ -179,7 +193,7 @@ function MovieDetail() {
     let cancelled = false;
     const run = async () => {
       try {
-        const res = await api.get<{ success: true; data: any }>(`/movies/${id}`);
+        const res = await api.get<Envelope<MovieDTO>>(`/movies/${id}`);
         if (cancelled) return;
         const m = res.data;
         const posterUrl = m.posterMediaId ? `${API_BASE}/media/${m.posterMediaId}` : "https://placehold.co/480x720?text=Poster";
@@ -214,7 +228,7 @@ function MovieDetail() {
     const run = async () => {
       setLoadingReviews(true);
       try {
-        const res = await api.get<{ success: true; data: { items: any[] } }>(`/reviews?movieId=${id}&page=1&pageSize=50`);
+        const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${id}&page=1&pageSize=50`);
         if (cancelled) return;
         const items = res.data.items.map((r) => ({
           id: r.id,
@@ -238,7 +252,7 @@ function MovieDetail() {
 
   useEffect(() => {
     if (!API_BASE || !id) return;
-    api.get<{ success: true; data: { value: number | null } }>(`/ratings/${id}`).then(
+    api.get<Envelope<RatingValue>>(`/ratings/${id}`).then(
       (r) => setUserRating(r.data.value),
       () => setUserRating(null)
     );
@@ -270,7 +284,20 @@ function MovieDetail() {
       toast.success("Movie deleted")
     }
   }
-  const handleSubmitMovie = (data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string }) => {
+  const handleRateOnly = (value: number) => {
+    if (!API_BASE || !user) return;
+    (async () => {
+      try {
+        const r = await api.post<Envelope<RatingAverage>>("/ratings", { movieId: movie.id, value });
+        setUserRating(value);
+        setRemoteStats((prev) => ({ averageRating: r.data.averageRating, reviewCount: prev?.reviewCount ?? 0, rank: prev?.rank ?? 0 }));
+        toast.success("Rating saved");
+      } catch {
+        toast.error("Failed to save rating");
+      }
+    })();
+  };
+  const handleSubmitMovie = (data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string }, posterFile?: File | null) => {
     if (!API_BASE) {
       updateMovie(movie.id, {
         title: data.title,
@@ -278,10 +305,34 @@ function MovieDetail() {
         posterUrl: data.posterUrl,
         trailerUrl: toEmbedUrl(data.trailerUrl || ""),
         synopsis: data.synopsis,
-      })
+      });
+      setShowEditMovie(false);
+      toast.success("Movie updated");
+      return;
     }
-    setShowEditMovie(false)
-    toast.success("Movie updated")
+    (async () => {
+      try {
+        await api.patch(`/movies/${movie.id}`, {
+          title: data.title,
+          releaseDate: data.releaseDate,
+          trailerUrl: data.trailerUrl,
+          synopsis: data.synopsis,
+        });
+        if (posterFile) {
+          const form = new FormData();
+          form.append("file", posterFile);
+          const upload = await fetch(`${API_BASE}/media`, { method: "POST", body: form, credentials: "include" });
+          if (!upload.ok) throw new Error("Upload failed");
+          const uploadJson = await upload.json() as { success: true; data: { id: string } };
+          const mediaId = uploadJson.data.id;
+          await api.patch(`/movies/${movie.id}/poster`, { mediaId });
+        }
+        toast.success("Movie updated");
+        setShowEditMovie(false);
+      } catch {
+        toast.error("Failed to update movie");
+      }
+    })();
   }
 
   const handleSubmitReview = (rating: number, content: string) => {
@@ -312,7 +363,7 @@ function MovieDetail() {
           await api.post("/reviews", { movieId: movie.id, content });
           toast.success("Review added");
         }
-        const res = await api.get<{ success: true; data: { items: any[] } }>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
+        const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
         const items = res.data.items.map((r) => ({
           id: r.id, movieId: r.movieId, userId: r.userId, rating: 0, content: r.content,
           createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
@@ -365,11 +416,14 @@ function MovieDetail() {
           isOwner={isOwner}
           onEdit={() => setShowEditMovie(true)}
           onDelete={handleDeleteMovie}
+          userRating={API_BASE ? userRating : undefined}
+          onRate={API_BASE && isAuthenticated ? handleRateOnly : undefined}
         />
         <TrailerSection title={movie.title} url={movie.trailerUrl} />
 
         <ReviewsSection
           reviews={reviews}
+          loading={API_BASE ? loadingReviews : false}
           isAuthenticated={isAuthenticated}
           onStartNew={() => { setEditingReview(null); setShowReviewForm(true); }}
           onLogin={() => setShowLoginDialog(true)}
