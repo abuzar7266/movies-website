@@ -10,6 +10,8 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+ENV DATABASE_URL=postgres://postgres:postgres@localhost:5432/movieshelf
+
 RUN npm run prisma:generate && npm run build
 
 FROM base AS runner
