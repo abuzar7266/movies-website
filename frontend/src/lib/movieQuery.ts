@@ -1,7 +1,7 @@
 import type { MovieWithStats, Review } from "../types/movie";
 
 export type ReviewScope = "all" | "mine" | "not_mine";
-export type SortKey = "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
+export type SortKey = "rank_asc" | "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
 
 export function queryMoviesPure(
   ranked: MovieWithStats[],
@@ -24,6 +24,9 @@ export function queryMoviesPure(
   }
   const sorted = [...base];
   switch (opts.sortBy) {
+    case "rank_asc":
+      sorted.sort((a, b) => a.rank - b.rank);
+      break;
     case "rating_desc":
       sorted.sort((a, b) => b.averageRating - a.averageRating || b.reviewCount - a.reviewCount);
       break;

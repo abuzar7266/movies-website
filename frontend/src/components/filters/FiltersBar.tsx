@@ -16,7 +16,7 @@ interface FiltersBarProps {
   onMinStars: (v: FiltersBarProps["minStars"]) => void;
   reviewScope: "all" | "mine" | "not_mine";
   onReviewScope: (v: FiltersBarProps["reviewScope"]) => void;
-  sortBy: "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
+  sortBy: SortKey;
   onSortBy: (v: FiltersBarProps["sortBy"]) => void;
   isAuthenticated: boolean;
   onRequireLogin: () => void;

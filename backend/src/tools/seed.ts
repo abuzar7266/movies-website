@@ -6,6 +6,13 @@ import { recomputeMovieRanks } from "../services/movies.js";
 async function main() {
   const basePwd = process.env.SEED_USER_PASSWORD || "demo1234";
   const runId = process.env.SEED_RUN_ID || `${Date.now()}`;
+  await prisma.$transaction(async (tx) => {
+    await tx.rating.deleteMany({});
+    await tx.review.deleteMany({});
+    await tx.movie.deleteMany({});
+    await tx.media.deleteMany({});
+    await tx.user.deleteMany({});
+  });
   const toEmbed = (url: string) => {
     try {
       const u = new URL(url);
@@ -126,6 +133,7 @@ async function main() {
   ];
   const movieCreators = users.map((u) => u.id);
   const movies = [];
+  const baseCreatedAt = Date.now() - 30 * 60_000;
   for (let i = 0; i < 30; i++) {
     const t = seeds[i % seeds.length];
     const creator = movieCreators[i % movieCreators.length];
@@ -136,7 +144,8 @@ async function main() {
         posterUrl: t.posterUrl,
         trailerUrl: toEmbed(t.trailerUrl),
         synopsis: t.synopsis,
-        createdBy: creator
+        createdBy: creator,
+        createdAt: new Date(baseCreatedAt + i * 60_000)
       }
     });
     movies.push(movie);

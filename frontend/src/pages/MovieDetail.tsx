@@ -99,7 +99,7 @@ function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRati
               {owner && <span>Added by {owner.name}</span>}
             </div>
           </div>
-          {stats.rank <= 3 && (
+          {stats.rank > 0 && (
             <div className="rank-badge flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold text-[hsl(var(--primary-foreground))]">
               <Trophy size={14} />
               <span>Rank #{stats.rank}</span>
