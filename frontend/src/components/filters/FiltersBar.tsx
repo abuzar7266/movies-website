@@ -9,6 +9,7 @@ import {
 import { Button } from "../ui/button";
 import { DEFAULT_LABELS_EN, makeRatingOptions, makeReviewScopeOptions, makeSortOptions } from "../../lib/options";
 import type { ReviewScope, StarsValue, SortKey } from "../../lib/options";
+import styles from "./FiltersBar.module.css";
 
 interface FiltersBarProps {
   searchQuery: string;
@@ -43,11 +44,11 @@ export default function FiltersBar({
   const handleSort = (v: string) => onSortBy(v as SortKey);
   const handleScope = (v: string) => onReviewScope(v as ReviewScope);
   return (
-    <div className="flex w-full flex-col-reverse gap-3 sm:w-auto sm:flex-row sm:items-center">
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-[hsl(var(--muted-foreground))]">Rating</span>
+    <div className={styles.root}>
+      <div className={styles.group}>
+        <span className={styles.label}>Rating</span>
         <Select value={minStars} onValueChange={handleStars}>
-          <SelectTrigger className="w-[110px]">
+          <SelectTrigger className={styles.triggerRating}>
             <SelectValue placeholder="Any" />
           </SelectTrigger>
           <SelectContent>
@@ -57,10 +58,10 @@ export default function FiltersBar({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-[hsl(var(--muted-foreground))]">Sort</span>
+      <div className={styles.group}>
+        <span className={styles.label}>Sort</span>
         <Select value={sortBy} onValueChange={handleSort}>
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger className={styles.triggerWide}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -70,8 +71,8 @@ export default function FiltersBar({
           </SelectContent>
         </Select>
       </div>
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-[hsl(var(--muted-foreground))]">Reviews</span>
+      <div className={styles.group}>
+        <span className={styles.label}>Reviews</span>
         <Select
           value={reviewScope}
           onValueChange={(v) => {
@@ -82,7 +83,7 @@ export default function FiltersBar({
             handleScope(v);
           }}
         >
-          <SelectTrigger className="w-[170px]">
+          <SelectTrigger className={styles.triggerWide}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

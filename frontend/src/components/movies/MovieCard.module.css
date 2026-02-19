@@ -1,0 +1,87 @@
+.link {
+  display: block;
+  text-decoration: none;
+}
+
+.card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  transition: transform 300ms ease-out, box-shadow 300ms ease-out;
+}
+
+.link:hover .card {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px hsl(220 20% 2% / 0.6), 0 0 30px hsl(38 92% 55% / 0.08);
+}
+
+.posterFrame {
+  aspect-ratio: 2 / 3;
+  overflow: hidden;
+  position: relative;
+}
+
+.poster {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  transition: transform 500ms;
+}
+
+.link:hover .poster {
+  transform: scale(1.1);
+}
+
+.posterOverlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, hsl(var(--card)), transparent 60%, transparent);
+  opacity: 0;
+  transition: opacity 300ms;
+}
+
+.link:hover .posterOverlay {
+  opacity: 1;
+}
+
+.content {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: color 150ms;
+}
+
+.link:hover .title {
+  color: hsl(var(--primary));
+}
+
+.year {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reviewCount {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}

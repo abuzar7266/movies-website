@@ -5,6 +5,7 @@ import "./index.css"
 import App from "./App"
 import { AuthProvider } from "./context/AuthContext"
 import { MovieProvider } from "./context/MovieContext"
+import styles from "./main.module.css"
 
 const Index = lazy(() => import("./pages/Index"))
 const Login = lazy(() => import("./pages/Login"))
@@ -30,7 +31,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AuthProvider>
       <MovieProvider>
-        <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-sm text-[hsl(var(--muted-foreground))]">Loading…</div>}>
+        <Suspense fallback={<div className={styles.loading}>Loading…</div>}>
           <RouterProvider router={router} />
         </Suspense>
       </MovieProvider>

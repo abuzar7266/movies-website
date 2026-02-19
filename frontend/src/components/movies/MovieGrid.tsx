@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { MovieWithStats } from "../../types/movie";
 import { MovieCard } from "./MovieCard";
 import { Loader2 } from "lucide-react";
+import styles from "./MovieGrid.module.css";
 
 const PAGE_SIZE = 12;
 
@@ -49,17 +50,17 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
 
   if (movies.length === 0 && Boolean(loading)) {
     return (
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className={styles.grid}>
         {Array.from({ length: PAGE_SIZE }).map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="relative overflow-hidden rounded-xl bg-[hsl(var(--card))] border border-[hsl(var(--border))]">
-              <div className="aspect-[2/3] bg-[hsl(var(--muted))]" />
-              <div className="p-3 space-y-2">
-                <div className="h-4 w-3/4 rounded bg-[hsl(var(--muted))]" />
-                <div className="h-3 w-1/3 rounded bg-[hsl(var(--muted))]" />
-                <div className="flex items-center justify-between">
-                  <div className="h-3 w-20 rounded bg-[hsl(var(--muted))]" />
-                  <div className="h-3 w-8 rounded bg-[hsl(var(--muted))]" />
+          <div key={i} className={styles.pulse}>
+            <div className={styles.skeletonCard}>
+              <div className={styles.skeletonPoster} />
+              <div className={styles.skeletonBody}>
+                <div className={styles.skeletonLineLg} />
+                <div className={styles.skeletonLineSm} />
+                <div className={styles.skeletonRow}>
+                  <div className={styles.skeletonPillWide} />
+                  <div className={styles.skeletonPillNarrow} />
                 </div>
               </div>
             </div>
@@ -71,11 +72,11 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
 
   if (movies.length === 0 && !loading && (loaded ?? true)) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <p className="text-lg font-display text-[hsl(var(--muted-foreground))]">
+      <div className={styles.emptyState}>
+        <p className={styles.emptyTitle}>
           {error ? "Failed to load movies" : "No movies found"}
         </p>
-        <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+        <p className={styles.emptySubtitle}>
           {error ? "Please try again." : "Try a different search or add a new movie."}
         </p>
       </div>
@@ -86,21 +87,25 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+      <div className={styles.grid}>
         {visible.map((movie, i) => (
-          <div key={movie.id} className={`animate-fade-in opacity-0 stagger-${Math.min(i + 1, 6)}`}>
+          <div
+            key={movie.id}
+            className={styles.fadeIn}
+            style={{ animationDelay: `${Math.min(i + 1, 6) * 0.05}s` }}
+          >
             <MovieCard movie={movie} />
           </div>
         ))}
       </div>
       {hasMore && (
-        <div ref={loaderRef} className="flex items-center justify-center py-10">
-          <Loader2 size={24} className="animate-spin text-[hsl(var(--primary))]" />
-          <span className="ml-2 text-sm text-[hsl(var(--muted-foreground))]">Loading more movies...</span>
+        <div ref={loaderRef} className={styles.loaderRow}>
+          <Loader2 size={24} className={styles.spinner} />
+          <span className={styles.loaderText}>Loading more movies...</span>
         </div>
       )}
       {!hasMore && !loading && movies.length > PAGE_SIZE && (
-        <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">You've seen all {movies.length} movies</p>
+        <p className={styles.endText}>You&apos;ve seen all {movies.length} movies</p>
       )}
     </>
   );

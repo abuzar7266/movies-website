@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import styles from "./StarRating.module.css";
 
 interface StarRatingProps {
   rating: number;
@@ -10,12 +11,16 @@ interface StarRatingProps {
 
 const StarRating = ({ rating, maxStars = 5, size = 16, interactive = false, onRate }: StarRatingProps) => {
   return (
-    <div className="flex items-center gap-0.5">
+    <div className={styles.root}>
       {Array.from({ length: maxStars }, (_, i) => (
         <Star
           key={i}
           size={size}
-          className={`${i < rating ? "star-filled fill-current" : "star-empty"} ${interactive ? "cursor-pointer transition-transform hover:scale-125" : ""}`}
+          className={[
+            styles.star,
+            i < rating ? styles.filled : styles.empty,
+            interactive ? styles.interactive : "",
+          ].filter(Boolean).join(" ")}
           onClick={() => interactive && onRate?.(i + 1)}
         />
       ))}

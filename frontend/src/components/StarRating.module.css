@@ -1,0 +1,27 @@
+.root {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+}
+
+.star {
+  display: inline-block;
+}
+
+.filled {
+  color: hsl(var(--primary));
+  fill: currentColor;
+}
+
+.empty {
+  color: hsl(220 14% 25%);
+}
+
+.interactive {
+  cursor: pointer;
+  transition: transform 150ms;
+}
+
+.interactive:hover {
+  transform: scale(1.25);
+}

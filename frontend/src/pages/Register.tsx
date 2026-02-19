@@ -5,6 +5,7 @@ import { Button } from "../components/ui/button"
 import { useAuth } from "../context/AuthContext"
 import { toast } from "../hooks/use-toast"
 import { Film } from "lucide-react"
+import styles from "./AuthPage.module.css"
 
 function Register() {
   const [name, setName] = useState("")
@@ -27,33 +28,33 @@ function Register() {
     return ok
   }
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background hero-gradient px-4">
-      <div className="w-full max-w-sm animate-fade-in">
-        <div className="mb-8 text-center">
-          <Link to="/" className="mb-4 inline-flex items-center gap-2">
-            <Film size={28} className="text-[hsl(var(--primary))]" />
-            <span className="font-display text-2xl font-bold gold-text">MovieShelf</span>
+    <div className={styles.page}>
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <Link to="/" className={styles.brandLink}>
+            <Film size={28} className={styles.brandIcon} />
+            <span className={styles.brandText}>MovieShelf</span>
           </Link>
-          <h1 className="font-display text-2xl font-bold text-foreground">Create an account</h1>
-          <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Join to review movies</p>
+          <h1 className={styles.title}>Create an account</h1>
+          <p className={styles.subtitle}>Join to review movies</p>
         </div>
-        <form onSubmit={onSubmit} className="space-y-4 rounded-xl border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+        <form onSubmit={onSubmit} className={styles.form}>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Full Name</label>
+            <label className={styles.label}>Full Name</label>
             <Input value={name} onChange={e => setName(e.target.value)} placeholder="John Doe" required />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Email</label>
+            <label className={styles.label}>Email</label>
             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Password</label>
+            <label className={styles.label}>Password</label>
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
           </div>
-          <Button type="submit" className="w-full" disabled={submitting}>{submitting ? "Creating..." : "Create Account"}</Button>
+          <Button type="submit" className={styles.fullWidth} disabled={submitting}>{submitting ? "Creating..." : "Create Account"}</Button>
         </form>
-        <p className="mt-4 text-center text-sm text-[hsl(var(--muted-foreground))]">
-          Already have an account? <Link to="/login" className="text-[hsl(var(--primary))] hover:underline font-medium">Sign in</Link>
+        <p className={styles.footer}>
+          Already have an account? <Link to="/login" className={styles.footerLink}>Sign in</Link>
         </p>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { Button } from "../ui/button";
+import styles from "./MovieForm.module.css";
 
 interface MovieFormData {
   title: string;
@@ -67,79 +68,77 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const inputClasses = "w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.5)] px-3 py-2.5 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))] transition-all";
-
   return (
-    <div className="modal-overlay fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className={styles.overlay} onClick={onClose}>
       <div
-        className="w-full max-w-lg rounded-xl bg-[hsl(var(--card))] border border-[hsl(var(--border))] p-6 shadow-2xl animate-fade-in"
+        className={styles.modal}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="font-display text-xl font-bold text-foreground">
+        <div className={styles.headerRow}>
+          <h2 className={styles.title}>
             {initialData ? "Edit Movie" : "Add New Movie"}
           </h2>
-          <button onClick={onClose} disabled={submitting} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))] transition-colors disabled:opacity-50" aria-label="Close">
+          <button onClick={onClose} disabled={submitting} className={styles.closeButton} aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className={styles.form}>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Title *</label>
+            <label className={styles.label}>Title *</label>
             <input
               type="text"
               value={form.title}
               onChange={(e) => handleChange("title", e.target.value)}
               placeholder="Movie title"
-              className={inputClasses}
+              className={styles.input}
               required
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Release Date *</label>
+            <label className={styles.label}>Release Date *</label>
             <input
               type="date"
               value={form.releaseDate}
               onChange={(e) => handleChange("releaseDate", e.target.value)}
-              className={inputClasses}
+              className={styles.input}
               required
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-3">
+          <div className={styles.fileGrid}>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Poster Image</label>
-              <div className="flex items-center gap-3">
+              <label className={styles.label}>Poster Image</label>
+              <div className={styles.fileRow}>
                 <input
                   type="file"
                   accept="image/*"
                   disabled={submitting}
                   onChange={(e) => handlePosterFile(e.target.files?.[0] || null)}
-                  className="text-sm"
+                  className={styles.fileInput}
                 />
-                <span className="text-xs text-[hsl(var(--muted-foreground))]">Max 2MB (png, jpg, webp, gif)</span>
+                <span className={styles.fileHelp}>Max 2MB (png, jpg, webp, gif)</span>
               </div>
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Or Poster Image URL</label>
+              <label className={styles.label}>Or Poster Image URL</label>
               <input
                 type="url"
                 value={form.posterUrl}
                 disabled={submitting}
                 onChange={(e) => handleChange("posterUrl", e.target.value)}
                 placeholder="https://..."
-                className={inputClasses}
+                className={styles.input}
               />
             </div>
             {(posterPreview || form.posterUrl) && (
-              <div className="mt-1">
-                <div className="overflow-hidden rounded-md border border-[hsl(var(--border))] w-32">
+              <div className={styles.previewWrap}>
+                <div className={styles.previewFrame}>
                   <img
                     src={posterPreview || form.posterUrl}
                     alt="Poster preview"
-                    className="block h-48 w-32 object-cover"
+                    className={styles.previewImg}
                     onError={(e) => {
                       const t = e.currentTarget;
                       if (!t.dataset.fallback) {
@@ -154,39 +153,39 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Trailer Video URL</label>
+            <label className={styles.label}>Trailer Video URL</label>
             <input
               type="url"
               value={form.trailerUrl}
               disabled={submitting}
               onChange={(e) => handleChange("trailerUrl", e.target.value)}
               placeholder="https://www.youtube.com/embed/..."
-              className={inputClasses}
+              className={styles.input}
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Synopsis</label>
+            <label className={styles.label}>Synopsis</label>
             <textarea
               value={form.synopsis}
               disabled={submitting}
               onChange={(e) => handleChange("synopsis", e.target.value)}
               placeholder="Brief description of the movie..."
               rows={3}
-              className={inputClasses + " resize-none"}
+              className={styles.textarea}
             />
           </div>
 
           {(validationError || error) && (
-            <p className="text-sm text-destructive">{validationError || error}</p>
+            <p className={styles.error}>{validationError || error}</p>
           )}
 
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="outline" onClick={onClose} disabled={submitting} className="flex-1">
+          <div className={styles.actions}>
+            <Button type="button" variant="outline" onClick={onClose} disabled={submitting} className={styles.flex1}>
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting} className="flex-1">
-              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button type="submit" disabled={submitting} className={styles.flex1}>
+              {submitting && <Loader2 size={16} className={styles.spinner} />}
               {initialData ? (submitting ? "Saving…" : "Save Changes") : (submitting ? "Adding…" : "Add Movie")}
             </Button>
           </div>

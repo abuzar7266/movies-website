@@ -2,6 +2,7 @@ import { useState } from "react";
 import StarRating from "../StarRating";
 import { Button } from "../ui/button";
 import { Loader2 } from "lucide-react";
+import styles from "./ReviewForm.module.css";
 
 interface ReviewFormProps {
   initialRating?: number;
@@ -40,9 +41,9 @@ export default function ReviewForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm">Your rating:</span>
+    <form onSubmit={handleSubmit} className={styles.form}>
+      <div className={styles.ratingRow}>
+        <span className={styles.ratingLabel}>Your rating:</span>
         <StarRating rating={rating} interactive={!submitting} onRate={setRating} />
       </div>
       <textarea
@@ -51,13 +52,13 @@ export default function ReviewForm({
         placeholder="Share your thoughts..."
         rows={3}
         disabled={submitting}
-        className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary)/0.5)] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
+        className={styles.textarea}
       />
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <div className="flex gap-2 justify-end">
+      {error && <p className={styles.error}>{error}</p>}
+      <div className={styles.actions}>
         <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>Cancel</Button>
         <Button type="submit" disabled={submitting}>
-          {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {submitting && <Loader2 size={16} className={styles.spinner} />}
           {isEdit ? (submitting ? "Saving…" : "Save Review") : (submitting ? "Posting…" : "Post Review")}
         </Button>
       </div>
