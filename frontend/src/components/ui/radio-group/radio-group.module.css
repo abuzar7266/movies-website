@@ -1,0 +1,37 @@
+.root {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.item {
+  aspect-ratio: 1 / 1;
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background-color: transparent;
+  color: hsl(var(--primary));
+}
+
+.item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.item:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dot {
+  height: 0.5rem;
+  width: 0.5rem;
+  border-radius: 9999px;
+  background-color: currentColor;
+}

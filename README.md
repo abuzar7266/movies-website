@@ -57,6 +57,29 @@ project/
 - The frontend demo operates client‑side; the backend provides the real API with auth, media, reviews, and ratings. You can develop independently and integrate as needed.
 - Security and operational notes: dev secrets are present only for local use; rotate for any shared or deployed environment.
 
+## Testing
+### Frontend
+```bash
+cd project/frontend
+npm run test
+```
+
+### Backend
+Unit tests:
+```bash
+cd project/backend
+npm run test
+```
+
+Integration tests (DB required):
+```bash
+cd project/backend
+npm run test:integration
+```
+
+Test locations:
+- Frontend: `project/frontend/src/tests/unit`, `project/frontend/src/tests/ui`
+- Backend: `project/backend/tests/unit`, `project/backend/tests/integration`
+
 ## License
 For interview/demo use.
-

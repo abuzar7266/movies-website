@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import HeroSection from "../components/HeroSection"
 import FiltersBar from "../components/filters/FiltersBar"
@@ -13,8 +13,9 @@ import { QUERY_Q, QUERY_SCOPE, QUERY_SORT, QUERY_STARS } from "../lib/keys"
 import type { StarsValue, ReviewScope, SortKey } from "../lib/options"
 import { toast } from "../hooks/use-toast"
 import type { MovieWithStats } from "../types/movie"
-import type { Envelope, Paginated, MovieDTO } from "../types/api"
-import { api, API_BASE, ApiError } from "../lib/api"
+import type { MovieDTO } from "../types/api"
+import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "../api"
+import { DEFAULT_LABELS_EN, makeSortOptions } from "../lib/options"
 
 function Index() {
   const { addMovie, queryMovies } = useMovies()
@@ -23,9 +24,12 @@ function Index() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get(QUERY_Q) || "")
   const [formError, setFormError] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [minStars, setMinStars] = useState<StarsValue>((searchParams.get(QUERY_STARS) as StarsValue) || "0")
-  const [reviewScope, setReviewScope] = useState<ReviewScope>((searchParams.get(QUERY_SCOPE) as ReviewScope) || "all")
-  const [sortBy, setSortBy] = useState<SortKey>((searchParams.get(QUERY_SORT) as SortKey) || "reviews_desc")
+  const defaultMinStars: StarsValue = "0"
+  const defaultReviewScope: ReviewScope = "all"
+  const defaultSortBy: SortKey = "rank_asc"
+  const [minStars, setMinStars] = useState<StarsValue>((searchParams.get(QUERY_STARS) as StarsValue) || defaultMinStars)
+  const [reviewScope, setReviewScope] = useState<ReviewScope>((searchParams.get(QUERY_SCOPE) as ReviewScope) || defaultReviewScope)
+  const [sortBy, setSortBy] = useState<SortKey>((searchParams.get(QUERY_SORT) as SortKey) || defaultSortBy)
   const [page, setPage] = useState(1)
   const [remoteMovies, setRemoteMovies] = useState<MovieWithStats[]>([])
   const [remoteTotal, setRemoteTotal] = useState(0)
@@ -40,18 +44,34 @@ function Index() {
     const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
     if (!candidate) return "https://placehold.co/480x720?text=Poster"
     if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
-    if (import.meta.env.DEV) return candidate
-    return API_BASE ? new URL(candidate, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString() : candidate
+    return apiUrl(candidate)
   }
 
   const wantsAdd = searchParams.get("add") === "true"
   const showAddForm = wantsAdd && isAuthenticated
+  const wantsReset = searchParams.get("reset") === "1"
 
   const closeAdd = () => {
     const next = new URLSearchParams(searchParams)
     next.delete("add")
     setSearchParams(next, { replace: true })
   }
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery("")
+    setMinStars(defaultMinStars)
+    setReviewScope(defaultReviewScope)
+    setSortBy(defaultSortBy)
+  }, [defaultMinStars, defaultReviewScope, defaultSortBy])
+
+  useEffect(() => {
+    if (!wantsReset) return
+    resetFilters()
+    const next = new URLSearchParams(searchParams)
+    next.delete("reset")
+    next.delete("add")
+    setSearchParams(next, { replace: true })
+  }, [wantsReset, resetFilters, searchParams, setSearchParams])
 
   useEffect(() => {
     if (wantsAdd && !isAuthenticated && !showLoginDialog) setShowLoginDialog(true)
@@ -61,12 +81,12 @@ function Index() {
     const next = new URLSearchParams()
     if (wantsAdd) next.set("add", "true")
     if (searchQuery) next.set(QUERY_Q, searchQuery); else next.delete(QUERY_Q)
-    if (minStars !== "0") next.set(QUERY_STARS, minStars); else next.delete(QUERY_STARS)
-    if (reviewScope !== "all") next.set(QUERY_SCOPE, reviewScope); else next.delete(QUERY_SCOPE)
-    if (sortBy !== "reviews_desc") next.set(QUERY_SORT, sortBy); else next.delete(QUERY_SORT)
+    if (minStars !== defaultMinStars) next.set(QUERY_STARS, minStars); else next.delete(QUERY_STARS)
+    if (reviewScope !== defaultReviewScope) next.set(QUERY_SCOPE, reviewScope); else next.delete(QUERY_SCOPE)
+    if (sortBy !== defaultSortBy) next.set(QUERY_SORT, sortBy); else next.delete(QUERY_SORT)
     setSearchParams(next, { replace: true })
     setPage((p) => p === 1 ? p : 1)
-  }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
+  }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams, defaultMinStars, defaultReviewScope, defaultSortBy])
 
   const isRemote = Boolean(API_BASE)
 
@@ -102,7 +122,7 @@ function Index() {
         params.set("page", String(page))
         const pageSize = 60
         params.set("pageSize", String(pageSize))
-        const res = await api.get<Envelope<Paginated<MovieDTO>>>(`/movies?${params.toString()}`)
+        const res = await moviesApi.listMovies(params)
         if (!active || seq !== remoteRequestSeq.current) return
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
           id: m.id,
@@ -191,7 +211,7 @@ function Index() {
 
     setFormError("")
     try {
-      const created = await api.post<Envelope<MovieDTO>>("/movies", {
+      const created = await moviesApi.createMovie({
         title: data.title,
         releaseDate: new Date(data.releaseDate).toISOString(),
         synopsis: data.synopsis,
@@ -200,16 +220,8 @@ function Index() {
       })
 
       if (posterFile) {
-        const form = new FormData()
-        form.append("file", posterFile)
-        const mediaUrl = import.meta.env.DEV
-          ? "/media"
-          : new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
-        const upload = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" })
-        if (upload.ok) {
-          const uploadJson = (await upload.json()) as Envelope<{ id: string; url: string }>
-          await api.patch(`/movies/${created.data.id}/poster`, { mediaId: uploadJson.data.id })
-        }
+        const upload = await mediaApi.upload(posterFile)
+        await moviesApi.setPoster(created.data.id, upload.data.id)
       }
 
       setRecentlyAddedMovieId(created.data.id)
@@ -234,12 +246,16 @@ function Index() {
   }
   const moviesToShow = API_BASE ? remoteMovies : resultsWithReviewScope
 
+  const sortLabel = useMemo(() => {
+    return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
+  }, [sortBy])
+  const canReset = searchQuery !== "" || minStars !== defaultMinStars || reviewScope !== defaultReviewScope || sortBy !== defaultSortBy
   return (
     <div className="bg-background">
       <HeroSection />
       <section className="mx-auto max-w-screen-2xl px-4 sm:px-5 lg:px-6 py-8">
         <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <MoviesHeader count={moviesToShow.length} />
+          <MoviesHeader count={moviesToShow.length} sortLabel={sortLabel} />
           <FiltersBar
             searchQuery={searchQuery}
             onSearch={setSearchQuery}
@@ -249,6 +265,8 @@ function Index() {
             onReviewScope={setReviewScope}
             sortBy={sortBy}
             onSortBy={setSortBy}
+            onReset={resetFilters}
+            canReset={canReset}
             isAuthenticated={isAuthenticated}
             onRequireLogin={() => setShowLoginDialog(true)}
           />

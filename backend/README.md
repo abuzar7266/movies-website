@@ -58,7 +58,7 @@ src/
 ### With Docker Compose (recommended)
 From repo root:
 ```bash
-docker run -d --build -p 4000:4000 --env-file .env movieshelf-backend
+docker compose up -d --build backend
 ```
 Backend available at http://localhost:4000. Postgres and Redis run in sibling services.
 
@@ -87,9 +87,17 @@ Copy `.env.example` to `.env` and edit as needed:
 
 ## Testing
 ```bash
-npm test
+npm run test
 ```
-23 tests cover auth, movies, media, reviews, ratings, and rate limiting.
+
+Run integration tests (requires a reachable Postgres via `DATABASE_URL`):
+```bash
+npm run test:integration
+```
+
+Test layout:
+- Unit: `tests/unit/**/*.test.ts`
+- Integration: `tests/integration/**/*.spec.ts`
 
 ## Operations
 - Health: `/healthz`

@@ -1,0 +1,53 @@
+.table {
+  width: 100%;
+  caption-side: bottom;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.header tr {
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.body tr:last-child {
+  border-bottom: 0;
+}
+
+.footer {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  font-weight: 500;
+}
+
+.row {
+  border-bottom: 1px solid hsl(var(--border));
+  transition: background-color 150ms;
+}
+
+.row:hover {
+  background-color: hsl(var(--secondary) / 0.45);
+}
+
+.row[data-state="selected"] {
+  background-color: hsl(var(--secondary) / 0.55);
+}
+
+.head {
+  height: 2.5rem;
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: middle;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+}
+
+.cell {
+  padding: 0.5rem;
+  vertical-align: middle;
+}
+
+.caption {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}

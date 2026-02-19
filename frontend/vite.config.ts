@@ -26,5 +26,13 @@ export default defineConfig(({ mode }) => {
         "/media": shared,
       },
     },
+    test: {
+      environment: "jsdom",
+      setupFiles: ["./src/tests/setup.ts"],
+      include: [
+        "src/tests/**/*.test.{js,jsx,ts,tsx}",
+        "src/tests/**/*.spec.{js,jsx,ts,tsx}",
+      ],
+    },
   }
 })

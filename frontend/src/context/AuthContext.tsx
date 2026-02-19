@@ -2,21 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import type { User } from "../types/movie";
 import { loadJSON, saveJSON } from "../lib/utils";
 import { STORAGE_AUTH } from "../lib/keys";
-import { api, ApiError, API_BASE } from "../lib/api";
-
-function resolveMediaUrl(path: string): string {
-  if (import.meta.env.DEV) {
-    return path.startsWith("/") ? path : `/${path}`;
-  }
-  if (API_BASE) {
-    try {
-      return new URL(path, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString();
-    } catch {
-      return (API_BASE || "") + path;
-    }
-  }
-  return path.startsWith("/") ? path : `/${path}`;
-}
+import { ApiError, apiUrl, authApi, mediaApi, usersApi } from "../api";
 
 interface AuthState {
   user: User | null;
@@ -44,7 +30,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = useCallback(async (email: string, password: string): Promise<{ ok: boolean; reason?: "not_found" | "wrong_password" }> => {
     try {
-      const resp = await api.post<{ success: true; data: { id: string; name: string; email: string; role: string } }>("/auth/login", { email, password });
+      const resp = await authApi.login(email, password);
       const u: User = {
         id: resp.data.id,
         name: resp.data.name,
@@ -53,7 +39,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date().toISOString(),
       };
       setAuthState({ user: u, isAuthenticated: true });
-      void api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true }).then(
+      void usersApi.me().then(
         (me) => {
           setAuthState((prev) => {
             if (!prev.user) return prev;
@@ -67,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 email: me.data.email,
                 role: me.data.role,
                 avatarMediaId,
-                avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+                avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
               },
             };
           });
@@ -83,7 +69,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      const resp = await api.post<{ success: true; data: { id: string; name: string; email: string; role: string } }>("/auth/register", { name, email, password });
+      const resp = await authApi.register(name, email, password);
       const u: User = {
         id: resp.data.id,
         name: resp.data.name,
@@ -92,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         createdAt: new Date().toISOString(),
       };
       setAuthState({ user: u, isAuthenticated: true });
-      void api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true }).then(
+      void usersApi.me().then(
         (me) => {
           setAuthState((prev) => {
             if (!prev.user) return prev;
@@ -106,7 +92,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 email: me.data.email,
                 role: me.data.role,
                 avatarMediaId,
-                avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+                avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
               },
             };
           });
@@ -121,7 +107,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(() => {
-    api.post("/auth/logout").catch(() => {});
+    authApi.logout().catch(() => {});
     localStorage.removeItem(STORAGE_AUTH);
     setAuthState({ user: null, isAuthenticated: false });
   }, []);
@@ -134,24 +120,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (file.size > 2 * 1024 * 1024) return false;
 
     try {
-      const form = new FormData();
-      form.append("file", file);
-
-      const mediaUrl = import.meta.env.DEV
-        ? "/media"
-        : API_BASE
-          ? new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
-          : "/media";
-
-      const uploadRes = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" });
-      const uploadJson = (await uploadRes.json()) as { success: true; data: { id: string; url: string } } | { success: false };
-      if (!uploadRes.ok || !("data" in uploadJson)) return false;
-
-      const updated = await api.patch<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>(
-        "/users/me/avatar",
-        { mediaId: uploadJson.data.id }
-      );
-
+      const uploadRes = await mediaApi.upload(file);
+      const updated = await usersApi.updateAvatar(uploadRes.data.id);
       const avatarMediaId = updated.data.avatarMediaId ?? null;
       setAuthState((prev) => {
         if (!prev.user) return prev;
@@ -164,7 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: updated.data.email,
             role: updated.data.role,
             avatarMediaId,
-            avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+            avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
           },
         };
       });
@@ -183,7 +153,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
       try {
-        const me = await api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true });
+        const me = await usersApi.me();
         if (cancelled) return;
         const avatarMediaId = me.data.avatarMediaId ?? null;
         setAuthState(prev => ({
@@ -193,7 +163,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: me.data.email,
             role: me.data.role,
             avatarMediaId,
-            avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+            avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
             createdAt: prev.user?.createdAt ?? new Date().toISOString(),
           },
           isAuthenticated: true,
@@ -203,7 +173,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (e instanceof ApiError && e.status === 401) {
           const refreshOk = await (async (): Promise<boolean> => {
             try {
-              await api.post<unknown>("/auth/refresh", undefined, { silentError: true });
+              await authApi.refresh();
               return true;
             } catch {
               return false;
@@ -211,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           })();
           if (refreshOk) {
             try {
-              const me2 = await api.get<{ success: true; data: { id: string; name: string; email: string; role: string; avatarMediaId?: string | null } }>("/users/me", { silentError: true });
+              const me2 = await usersApi.me();
               if (cancelled) return;
               const avatarMediaId = me2.data.avatarMediaId ?? null;
               setAuthState(prev => ({
@@ -221,7 +191,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                   email: me2.data.email,
                   role: me2.data.role,
                   avatarMediaId,
-                  avatarUrl: avatarMediaId ? resolveMediaUrl(`/media/${avatarMediaId}`) : undefined,
+                  avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
                   createdAt: prev.user?.createdAt ?? new Date().toISOString(),
                 },
                 isAuthenticated: true,

@@ -6,11 +6,6 @@
   "engines": {
     "node": ">=20.19.0"
   },
-  "vitest": {
-    "setupFiles": [
-      "./tests/setup.ts"
-    ]
-  },
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc -b && node src/tools/patch-prisma-esm-imports.cjs",
@@ -25,8 +20,9 @@
     "db:push": "prisma db push",
     "db:status": "prisma migrate status",
     "seed": "tsx src/tools/seed.ts",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "test": "vitest run --config vitest.config.ts",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:watch": "vitest --config vitest.config.ts",
     "audit:prod": "npm audit --omit=dev",
     "audit:ci": "npm audit --omit=dev --audit-level=high"
   },

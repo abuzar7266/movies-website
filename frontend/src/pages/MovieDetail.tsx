@@ -9,24 +9,12 @@ import ReviewForm from "../components/review/ReviewForm"
 import { Button } from "../components/ui/button"
 import LoginRequiredDialog from "../components/auth/LoginRequiredDialog"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../components/ui/dialog"
-import { ArrowLeft, Calendar, MessageSquare, Trash2, Trophy } from "lucide-react"
+import { ArrowLeft, Calendar, Loader2, MessageSquare, Trash2, Trophy } from "lucide-react"
 import MovieForm from "../components/movies/MovieForm"
 import { toEmbedUrl } from "../lib/utils"
 import { toast } from "../hooks/use-toast"
-import { api, API_BASE, ApiError } from "../lib/api"
-import type { Envelope, MovieDTO, Paginated, ReviewDTO, RatingAverage, RatingValue } from "../types/api"
-
-function resolveMediaUrl(path: string): string {
-  if (import.meta.env.DEV) return path.startsWith("/") ? path : `/${path}`
-  if (API_BASE) {
-    try {
-      return new URL(path, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
-    } catch {
-      return (API_BASE || "") + path
-    }
-  }
-  return path.startsWith("/") ? path : `/${path}`
-}
+import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi } from "../api"
+import type { MovieDTO, ReviewDTO } from "../types/api"
 
 function MovieDetailSkeleton() {
   return (
@@ -237,6 +225,126 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
   );
 }
 
+type RemoteStats = { averageRating: number; reviewCount: number; rank: number }
+
+function mapMovieDtoToMovie(m: MovieDTO): import("../types/movie").Movie {
+  const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
+  const posterUrl = candidate
+    ? candidate.startsWith("http://") || candidate.startsWith("https://")
+      ? candidate
+      : apiUrl(candidate)
+    : "https://placehold.co/480x720?text=Poster"
+  return {
+    id: m.id,
+    title: m.title,
+    releaseDate: new Date(m.releaseDate).toISOString(),
+    posterUrl,
+    trailerUrl: m.trailerUrl || "",
+    synopsis: m.synopsis,
+    createdBy: m.createdBy,
+    createdAt: new Date(m.createdAt).toISOString(),
+  }
+}
+
+function mapReviewDtoToReview(r: ReviewDTO): import("../types/movie").Review {
+  return {
+    id: r.id,
+    movieId: r.movieId,
+    userId: r.userId,
+    author: r.user
+      ? {
+          id: r.user.id,
+          name: r.user.name,
+          avatarUrl: r.user.avatarMediaId ? apiUrl(`/media/${r.user.avatarMediaId}`) : undefined,
+        }
+      : undefined,
+    rating: 0,
+    content: r.content,
+    createdAt: new Date(r.createdAt).toISOString(),
+    updatedAt: new Date(r.updatedAt).toISOString(),
+  } as import("../types/movie").Review
+}
+
+function useRemoteMovieData(id: string | undefined, reloadKey: number) {
+  const [movie, setMovie] = useState<import("../types/movie").Movie | null>(null)
+  const [stats, setStats] = useState<RemoteStats | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [notFound, setNotFound] = useState(false)
+  const [loadFailed, setLoadFailed] = useState(false)
+
+  useEffect(() => {
+    if (!API_BASE || !id) return
+    let cancelled = false
+    const run = async () => {
+      setLoading(true)
+      setNotFound(false)
+      setLoadFailed(false)
+      try {
+        const res = await moviesApi.getMovie(id)
+        if (cancelled) return
+        setMovie(mapMovieDtoToMovie(res.data))
+        setStats({
+          averageRating: res.data.averageRating ?? 0,
+          reviewCount: res.data.reviewCount ?? 0,
+          rank: res.data.rank ?? 0,
+        })
+      } catch (e) {
+        if (cancelled) return
+        setMovie(null)
+        setStats(null)
+        if (e instanceof ApiError && (e.status === 404 || e.status === 400)) {
+          setNotFound(true)
+        } else {
+          setLoadFailed(true)
+        }
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [id, reloadKey])
+
+  return { movie, stats, setStats, loading, notFound, loadFailed }
+}
+
+function useRemoteReviewsData(id: string | undefined) {
+  const [reviews, setReviews] = useState<Array<import("../types/movie").Review>>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!API_BASE || !id) return
+    let cancelled = false
+    const run = async () => {
+      setLoading(true)
+      try {
+        const res = await reviewsApi.listByMovie(id, 1, 50)
+        if (cancelled) return
+        setReviews(res.data.items.map(mapReviewDtoToReview))
+      } catch {
+        if (!cancelled) setReviews([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    run()
+    return () => { cancelled = true }
+  }, [id])
+
+  return { reviews, setReviews, loading }
+}
+
+function useRemoteUserRating(id: string | undefined, isAuthenticated: boolean) {
+  const [rating, setRating] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!API_BASE || !id || !isAuthenticated) return
+    ratingsApi.getMyRating(id).then((r) => setRating(r.data.value), () => setRating(null))
+  }, [id, isAuthenticated])
+
+  return { rating, setRating }
+}
+
 function MovieDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -253,125 +361,16 @@ function MovieDetail() {
   const [confirmDeleteReviewId, setConfirmDeleteReviewId] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  const [remoteMovie, setRemoteMovie] = useState<null | import("../types/movie").Movie>(null)
-  const [remoteStats, setRemoteStats] = useState<{ averageRating: number; reviewCount: number; rank: number } | null>(null)
-  const [remoteReviews, setRemoteReviews] = useState<Array<import("../types/movie").Review>>([])
-  const [userRating, setUserRating] = useState<number | null>(null)
-  const [reviewsLoading, setLoadingReviews] = useState(false)
-  const [movieLoading, setMovieLoading] = useState(false)
-  const [movieNotFound, setMovieNotFound] = useState(false)
-  const [movieLoadFailed, setMovieLoadFailed] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
 
-  useEffect(() => {
-    if (!API_BASE || !id) return;
-    let cancelled = false;
-    const run = async () => {
-      setMovieLoading(true)
-      setMovieNotFound(false)
-      setMovieLoadFailed(false)
-      try {
-        const res = await api.get<Envelope<MovieDTO>>(`/movies/${id}`);
-        if (cancelled) return;
-        const m = res.data;
-        const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
-        const posterUrl = candidate
-          ? candidate.startsWith("http://") || candidate.startsWith("https://")
-            ? candidate
-            : import.meta.env.DEV
-            ? candidate
-            : new URL(candidate, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
-          : "https://placehold.co/480x720?text=Poster"
-        const mapped: import("../types/movie").Movie = {
-          id: m.id,
-          title: m.title,
-          releaseDate: new Date(m.releaseDate).toISOString(),
-          posterUrl,
-          trailerUrl: m.trailerUrl || "",
-          synopsis: m.synopsis,
-          createdBy: m.createdBy,
-          createdAt: new Date(m.createdAt).toISOString(),
-        };
-        setRemoteMovie(mapped);
-        setRemoteStats({
-          averageRating: m.averageRating ?? 0,
-          reviewCount: m.reviewCount ?? 0,
-          rank: m.rank ?? 0,
-        });
-      } catch (e) {
-        if (cancelled) return
-        setRemoteMovie(null)
-        setRemoteStats(null)
-        if (e instanceof ApiError && (e.status === 404 || e.status === 400)) {
-          setMovieNotFound(true)
-        } else {
-          setMovieLoadFailed(true)
-        }
-      } finally {
-        if (!cancelled) setMovieLoading(false)
-      }
-    };
-    run();
-    return () => { cancelled = true };
-  }, [id, reloadKey]);
+  const remoteMovie = useRemoteMovieData(id, reloadKey)
+  const remoteReviews = useRemoteReviewsData(id)
+  const remoteRating = useRemoteUserRating(id, isAuthenticated)
 
-  useEffect(() => {
-    if (!API_BASE || !id) return;
-    let cancelled = false;
-    const run = async () => {
-      setLoadingReviews(true);
-      try {
-        const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${id}&page=1&pageSize=50`);
-        if (cancelled) return;
-        const items = res.data.items.map((r) => ({
-          id: r.id,
-          movieId: r.movieId,
-          userId: r.userId,
-          author: r.user
-            ? {
-                id: r.user.id,
-                name: r.user.name,
-                avatarUrl: r.user.avatarMediaId ? resolveMediaUrl(`/media/${r.user.avatarMediaId}`) : undefined,
-              }
-            : undefined,
-          rating: 0,
-          content: r.content,
-          createdAt: new Date(r.createdAt).toISOString(),
-          updatedAt: new Date(r.updatedAt).toISOString(),
-        })) as Array<import("../types/movie").Review>;
-        setRemoteReviews(items);
-      } catch {
-        if (!cancelled) setRemoteReviews([]);
-      } finally {
-        if (!cancelled) setLoadingReviews(false);
-      }
-    };
-    run();
-    return () => { cancelled = true };
-  }, [id]);
-
-  useEffect(() => {
-    if (!API_BASE || !id || !isAuthenticated) {
-      setUserRating(null);
-      return;
-    }
-    api.get<Envelope<RatingValue>>(`/ratings/${id}`, { silentError: true }).then(
-      (r) => setUserRating(r.data.value),
-      () => setUserRating(null)
-    );
-  }, [id, isAuthenticated]);
-
-  useEffect(() => {
-    if (!API_BASE || !isAuthenticated || !user?.id) return
-    if (reviewsLoading) return
-    const hasReview = remoteReviews.some((r) => r.userId === user.id)
-    if (!hasReview) setUserRating(null)
-  }, [isAuthenticated, user?.id, reviewsLoading, remoteReviews]);
-
-  const movie = API_BASE ? remoteMovie : getMovieById(id || "")
+  const movie = API_BASE ? remoteMovie.movie : getMovieById(id || "")
   if (API_BASE) {
-    if (movieLoading && !movie) return <MovieDetailSkeleton />
-    if (movieLoadFailed && !movie) {
+    if (remoteMovie.loading && !movie) return <MovieDetailSkeleton />
+    if (remoteMovie.loadFailed && !movie) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center space-y-3">
@@ -381,7 +380,7 @@ function MovieDetail() {
         </div>
       )
     }
-    if (movieNotFound && !movie) {
+    if (remoteMovie.notFound && !movie) {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
@@ -408,12 +407,13 @@ function MovieDetail() {
     )
   }
 
-  const reviews = API_BASE ? remoteReviews : getReviewsForMovie(movie.id)
-  const stats = API_BASE ? (remoteStats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
+  const reviews = API_BASE ? remoteReviews.reviews : getReviewsForMovie(movie.id)
+  const stats = API_BASE ? (remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
   const owner = API_BASE ? undefined : sampleUsers.find((u) => u.id === movie.createdBy)
   const isOwner = API_BASE ? false : user?.id === movie.createdBy
   const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
   const canStartNewReview = Boolean(user && !hasMyReview)
+  const displayedUserRating = API_BASE ? (hasMyReview ? remoteRating.rating : null) : undefined
 
   const deleteMovieConfirmed = async () => {
     if (deleting) return
@@ -448,9 +448,9 @@ function MovieDetail() {
     }
     (async () => {
       try {
-        const r = await api.post<Envelope<RatingAverage>>("/ratings", { movieId: movie.id, value });
-        setUserRating(value);
-        setRemoteStats((prev) => ({ averageRating: r.data.averageRating, reviewCount: prev?.reviewCount ?? 0, rank: prev?.rank ?? 0 }));
+        const r = await ratingsApi.upsertRating({ movieId: movie.id, value });
+        remoteRating.setRating(value);
+        remoteMovie.setStats((prev) => ({ averageRating: r.data.averageRating, reviewCount: prev?.reviewCount ?? 0, rank: prev?.rank ?? 0 }));
         toast.success("Rating saved");
       } catch {
         toast.error("Failed to save rating");
@@ -471,7 +471,7 @@ function MovieDetail() {
       return;
     }
     try {
-      await api.patch(`/movies/${movie.id}`, {
+      await moviesApi.updateMovie(movie.id, {
         title: data.title,
         releaseDate: data.releaseDate,
         ...(data.trailerUrl ? { trailerUrl: toEmbedUrl(data.trailerUrl) } : {}),
@@ -479,16 +479,8 @@ function MovieDetail() {
         ...(posterFile ? {} : data.posterUrl ? { posterUrl: data.posterUrl } : {}),
       });
       if (posterFile) {
-        const form = new FormData();
-        form.append("file", posterFile);
-        const mediaUrl = import.meta.env.DEV
-          ? "/media"
-          : new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString();
-        const upload = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" });
-        if (!upload.ok) throw new Error("Upload failed");
-        const uploadJson = await upload.json() as Envelope<{ id: string; url: string }>;
-        const mediaId = uploadJson.data.id;
-        await api.patch(`/movies/${movie.id}/poster`, { mediaId });
+        const upload = await mediaApi.upload(posterFile);
+        await moviesApi.setPoster(movie.id, upload.data.id);
       }
       toast.success("Movie updated");
       setShowEditMovie(false);
@@ -524,39 +516,24 @@ function MovieDetail() {
       return;
     }
     try {
-      const ratingRes = await api.post<Envelope<RatingAverage>>("/ratings", { movieId: movie.id, value: rating });
-      setUserRating(rating)
-      setRemoteStats((prev) => ({
+      const ratingRes = await ratingsApi.upsertRating({ movieId: movie.id, value: rating });
+      remoteRating.setRating(rating)
+      remoteMovie.setStats((prev) => ({
         averageRating: ratingRes.data.averageRating,
         reviewCount: prev?.reviewCount ?? 0,
         rank: prev?.rank ?? 0,
       }))
       if (editingReview) {
-        await api.patch(`/reviews/${editingReview.id}`, { content });
+        await reviewsApi.updateReview(editingReview.id, { content });
         setEditingReview(null);
         toast.success("Review updated");
       } else {
-        await api.post("/reviews", { movieId: movie.id, content });
+        await reviewsApi.createReview({ movieId: movie.id, content });
         toast.success("Review added");
-        setRemoteStats((prev) => prev ? ({ ...prev, reviewCount: prev.reviewCount + 1 }) : prev)
+        remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: prev.reviewCount + 1 }) : prev)
       }
-      const res = await api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
-      const items = res.data.items.map((r) => ({
-        id: r.id,
-        movieId: r.movieId,
-        userId: r.userId,
-        author: r.user
-          ? {
-              id: r.user.id,
-              name: r.user.name,
-              avatarUrl: r.user.avatarMediaId ? resolveMediaUrl(`/media/${r.user.avatarMediaId}`) : undefined,
-            }
-          : undefined,
-        rating: 0,
-        content: r.content,
-        createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
-      })) as Array<import("../types/movie").Review>;
-      setRemoteReviews(items);
+      const res = await reviewsApi.listByMovie(movie.id, 1, 50);
+      remoteReviews.setReviews(res.data.items.map(mapReviewDtoToReview));
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setShowLoginDialog(true);
@@ -605,14 +582,14 @@ function MovieDetail() {
       return
     }
     try {
-      await api.delete(`/reviews/${reviewId}`);
-      setRemoteReviews(prev => prev.filter(r => r.id !== reviewId));
+      await reviewsApi.deleteReview(reviewId);
+      remoteReviews.setReviews((prev) => prev.filter((r) => r.id !== reviewId));
       if (editingReview?.id === reviewId) {
         setEditingReview(null)
         setShowReviewForm(false)
       }
-      if (target?.userId === user.id) setUserRating(null)
-      setRemoteStats((prev) => prev ? ({ ...prev, reviewCount: Math.max(0, prev.reviewCount - 1) }) : prev)
+      if (target?.userId === user.id) remoteRating.setRating(null)
+      remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: Math.max(0, prev.reviewCount - 1) }) : prev)
       toast.success("Review deleted");
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
@@ -647,7 +624,7 @@ function MovieDetail() {
           isOwner={isOwner}
           onEdit={() => setShowEditMovie(true)}
           onDelete={handleDeleteMovie}
-          userRating={API_BASE ? userRating : undefined}
+          userRating={displayedUserRating}
           onRate={API_BASE && isAuthenticated ? handleRateOnly : undefined}
         />
         <TrailerSection title={movie.title} url={movie.trailerUrl} />
@@ -655,11 +632,11 @@ function MovieDetail() {
         <div ref={reviewsSectionRef}>
           <ReviewsSection
             reviews={reviews}
-            loading={API_BASE ? reviewsLoading : false}
+            loading={API_BASE ? remoteReviews.loading : false}
             isAuthenticated={isAuthenticated}
             currentUserId={user?.id}
             canStartNew={canStartNewReview}
-            initialRating={editingReview ? (API_BASE ? (userRating ?? 5) : editingReview.rating) : draftReviewRating}
+            initialRating={editingReview ? (API_BASE ? (remoteRating.rating ?? 5) : editingReview.rating) : draftReviewRating}
             onStartNew={() => {
               if (!canStartNewReview) {
                 toast.error("You can only submit one review per movie")
@@ -720,7 +697,8 @@ function MovieDetail() {
               disabled={deleting}
               className="text-destructive hover:bg-destructive/10 border-destructive/30"
             >
-              Delete
+              {deleting && <Loader2 size={16} className="mr-2 animate-spin" />}
+              {deleting ? "Deleting..." : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>

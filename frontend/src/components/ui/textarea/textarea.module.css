@@ -1,0 +1,26 @@
+.textarea {
+  display: block;
+  min-height: 80px;
+  width: 100%;
+  resize: vertical;
+  border-radius: 0.375rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--secondary) / 0.5);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+}
+
+.textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

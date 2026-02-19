@@ -1,22 +1,17 @@
 import { Search, X } from "lucide-react";
-import { useState } from "react";
 
 interface SearchBarProps {
+  value: string;
   onSearch: (query: string) => void;
   placeholder?: string;
-  initialValue?: string;
 }
 
-const SearchBar = ({ onSearch, placeholder = "Search movies by title...", initialValue = "" }: SearchBarProps) => {
-  const [value, setValue] = useState(initialValue);
-
+const SearchBar = ({ value, onSearch, placeholder = "Search movies by title..." }: SearchBarProps) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
     onSearch(e.target.value);
   };
 
   const handleClear = () => {
-    setValue("");
     onSearch("");
   };
 

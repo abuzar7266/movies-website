@@ -6,6 +6,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { Button } from "../ui/button";
 import { DEFAULT_LABELS_EN, makeRatingOptions, makeReviewScopeOptions, makeSortOptions } from "../../lib/options";
 import type { ReviewScope, StarsValue, SortKey } from "../../lib/options";
 
@@ -18,6 +19,8 @@ interface FiltersBarProps {
   onReviewScope: (v: FiltersBarProps["reviewScope"]) => void;
   sortBy: SortKey;
   onSortBy: (v: FiltersBarProps["sortBy"]) => void;
+  onReset: () => void;
+  canReset?: boolean;
   isAuthenticated: boolean;
   onRequireLogin: () => void;
 }
@@ -31,6 +34,8 @@ export default function FiltersBar({
   onReviewScope,
   sortBy,
   onSortBy,
+  onReset,
+  canReset = true,
   isAuthenticated,
   onRequireLogin,
 }: FiltersBarProps) {
@@ -87,7 +92,10 @@ export default function FiltersBar({
           </SelectContent>
         </Select>
       </div>
-      <SearchBar onSearch={onSearch} initialValue={searchQuery} />
+      <Button variant="outline" size="sm" onClick={onReset} disabled={!canReset}>
+        Clear filters
+      </Button>
+      <SearchBar value={searchQuery} onSearch={onSearch} />
     </div>
   );
 }
