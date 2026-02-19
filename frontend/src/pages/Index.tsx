@@ -26,7 +26,7 @@ function Index() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
   const defaultMinStars: StarsValue = "0"
   const defaultReviewScope: ReviewScope = "all"
-  const defaultSortBy: SortKey = "rating_desc"
+  const defaultSortBy: SortKey = "rank_asc"
   const [minStars, setMinStars] = useState<StarsValue>((searchParams.get(QUERY_STARS) as StarsValue) || defaultMinStars)
   const [reviewScope, setReviewScope] = useState<ReviewScope>((searchParams.get(QUERY_SCOPE) as ReviewScope) || defaultReviewScope)
   const [sortBy, setSortBy] = useState<SortKey>((searchParams.get(QUERY_SORT) as SortKey) || defaultSortBy)
@@ -247,7 +247,7 @@ function Index() {
   const moviesToShow = API_BASE ? remoteMovies : resultsWithReviewScope
 
   const sortLabel = useMemo(() => {
-    return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Highest rated"
+    return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
   }, [sortBy])
   const canReset = searchQuery !== "" || minStars !== defaultMinStars || reviewScope !== defaultReviewScope || sortBy !== defaultSortBy
   return (
