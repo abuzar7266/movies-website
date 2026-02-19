@@ -58,7 +58,7 @@ src/
 ### With Docker Compose (recommended)
 From repo root:
 ```bash
-docker compose up -d --build
+docker run -d --build -p 4000:4000 --env-file .env movieshelf-backend
 ```
 Backend available at http://localhost:4000. Postgres and Redis run in sibling services.
 
