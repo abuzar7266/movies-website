@@ -34,6 +34,10 @@ describe("queryMoviesPure", () => {
     const res = queryMoviesPure(movies, reviews, { sortBy: "rating_desc" });
     expect(res.map(m => m.id)).toEqual(["m3", "m1", "m2"]);
   });
+  it("sorts by rank", () => {
+    const res = queryMoviesPure(movies, reviews, { sortBy: "rank_asc" });
+    expect(res.map(m => m.id)).toEqual(["m1", "m2", "m3"]);
+  });
   it("sorts by newest release", () => {
     const res = queryMoviesPure(movies, reviews, { sortBy: "release_desc" });
     expect(res[0].id).toBe("m3");

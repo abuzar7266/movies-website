@@ -4,6 +4,7 @@ import { sampleMovies, sampleReviews } from "../data/sample-data";
 import { loadJSON, saveJSON } from "../lib/utils";
 import { STORAGE_MOVIES } from "../lib/keys";
 import { queryMoviesPure } from "../lib/movieQuery";
+import type { ReviewScope, SortKey } from "../lib/options";
 
 interface MovieContextType {
   movies: Movie[];
@@ -22,8 +23,8 @@ interface MovieContextType {
   queryMovies: (opts: {
     search?: string;
     minStars?: number;
-    reviewScope?: "all" | "mine" | "not_mine";
-    sortBy?: "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
+    reviewScope?: ReviewScope;
+    sortBy?: SortKey;
     userId?: string;
   }) => MovieWithStats[];
 }
@@ -63,13 +64,15 @@ export const MovieProvider = ({ children }: { children: ReactNode }) => {
         : 0;
       return { ...movie, reviewCount, averageRating, rank: 0 };
     });
-    stats.sort((a, b) => b.reviewCount - a.reviewCount || b.averageRating - a.averageRating);
-    let currentRank = 1;
+    stats.sort(
+      (a, b) =>
+        b.reviewCount - a.reviewCount ||
+        b.averageRating - a.averageRating ||
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime() ||
+        a.id.localeCompare(b.id)
+    );
     stats.forEach((m, i) => {
-      if (i > 0 && m.reviewCount < stats[i - 1].reviewCount) {
-        currentRank = i + 1;
-      }
-      m.rank = currentRank;
+      m.rank = i + 1;
     });
     return stats;
   }, [movies, reviews]);
@@ -151,8 +154,8 @@ export const MovieProvider = ({ children }: { children: ReactNode }) => {
   const queryMovies = useCallback((opts: {
     search?: string;
     minStars?: number;
-    reviewScope?: "all" | "mine" | "not_mine";
-    sortBy?: "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
+    reviewScope?: ReviewScope;
+    sortBy?: SortKey;
     userId?: string;
   }): MovieWithStats[] => {
     return queryMoviesPure(rankedMovies, reviews, opts);

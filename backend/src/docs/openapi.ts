@@ -83,7 +83,7 @@ const listMoviesQuery = z.object({
   q: z.string().optional(),
   minStars: z.coerce.number().int().min(0).max(5).optional(),
   reviewScope: z.enum(["all", "mine", "not_mine"]).optional(),
-  sort: z.enum(["reviews_desc", "rating_desc", "release_desc", "release_asc", "uploaded_desc"]).optional(),
+  sort: z.enum(["rank_asc", "reviews_desc", "rating_desc", "release_desc", "release_asc", "uploaded_desc"]).optional(),
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional()
 });

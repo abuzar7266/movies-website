@@ -17,13 +17,7 @@ async function computeMovieRankMap(
   });
 
   const map = new Map<string, number>();
-  let currentRank = 1;
-  rows.forEach((m, i) => {
-    if (i > 0 && m.reviewCount < rows[i - 1].reviewCount) {
-      currentRank = i + 1;
-    }
-    map.set(m.id, currentRank);
-  });
+  rows.forEach((m, i) => map.set(m.id, i + 1));
   return map;
 }
 
@@ -100,7 +94,7 @@ export async function listMovies(opts: {
   q?: string;
   minStars?: number;
   reviewScope?: "all" | "mine" | "not_mine";
-  sort?: "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
+  sort?: "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc" | "rank_asc";
   page: number;
   pageSize: number;
   userId?: string;
@@ -123,7 +117,9 @@ export async function listMovies(opts: {
     }
   }
   const orderBy =
-    opts.sort === "reviews_desc"
+    opts.sort === "rank_asc"
+      ? { rank: "asc" as const }
+      : opts.sort === "reviews_desc"
       ? { reviewCount: "desc" as const }
       : opts.sort === "rating_desc"
       ? { averageRating: "desc" as const }

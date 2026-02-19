@@ -1,6 +1,6 @@
 export type StarsValue = "0" | "1" | "2" | "3" | "4" | "5";
 export type ReviewScope = "all" | "mine" | "not_mine";
-export type SortKey = "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
+export type SortKey = "rank_asc" | "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";
 
 export type Labels = {
   rating_any: string;
@@ -13,6 +13,7 @@ export type Labels = {
   review_mine: string;
   review_not_mine: string;
   sort_reviews: string;
+  sort_rank: string;
   sort_rating: string;
   sort_release_new: string;
   sort_release_old: string;
@@ -30,6 +31,7 @@ export const DEFAULT_LABELS_EN: Labels = {
   review_mine: "Reviewed by me",
   review_not_mine: "Not reviewed by me",
   sort_reviews: "Most reviews",
+  sort_rank: "Top ranked",
   sort_rating: "Highest rated",
   sort_release_new: "Newest release",
   sort_release_old: "Oldest release",
@@ -52,6 +54,7 @@ export const makeReviewScopeOptions = (l: Labels) => ([
 ]);
 
 export const makeSortOptions = (l: Labels) => ([
+  { value: "rank_asc" as SortKey, label: l.sort_rank },
   { value: "reviews_desc" as SortKey, label: l.sort_reviews },
   { value: "rating_desc" as SortKey, label: l.sort_rating },
   { value: "release_desc" as SortKey, label: l.sort_release_new },
