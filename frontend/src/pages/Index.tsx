@@ -13,8 +13,8 @@ import { QUERY_Q, QUERY_SCOPE, QUERY_SORT, QUERY_STARS } from "../lib/keys"
 import type { StarsValue, ReviewScope, SortKey } from "../lib/options"
 import { toast } from "../hooks/use-toast"
 import type { MovieWithStats } from "../types/movie"
-import type { Envelope, Paginated, MovieDTO } from "../types/api"
-import { api, API_BASE, ApiError } from "../lib/api"
+import type { MovieDTO } from "../types/api"
+import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "../api"
 
 function Index() {
   const { addMovie, queryMovies } = useMovies()
@@ -40,8 +40,7 @@ function Index() {
     const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
     if (!candidate) return "https://placehold.co/480x720?text=Poster"
     if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
-    if (import.meta.env.DEV) return candidate
-    return API_BASE ? new URL(candidate, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString() : candidate
+    return apiUrl(candidate)
   }
 
   const wantsAdd = searchParams.get("add") === "true"
@@ -102,7 +101,7 @@ function Index() {
         params.set("page", String(page))
         const pageSize = 60
         params.set("pageSize", String(pageSize))
-        const res = await api.get<Envelope<Paginated<MovieDTO>>>(`/movies?${params.toString()}`)
+        const res = await moviesApi.listMovies(params)
         if (!active || seq !== remoteRequestSeq.current) return
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
           id: m.id,
@@ -191,7 +190,7 @@ function Index() {
 
     setFormError("")
     try {
-      const created = await api.post<Envelope<MovieDTO>>("/movies", {
+      const created = await moviesApi.createMovie({
         title: data.title,
         releaseDate: new Date(data.releaseDate).toISOString(),
         synopsis: data.synopsis,
@@ -200,16 +199,8 @@ function Index() {
       })
 
       if (posterFile) {
-        const form = new FormData()
-        form.append("file", posterFile)
-        const mediaUrl = import.meta.env.DEV
-          ? "/media"
-          : new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
-        const upload = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" })
-        if (upload.ok) {
-          const uploadJson = (await upload.json()) as Envelope<{ id: string; url: string }>
-          await api.patch(`/movies/${created.data.id}/poster`, { mediaId: uploadJson.data.id })
-        }
+        const upload = await mediaApi.upload(posterFile)
+        await moviesApi.setPoster(created.data.id, upload.data.id)
       }
 
       setRecentlyAddedMovieId(created.data.id)

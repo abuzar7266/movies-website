@@ -62,4 +62,36 @@ describe("api client", () => {
     await expect(api.get("/net")).rejects.toThrow();
     expect(mockedToast.error as unknown as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
+
+  it("retries once after 401 via refresh", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+        text: () => Promise.resolve(JSON.stringify({ error: { message: "Unauthorized" } })),
+        headers: new Headers(),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(JSON.stringify({ success: true })),
+        headers: new Headers(),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(JSON.stringify({ success: true, data: { hello: "world" } })),
+        headers: new Headers(),
+      });
+
+    g.fetch = fetchMock as unknown as typeof fetch;
+    const res = await api.get<{ success: true; data: { hello: string } }>("/protected", { silentError: true });
+
+    expect(res).toEqual({ success: true, data: { hello: "world" } });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect((fetchMock.mock.calls[0]?.[0] as string) || "").toContain("/protected");
+    expect((fetchMock.mock.calls[1]?.[0] as string) || "").toContain("/auth/refresh");
+    expect((fetchMock.mock.calls[2]?.[0] as string) || "").toContain("/protected");
+  });
 });
