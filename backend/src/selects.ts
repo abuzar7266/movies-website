@@ -6,6 +6,7 @@ export const movieSelect = {
   createdAt: true,
   averageRating: true,
   reviewCount: true,
+  rank: true,
   posterMediaId: true,
   posterUrl: true,
   createdBy: true

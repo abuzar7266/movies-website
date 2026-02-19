@@ -1,6 +1,67 @@
 import { HttpError } from "../middleware/errors.js";
 import { moviesRepo } from "../repositories/movies.js";
 import { prisma } from "../db.js";
+import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
+
+type MovieListItem = Awaited<ReturnType<ReturnType<typeof moviesRepo>["findMany"]>>[number];
+
+let recomputeInFlight: Promise<void> | null = null;
+let recomputeQueued = false;
+
+async function computeMovieRankMap(
+  client: Prisma.TransactionClient | PrismaClient = prisma
+): Promise<Map<string, number>> {
+  const rows = await client.movie.findMany({
+    select: { id: true, reviewCount: true, averageRating: true, createdAt: true },
+    orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }, { id: "asc" }]
+  });
+
+  const map = new Map<string, number>();
+  let currentRank = 1;
+  rows.forEach((m, i) => {
+    if (i > 0 && m.reviewCount < rows[i - 1].reviewCount) {
+      currentRank = i + 1;
+    }
+    map.set(m.id, currentRank);
+  });
+  return map;
+}
+
+export async function recomputeMovieRanks(client: Prisma.TransactionClient | PrismaClient = prisma) {
+  const rows = await client.movie.findMany({
+    select: { id: true, rank: true },
+    orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }, { id: "asc" }]
+  });
+
+  const rankMap = await computeMovieRankMap(client);
+  const updates: Array<Promise<unknown>> = [];
+  rows.forEach((m) => {
+    const rank = rankMap.get(m.id) ?? 0;
+    if (m.rank !== rank) {
+      updates.push(client.movie.update({ where: { id: m.id }, data: { rank } }));
+    }
+  });
+  await Promise.all(updates);
+}
+
+export function enqueueMovieRankRecompute() {
+  if (process.env.NODE_ENV === "test") return;
+  if (recomputeInFlight) {
+    recomputeQueued = true;
+    return;
+  }
+  recomputeInFlight = (async () => {
+    try {
+      await recomputeMovieRanks(prisma);
+    } finally {
+      recomputeInFlight = null;
+      if (recomputeQueued) {
+        recomputeQueued = false;
+        enqueueMovieRankRecompute();
+      }
+    }
+  })();
+}
 
 export async function createMovie(
   userId: string,
@@ -9,20 +70,29 @@ export async function createMovie(
   const Repo = moviesRepo();
   const exists = await Repo.findUnique({ title: data.title });
   if (exists) throw new HttpError(409, "Movie title already exists", "title_taken");
-  return Repo.create({
-    title: data.title,
-    releaseDate: new Date(data.releaseDate),
-    trailerUrl: data.trailerUrl || "",
-    synopsis: data.synopsis,
-    posterUrl: data.posterUrl ?? undefined,
-    createdByUser: { connect: { id: userId } }
+  const movie = await prisma.$transaction(async (tx) => {
+    const Repo = moviesRepo(tx);
+    return Repo.create({
+      title: data.title,
+      releaseDate: new Date(data.releaseDate),
+      trailerUrl: data.trailerUrl || "",
+      synopsis: data.synopsis,
+      posterUrl: data.posterUrl ?? undefined,
+      createdByUser: { connect: { id: userId } }
+    });
   });
+  enqueueMovieRankRecompute();
+  return movie;
 }
 
 export async function getMovieOrThrow(id: string) {
   const Repo = moviesRepo();
   const movie = await Repo.findUnique({ id });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
+  if (movie.rank === 0) {
+    const map = await computeMovieRankMap(prisma);
+    return { ...movie, rank: map.get(movie.id) ?? 0 };
+  }
   return movie;
 }
 
@@ -62,7 +132,7 @@ export async function listMovies(opts: {
       : opts.sort === "release_asc"
       ? { releaseDate: "asc" as const }
       : { createdAt: "desc" as const };
-  const { total, items } = await prisma.$transaction(async (tx) => {
+  const { total, items } = await prisma.$transaction(async (tx): Promise<{ total: number; items: MovieListItem[] }> => {
     const Repo = moviesRepo(tx);
     const total = await Repo.count({ where });
     const items = await Repo.findMany({
@@ -73,6 +143,11 @@ export async function listMovies(opts: {
     });
     return { total, items };
   });
+  if (items.some((m) => m.rank === 0)) {
+    const map = await computeMovieRankMap(prisma);
+    const patched = items.map((m) => (m.rank === 0 ? { ...m, rank: map.get(m.id) ?? 0 } : m));
+    return { items: patched, total, page: opts.page, pageSize: opts.pageSize };
+  }
   return { items, total, page: opts.page, pageSize: opts.pageSize };
 }
 
@@ -109,8 +184,11 @@ export async function updateMovie(
 
 export async function deleteMovie(userId: string, id: string) {
   await ensureOwnedMovie(userId, id);
-  const Repo = moviesRepo();
-  await Repo.remove({ id });
+  await prisma.$transaction(async (tx) => {
+    const Repo = moviesRepo(tx);
+    await Repo.remove({ id });
+  });
+  enqueueMovieRankRecompute();
 }
 
 export async function setPoster(userId: string, id: string, mediaId: string) {

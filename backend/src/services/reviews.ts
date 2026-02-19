@@ -2,6 +2,7 @@ import { HttpError } from "../middleware/errors.js";
 import { reviewSelect } from "../selects.js";
 import { prisma } from "../db.js";
 import { reviewsRepo } from "../repositories/reviews.js";
+import { enqueueMovieRankRecompute } from "./movies.js";
 
 export async function createReview(userId: string, data: { movieId: string; content: string }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
@@ -17,6 +18,7 @@ export async function createReview(userId: string, data: { movieId: string; cont
     });
     return review;
   });
+  enqueueMovieRankRecompute();
   return result;
 }
 
@@ -47,5 +49,6 @@ export async function deleteReview(userId: string, id: string) {
       data: { reviewCount: { decrement: 1 } }
     });
   });
+  enqueueMovieRankRecompute();
 }
 

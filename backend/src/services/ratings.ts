@@ -1,6 +1,7 @@
 import { HttpError } from "../middleware/errors.js";
 import { prisma } from "../db.js";
 import { ratingsRepo } from "../repositories/ratings.js";
+import { enqueueMovieRankRecompute } from "./movies.js";
 
 export async function upsertRating(userId: string, data: { movieId: string; value: number }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
@@ -22,6 +23,7 @@ export async function upsertRating(userId: string, data: { movieId: string; valu
     });
     return updatedMovie.averageRating;
   });
+  enqueueMovieRankRecompute();
   return { averageRating: result };
 }
 

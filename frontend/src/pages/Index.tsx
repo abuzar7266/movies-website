@@ -31,6 +31,7 @@ function Index() {
   const [remoteTotal, setRemoteTotal] = useState(0)
   const [loadingRemote, setLoadingRemote] = useState(false)
   const [remoteReloadKey, setRemoteReloadKey] = useState(0)
+  const [recentlyAddedMovieId, setRecentlyAddedMovieId] = useState<string | null>(null)
 
   const resolvePosterUrl = (m: MovieDTO): string => {
     const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
@@ -116,6 +117,30 @@ function Index() {
     return () => { cancelled = true }
   }, [searchQuery, minStars, reviewScope, sortBy, page, remoteReloadKey])
 
+  useEffect(() => {
+    if (!API_BASE || !recentlyAddedMovieId) return
+    if (remoteMovies.some((m) => m.id === recentlyAddedMovieId)) {
+      setRecentlyAddedMovieId(null)
+    }
+  }, [recentlyAddedMovieId, remoteMovies])
+
+  useEffect(() => {
+    if (!API_BASE || !recentlyAddedMovieId) return
+    const intervalMs = 2000
+    const maxMs = 15000
+    const intervalId = window.setInterval(() => {
+      setRemoteReloadKey((k) => k + 1)
+    }, intervalMs)
+    const timeoutId = window.setTimeout(() => {
+      window.clearInterval(intervalId)
+      setRecentlyAddedMovieId(null)
+    }, maxMs)
+    return () => {
+      window.clearInterval(intervalId)
+      window.clearTimeout(timeoutId)
+    }
+  }, [recentlyAddedMovieId])
+
   const handleAddMovie = async (
     data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string },
     posterFile?: File | null
@@ -167,6 +192,7 @@ function Index() {
         }
       }
 
+      setRecentlyAddedMovieId(created.data.id)
       closeAdd()
       setPage(1)
       setRemoteMovies([])

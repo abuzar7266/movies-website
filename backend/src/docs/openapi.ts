@@ -46,11 +46,13 @@ const Movie = registry.register(
     synopsis: z.string(),
     createdAt: z.string().datetime(),
     averageRating: z.number(),
+    rank: z.number().int().optional(),
     reviewCount: z.number().int(),
     posterMediaId: z.string().uuid().nullable().optional(),
     posterUrl: z.string().nullable().optional()
   })
 );
+
 
 const Review = registry.register(
   "Review",
