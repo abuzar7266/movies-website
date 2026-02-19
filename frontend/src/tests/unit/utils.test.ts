@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { loadJSON, saveJSON, toEmbedUrl } from "./utils";
+import { loadJSON, saveJSON, toEmbedUrl } from "../../lib/utils";
 
 // minimal localStorage mock
 const createStorage = () => {

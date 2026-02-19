@@ -1,12 +1,12 @@
 import "dotenv/config";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
-import app from "../src/app.js";
-import { prisma } from "../src/db.js";
+import app from "../../src/app.js";
+import { prisma } from "../../src/db.js";
 
 describe("Ratings upsert and average recompute", () => {
   const agent = request.agent(app);
-  const runId = process.env.TEST_RUN_ID || `${Date.now()}`;
+  const runId = crypto.randomUUID();
   const email = `ratings_tester+${runId}@example.com`;
   const password = "pass12345";
   const name = "Ratings Tester";

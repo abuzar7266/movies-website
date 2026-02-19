@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import HeroSection from "../components/HeroSection"
 import FiltersBar from "../components/filters/FiltersBar"
@@ -15,6 +15,7 @@ import { toast } from "../hooks/use-toast"
 import type { MovieWithStats } from "../types/movie"
 import type { MovieDTO } from "../types/api"
 import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "../api"
+import { DEFAULT_LABELS_EN, makeSortOptions } from "../lib/options"
 
 function Index() {
   const { addMovie, queryMovies } = useMovies()
@@ -23,9 +24,12 @@ function Index() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get(QUERY_Q) || "")
   const [formError, setFormError] = useState("")
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-  const [minStars, setMinStars] = useState<StarsValue>((searchParams.get(QUERY_STARS) as StarsValue) || "0")
-  const [reviewScope, setReviewScope] = useState<ReviewScope>((searchParams.get(QUERY_SCOPE) as ReviewScope) || "all")
-  const [sortBy, setSortBy] = useState<SortKey>((searchParams.get(QUERY_SORT) as SortKey) || "reviews_desc")
+  const defaultMinStars: StarsValue = "0"
+  const defaultReviewScope: ReviewScope = "all"
+  const defaultSortBy: SortKey = "rating_desc"
+  const [minStars, setMinStars] = useState<StarsValue>((searchParams.get(QUERY_STARS) as StarsValue) || defaultMinStars)
+  const [reviewScope, setReviewScope] = useState<ReviewScope>((searchParams.get(QUERY_SCOPE) as ReviewScope) || defaultReviewScope)
+  const [sortBy, setSortBy] = useState<SortKey>((searchParams.get(QUERY_SORT) as SortKey) || defaultSortBy)
   const [page, setPage] = useState(1)
   const [remoteMovies, setRemoteMovies] = useState<MovieWithStats[]>([])
   const [remoteTotal, setRemoteTotal] = useState(0)
@@ -45,12 +49,29 @@ function Index() {
 
   const wantsAdd = searchParams.get("add") === "true"
   const showAddForm = wantsAdd && isAuthenticated
+  const wantsReset = searchParams.get("reset") === "1"
 
   const closeAdd = () => {
     const next = new URLSearchParams(searchParams)
     next.delete("add")
     setSearchParams(next, { replace: true })
   }
+
+  const resetFilters = useCallback(() => {
+    setSearchQuery("")
+    setMinStars(defaultMinStars)
+    setReviewScope(defaultReviewScope)
+    setSortBy(defaultSortBy)
+  }, [defaultMinStars, defaultReviewScope, defaultSortBy])
+
+  useEffect(() => {
+    if (!wantsReset) return
+    resetFilters()
+    const next = new URLSearchParams(searchParams)
+    next.delete("reset")
+    next.delete("add")
+    setSearchParams(next, { replace: true })
+  }, [wantsReset, resetFilters, searchParams, setSearchParams])
 
   useEffect(() => {
     if (wantsAdd && !isAuthenticated && !showLoginDialog) setShowLoginDialog(true)
@@ -60,12 +81,12 @@ function Index() {
     const next = new URLSearchParams()
     if (wantsAdd) next.set("add", "true")
     if (searchQuery) next.set(QUERY_Q, searchQuery); else next.delete(QUERY_Q)
-    if (minStars !== "0") next.set(QUERY_STARS, minStars); else next.delete(QUERY_STARS)
-    if (reviewScope !== "all") next.set(QUERY_SCOPE, reviewScope); else next.delete(QUERY_SCOPE)
-    if (sortBy !== "reviews_desc") next.set(QUERY_SORT, sortBy); else next.delete(QUERY_SORT)
+    if (minStars !== defaultMinStars) next.set(QUERY_STARS, minStars); else next.delete(QUERY_STARS)
+    if (reviewScope !== defaultReviewScope) next.set(QUERY_SCOPE, reviewScope); else next.delete(QUERY_SCOPE)
+    if (sortBy !== defaultSortBy) next.set(QUERY_SORT, sortBy); else next.delete(QUERY_SORT)
     setSearchParams(next, { replace: true })
     setPage((p) => p === 1 ? p : 1)
-  }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
+  }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams, defaultMinStars, defaultReviewScope, defaultSortBy])
 
   const isRemote = Boolean(API_BASE)
 
@@ -225,12 +246,16 @@ function Index() {
   }
   const moviesToShow = API_BASE ? remoteMovies : resultsWithReviewScope
 
+  const sortLabel = useMemo(() => {
+    return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Highest rated"
+  }, [sortBy])
+  const canReset = searchQuery !== "" || minStars !== defaultMinStars || reviewScope !== defaultReviewScope || sortBy !== defaultSortBy
   return (
     <div className="bg-background">
       <HeroSection />
       <section className="mx-auto max-w-screen-2xl px-4 sm:px-5 lg:px-6 py-8">
         <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <MoviesHeader count={moviesToShow.length} />
+          <MoviesHeader count={moviesToShow.length} sortLabel={sortLabel} />
           <FiltersBar
             searchQuery={searchQuery}
             onSearch={setSearchQuery}
@@ -240,6 +265,8 @@ function Index() {
             onReviewScope={setReviewScope}
             sortBy={sortBy}
             onSortBy={setSortBy}
+            onReset={resetFilters}
+            canReset={canReset}
             isAuthenticated={isAuthenticated}
             onRequireLogin={() => setShowLoginDialog(true)}
           />

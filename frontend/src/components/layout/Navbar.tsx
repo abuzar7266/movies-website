@@ -30,7 +30,7 @@ function Navbar() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[hsl(var(--border))] glass-surface">
       <div className="mx-auto flex h-16 max-w-screen-2xl items-center justify-between px-4 sm:px-5 lg:px-6">
-        <Link to="/" className="flex items-center gap-2 group">
+        <Link to="/?reset=1" className="flex items-center gap-2 group">
           <Film size={24} className="text-[hsl(var(--primary))] transition-transform group-hover:rotate-12" />
           <span className="font-display text-xl font-bold gold-text">MovieShelf</span>
         </Link>

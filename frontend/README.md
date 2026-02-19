@@ -24,6 +24,9 @@ src/
   lib/              # query logic, utilities
   pages/            # routed pages
   assets/           # static assets
+  tests/
+    unit/           # pure function/unit tests
+    ui/             # UI/component tests (React Testing Library)
 ```
 
 ## Running
@@ -41,10 +44,16 @@ npm ci
 npm run dev
 ```
 
+## Testing
+```bash
+cd project/frontend
+npm run test
+```
+
 ## Tools & Tech
 - React 18, Vite, TypeScript
 - UI: modern composition with small, reusable primitives
-- Testing: vitest
+- Testing: vitest + React Testing Library
 
 ## Integrating With Backend
 This SPA ships with demo data and local auth. To integrate with the API:
@@ -53,4 +62,3 @@ This SPA ships with demo data and local auth. To integrate with the API:
 
 ## Notes
 - Keep frontend concerns here; API details and server operations live in the backend README.
-

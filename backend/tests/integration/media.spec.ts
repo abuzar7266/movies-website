@@ -1,12 +1,12 @@
 import "dotenv/config";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
-import app from "../src/app.js";
-import { prisma } from "../src/db.js";
+import app from "../../src/app.js";
+import { prisma } from "../../src/db.js";
 
 describe("Media upload and ETag", () => {
   const agent = request.agent(app);
-  const runId = process.env.TEST_RUN_ID || `${Date.now()}`;
+  const runId = crypto.randomUUID();
   const email = `media_tester+${runId}@example.com`;
   const password = "pass12345";
   const name = "Media Tester";
@@ -41,10 +41,8 @@ describe("Media upload and ETag", () => {
   });
 
   it("uploads a small image and returns metadata", async () => {
-    const buf = Buffer.from([0x89, 0x50, 0x4e, 0x47]); // fake png header
-    const res = await agent
-      .post("/media")
-      .attach("file", buf, { filename: "t.png", contentType: "image/png" });
+    const buf = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const res = await agent.post("/media").attach("file", buf, { filename: "t.png", contentType: "image/png" });
     expect(res.status).toBe(200);
     mediaId = res.body.data.id;
   });

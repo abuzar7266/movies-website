@@ -1,12 +1,12 @@
 import "dotenv/config";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
-import app from "../src/app.js";
-import { prisma } from "../src/db.js";
+import app from "../../src/app.js";
+import { prisma } from "../../src/db.js";
 
 describe("Movies suggest", () => {
   const agent = request.agent(app);
-  const runId = process.env.TEST_RUN_ID || `${Date.now()}`;
+  const runId = crypto.randomUUID();
   const email = `suggest_tester+${runId}@example.com`;
   const password = "pass12345";
   const name = "Suggest Tester";
@@ -41,6 +41,6 @@ describe("Movies suggest", () => {
     const res = await agent.get(`/movies/suggest`).query({ q: "Unusual" });
     expect(res.status).toBe(200);
     const titles: string[] = res.body.data.map((x: any) => x.title);
-    expect(titles.some(t => t === title)).toBe(true);
+    expect(titles.some((t) => t === title)).toBe(true);
   });
 });

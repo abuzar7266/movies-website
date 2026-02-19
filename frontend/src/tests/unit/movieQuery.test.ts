@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { queryMoviesPure } from "./movieQuery";
-import type { MovieWithStats, Review } from "../types/movie";
+import { queryMoviesPure } from "../../lib/movieQuery";
+import type { MovieWithStats, Review } from "../../types/movie";
 
 const movies: MovieWithStats[] = [
   { id: "m1", title: "Alpha", releaseDate: "2020-01-01", posterUrl: "", trailerUrl: "", synopsis: "", createdBy: "u1", createdAt: "2020-01-10", reviewCount: 2, averageRating: 4.5, rank: 1 },

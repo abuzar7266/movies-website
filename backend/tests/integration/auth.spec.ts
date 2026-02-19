@@ -1,12 +1,12 @@
 import "dotenv/config";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import request from "supertest";
-import app from "../src/app.js";
-import { prisma } from "../src/db.js";
+import app from "../../src/app.js";
+import { prisma } from "../../src/db.js";
 
 describe("Auth flows", () => {
   const agent = request.agent(app);
-  const runId = process.env.TEST_RUN_ID || `${Date.now()}`;
+  const runId = crypto.randomUUID();
   const email = `user+${runId}@example.com`;
   const password = "pass12345";
   const name = "Test User";
@@ -42,7 +42,7 @@ describe("Auth flows", () => {
   it("logs out and then /users/me is unauthorized without cookie", async () => {
     const logout = await agent.post("/auth/logout");
     expect(logout.status).toBe(200);
-    const res = await request(app).get("/users/me"); // new client, no cookies
+    const res = await request(app).get("/users/me");
     expect(res.status).toBe(401);
   });
 });
