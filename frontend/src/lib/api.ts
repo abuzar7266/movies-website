@@ -12,7 +12,22 @@ export class ApiError extends Error {
   }
 }
 
+function extractMessage(body: unknown): string | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const obj = body as Record<string, unknown>;
+  const err = obj.error;
+  if (err && typeof err === "object") {
+    const msg = (err as Record<string, unknown>).message;
+    if (typeof msg === "string") return msg;
+  }
+  const msg2 = obj.message;
+  return typeof msg2 === "string" ? msg2 : undefined;
+}
+
 function buildUrl(path: string): string {
+  if (import.meta.env.DEV) {
+    return path.startsWith("/") ? path : `/${path}`;
+  }
   if (API_BASE) {
     try {
       return new URL(path, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString();
@@ -20,8 +35,7 @@ function buildUrl(path: string): string {
       return (API_BASE || "") + path;
     }
   }
-  const useProxy = (import.meta as any).env?.DEV ? true : false;
-  return useProxy ? `/api${path.startsWith("/") ? path : `/${path}`}` : path;
+  return path.startsWith("/") ? path : `/${path}`;
 }
 
 async function request<T>(
@@ -45,19 +59,18 @@ async function request<T>(
     const text = await res.text();
     const maybeJson = text ? safeParseJSON(text) : null;
     if (!res.ok) {
-      const message =
-        (maybeJson && (maybeJson as any).error?.message) ||
-        (maybeJson && (maybeJson as any).message) ||
-        res.statusText ||
-        "Request failed";
+      const message = extractMessage(maybeJson) || res.statusText || "Request failed";
       if (!init.silentError && res.status >= 500) {
         toast.error(message || "Server error");
       }
       throw new ApiError(message, res.status, maybeJson ?? text);
     }
     return (maybeJson as T) ?? (undefined as unknown as T);
-  } catch (e: any) {
-    if (!init.silentError && (e?.name === "TypeError" || e?.message?.includes("Network"))) {
+  } catch (e) {
+    const err = e as { name?: unknown; message?: unknown };
+    const name = typeof err.name === "string" ? err.name : "";
+    const message = typeof err.message === "string" ? err.message : "";
+    if (!init.silentError && (name === "TypeError" || message.includes("Network"))) {
       toast.error("Network error. Please check your connection.");
     }
     throw e;

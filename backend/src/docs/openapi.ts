@@ -47,7 +47,8 @@ const Movie = registry.register(
     createdAt: z.string().datetime(),
     averageRating: z.number(),
     reviewCount: z.number().int(),
-    posterMediaId: z.string().uuid().nullable().optional()
+    posterMediaId: z.string().uuid().nullable().optional(),
+    posterUrl: z.string().nullable().optional()
   })
 );
 
@@ -358,7 +359,22 @@ registry.registerPath({
     }
   },
   responses: {
-    200: { description: "OK", content: { "application/json": { schema: envelope(z.object({ id: z.string().uuid() })) } } },
+    200: {
+      description: "OK",
+      content: {
+        "application/json": {
+          schema: envelope(
+            z.object({
+              id: z.string().uuid(),
+              contentType: z.string(),
+              size: z.number().int(),
+              createdAt: z.string().datetime(),
+              url: z.string()
+            })
+          )
+        }
+      }
+    },
     401: { description: "Unauthorized", content: { "application/json": { schema: ErrorResponse } } }
   }
 });

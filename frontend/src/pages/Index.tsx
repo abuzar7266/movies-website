@@ -14,7 +14,7 @@ import type { StarsValue, ReviewScope, SortKey } from "../lib/options"
 import { toast } from "../hooks/use-toast"
 import type { MovieWithStats } from "../types/movie"
 import type { Envelope, Paginated, MovieDTO } from "../types/api"
-import { api, API_BASE } from "../lib/api"
+import { api, API_BASE, ApiError } from "../lib/api"
 
 function Index() {
   const { addMovie, queryMovies } = useMovies()
@@ -30,22 +30,39 @@ function Index() {
   const [remoteMovies, setRemoteMovies] = useState<MovieWithStats[]>([])
   const [remoteTotal, setRemoteTotal] = useState(0)
   const [loadingRemote, setLoadingRemote] = useState(false)
+  const [remoteReloadKey, setRemoteReloadKey] = useState(0)
+
+  const resolvePosterUrl = (m: MovieDTO): string => {
+    const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
+    if (!candidate) return "https://placehold.co/480x720?text=Poster"
+    if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
+    if (import.meta.env.DEV) return candidate
+    return API_BASE ? new URL(candidate, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString() : candidate
+  }
 
   const wantsAdd = searchParams.get("add") === "true"
   const showAddForm = wantsAdd && isAuthenticated
-  if (wantsAdd && !isAuthenticated && !showLoginDialog) {
-    // prompt login then clear param
-    setShowLoginDialog(true)
+
+  const closeAdd = () => {
+    const next = new URLSearchParams(searchParams)
+    next.delete("add")
+    setSearchParams(next, { replace: true })
   }
+
+  useEffect(() => {
+    if (wantsAdd && !isAuthenticated && !showLoginDialog) setShowLoginDialog(true)
+  }, [wantsAdd, isAuthenticated, showLoginDialog])
+
   useEffect(() => {
     const next = new URLSearchParams()
+    if (wantsAdd) next.set("add", "true")
     if (searchQuery) next.set(QUERY_Q, searchQuery); else next.delete(QUERY_Q)
     if (minStars !== "0") next.set(QUERY_STARS, minStars); else next.delete(QUERY_STARS)
     if (reviewScope !== "all") next.set(QUERY_SCOPE, reviewScope); else next.delete(QUERY_SCOPE)
     if (sortBy !== "reviews_desc") next.set(QUERY_SORT, sortBy); else next.delete(QUERY_SORT)
     setSearchParams(next, { replace: true })
-    setPage(1)
-  }, [searchQuery, minStars, reviewScope, sortBy, setSearchParams])
+    setPage((p) => p === 1 ? p : 1)
+  }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
 
   const resultsWithReviewScope = useMemo(() => {
     return queryMovies({
@@ -77,7 +94,7 @@ function Index() {
           id: m.id,
           title: m.title,
           releaseDate: new Date(m.releaseDate).toISOString(),
-          posterUrl: m.posterMediaId ? `${API_BASE}/media/${m.posterMediaId}` : "https://placehold.co/480x720?text=Poster",
+          posterUrl: resolvePosterUrl(m),
           trailerUrl: "",
           synopsis: m.synopsis,
           createdBy: m.createdBy,
@@ -97,25 +114,76 @@ function Index() {
     }
     run()
     return () => { cancelled = true }
-  }, [searchQuery, minStars, reviewScope, sortBy, page])
+  }, [searchQuery, minStars, reviewScope, sortBy, page, remoteReloadKey])
 
-  const handleAddMovie = (data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string }) => {
-    if (!user) return
-    const success = addMovie({
-      title: data.title,
-      releaseDate: data.releaseDate,
-      posterUrl: data.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500",
-      trailerUrl: toEmbedUrl(data.trailerUrl || ""),
-      synopsis: data.synopsis,
-      createdBy: user.id,
-    })
-    if (success) {
-      setSearchParams({})
-      setFormError("")
+  const handleAddMovie = async (
+    data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string },
+    posterFile?: File | null
+  ) => {
+    if (!user) {
+      setShowLoginDialog(true)
+      return
+    }
+    if (!API_BASE) {
+      const success = addMovie({
+        title: data.title,
+        releaseDate: data.releaseDate,
+        posterUrl: data.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500",
+        trailerUrl: toEmbedUrl(data.trailerUrl || ""),
+        synopsis: data.synopsis,
+        createdBy: user.id,
+      })
+      if (success) {
+        closeAdd()
+        setFormError("")
+        toast.success("Movie added")
+      } else {
+        setFormError("A movie with this title already exists.")
+        toast.error("Movie already exists")
+      }
+      return
+    }
+
+    setFormError("")
+    try {
+      const created = await api.post<Envelope<MovieDTO>>("/movies", {
+        title: data.title,
+        releaseDate: new Date(data.releaseDate).toISOString(),
+        synopsis: data.synopsis,
+        ...(data.trailerUrl ? { trailerUrl: toEmbedUrl(data.trailerUrl) } : {}),
+        ...(posterFile ? {} : data.posterUrl ? { posterUrl: data.posterUrl } : {}),
+      })
+
+      if (posterFile) {
+        const form = new FormData()
+        form.append("file", posterFile)
+        const mediaUrl = import.meta.env.DEV
+          ? "/media"
+          : new URL("/media", API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString()
+        const upload = await fetch(mediaUrl, { method: "POST", body: form, credentials: "include" })
+        if (upload.ok) {
+          const uploadJson = (await upload.json()) as Envelope<{ id: string; url: string }>
+          await api.patch(`/movies/${created.data.id}/poster`, { mediaId: uploadJson.data.id })
+        }
+      }
+
+      closeAdd()
+      setPage(1)
+      setRemoteMovies([])
+      setRemoteReloadKey((k) => k + 1)
       toast.success("Movie added")
-    } else {
-      setFormError("A movie with this title already exists.")
-      toast.error("Movie already exists")
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        setShowLoginDialog(true)
+        toast.error("Please log in to add a movie")
+        return
+      }
+      if (e instanceof ApiError && e.status === 409) {
+        setFormError("A movie with this title already exists.")
+        toast.error("Movie already exists")
+        return
+      }
+      toast.error("Failed to add movie")
     }
   }
   const moviesToShow = API_BASE ? remoteMovies : resultsWithReviewScope
@@ -150,7 +218,7 @@ function Index() {
       {showAddForm && (
         <MovieForm
           onSubmit={handleAddMovie}
-          onClose={() => setSearchParams({})}
+          onClose={closeAdd}
           error={formError}
         />
       )}
@@ -158,7 +226,7 @@ function Index() {
         open={showLoginDialog}
         onOpenChange={(open) => {
           setShowLoginDialog(open)
-          if (!open && wantsAdd) setSearchParams({})
+          if (!open && wantsAdd) closeAdd()
         }}
         message={wantsAdd ? "Please log in to add a new movie." : "Please log in to use this filter."}
       />

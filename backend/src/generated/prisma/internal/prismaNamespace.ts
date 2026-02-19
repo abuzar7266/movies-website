@@ -835,6 +835,7 @@ export const MovieScalarFieldEnum = {
   title: 'title',
   releaseDate: 'releaseDate',
   posterMediaId: 'posterMediaId',
+  posterUrl: 'posterUrl',
   trailerUrl: 'trailerUrl',
   synopsis: 'synopsis',
   createdBy: 'createdBy',

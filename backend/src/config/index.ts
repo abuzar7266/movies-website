@@ -52,7 +52,7 @@ export const config = {
   cookies: {
     domain: normalizeCookieDomain(env.COOKIE_DOMAIN),
     secure: isProd,
-    sameSite: (env.COOKIE_SAMESITE ?? (isProd ? "lax" : "lax")) as "lax" | "strict" | "none"
+    sameSite: (env.COOKIE_SAMESITE ?? (isProd ? "none" : "lax")) as "lax" | "strict" | "none"
   },
   cors: {
     origins: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean) : null

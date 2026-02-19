@@ -26,6 +26,7 @@ model Movie {
   title         String
   releaseDate   DateTime
   posterMediaId String?
+  posterUrl     String?
   trailerUrl    String
   synopsis      String
   createdBy     String

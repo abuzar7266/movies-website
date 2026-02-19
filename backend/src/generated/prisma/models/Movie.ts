@@ -43,6 +43,7 @@ export type MovieMinAggregateOutputType = {
   title: string | null
   releaseDate: Date | null
   posterMediaId: string | null
+  posterUrl: string | null
   trailerUrl: string | null
   synopsis: string | null
   createdBy: string | null
@@ -57,6 +58,7 @@ export type MovieMaxAggregateOutputType = {
   title: string | null
   releaseDate: Date | null
   posterMediaId: string | null
+  posterUrl: string | null
   trailerUrl: string | null
   synopsis: string | null
   createdBy: string | null
@@ -71,6 +73,7 @@ export type MovieCountAggregateOutputType = {
   title: number
   releaseDate: number
   posterMediaId: number
+  posterUrl: number
   trailerUrl: number
   synopsis: number
   createdBy: number
@@ -99,6 +102,7 @@ export type MovieMinAggregateInputType = {
   title?: true
   releaseDate?: true
   posterMediaId?: true
+  posterUrl?: true
   trailerUrl?: true
   synopsis?: true
   createdBy?: true
@@ -113,6 +117,7 @@ export type MovieMaxAggregateInputType = {
   title?: true
   releaseDate?: true
   posterMediaId?: true
+  posterUrl?: true
   trailerUrl?: true
   synopsis?: true
   createdBy?: true
@@ -127,6 +132,7 @@ export type MovieCountAggregateInputType = {
   title?: true
   releaseDate?: true
   posterMediaId?: true
+  posterUrl?: true
   trailerUrl?: true
   synopsis?: true
   createdBy?: true
@@ -228,6 +234,7 @@ export type MovieGroupByOutputType = {
   title: string
   releaseDate: Date
   posterMediaId: string | null
+  posterUrl: string | null
   trailerUrl: string
   synopsis: string
   createdBy: string
@@ -265,6 +272,7 @@ export type MovieWhereInput = {
   title?: Prisma.StringFilter<"Movie"> | string
   releaseDate?: Prisma.DateTimeFilter<"Movie"> | Date | string
   posterMediaId?: Prisma.StringNullableFilter<"Movie"> | string | null
+  posterUrl?: Prisma.StringNullableFilter<"Movie"> | string | null
   trailerUrl?: Prisma.StringFilter<"Movie"> | string
   synopsis?: Prisma.StringFilter<"Movie"> | string
   createdBy?: Prisma.StringFilter<"Movie"> | string
@@ -282,6 +290,7 @@ export type MovieOrderByWithRelationInput = {
   title?: Prisma.SortOrder
   releaseDate?: Prisma.SortOrder
   posterMediaId?: Prisma.SortOrderInput | Prisma.SortOrder
+  posterUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   trailerUrl?: Prisma.SortOrder
   synopsis?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -302,6 +311,7 @@ export type MovieWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.MovieWhereInput | Prisma.MovieWhereInput[]
   releaseDate?: Prisma.DateTimeFilter<"Movie"> | Date | string
   posterMediaId?: Prisma.StringNullableFilter<"Movie"> | string | null
+  posterUrl?: Prisma.StringNullableFilter<"Movie"> | string | null
   trailerUrl?: Prisma.StringFilter<"Movie"> | string
   synopsis?: Prisma.StringFilter<"Movie"> | string
   createdBy?: Prisma.StringFilter<"Movie"> | string
@@ -319,6 +329,7 @@ export type MovieOrderByWithAggregationInput = {
   title?: Prisma.SortOrder
   releaseDate?: Prisma.SortOrder
   posterMediaId?: Prisma.SortOrderInput | Prisma.SortOrder
+  posterUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   trailerUrl?: Prisma.SortOrder
   synopsis?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -341,6 +352,7 @@ export type MovieScalarWhereWithAggregatesInput = {
   title?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   releaseDate?: Prisma.DateTimeWithAggregatesFilter<"Movie"> | Date | string
   posterMediaId?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
+  posterUrl?: Prisma.StringNullableWithAggregatesFilter<"Movie"> | string | null
   trailerUrl?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   synopsis?: Prisma.StringWithAggregatesFilter<"Movie"> | string
   createdBy?: Prisma.StringWithAggregatesFilter<"Movie"> | string
@@ -355,6 +367,7 @@ export type MovieCreateInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdAt?: Date | string
@@ -371,6 +384,7 @@ export type MovieUncheckedCreateInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdBy: string
@@ -387,6 +401,7 @@ export type MovieUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -403,6 +418,7 @@ export type MovieUncheckedUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -419,6 +435,7 @@ export type MovieCreateManyInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdBy: string
@@ -433,6 +450,7 @@ export type MovieUpdateManyMutationInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -446,6 +464,7 @@ export type MovieUncheckedUpdateManyInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -470,6 +489,7 @@ export type MovieCountOrderByAggregateInput = {
   title?: Prisma.SortOrder
   releaseDate?: Prisma.SortOrder
   posterMediaId?: Prisma.SortOrder
+  posterUrl?: Prisma.SortOrder
   trailerUrl?: Prisma.SortOrder
   synopsis?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -490,6 +510,7 @@ export type MovieMaxOrderByAggregateInput = {
   title?: Prisma.SortOrder
   releaseDate?: Prisma.SortOrder
   posterMediaId?: Prisma.SortOrder
+  posterUrl?: Prisma.SortOrder
   trailerUrl?: Prisma.SortOrder
   synopsis?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -504,6 +525,7 @@ export type MovieMinOrderByAggregateInput = {
   title?: Prisma.SortOrder
   releaseDate?: Prisma.SortOrder
   posterMediaId?: Prisma.SortOrder
+  posterUrl?: Prisma.SortOrder
   trailerUrl?: Prisma.SortOrder
   synopsis?: Prisma.SortOrder
   createdBy?: Prisma.SortOrder
@@ -615,6 +637,7 @@ export type MovieCreateWithoutCreatedByUserInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdAt?: Date | string
@@ -630,6 +653,7 @@ export type MovieUncheckedCreateWithoutCreatedByUserInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdAt?: Date | string
@@ -674,6 +698,7 @@ export type MovieScalarWhereInput = {
   title?: Prisma.StringFilter<"Movie"> | string
   releaseDate?: Prisma.DateTimeFilter<"Movie"> | Date | string
   posterMediaId?: Prisma.StringNullableFilter<"Movie"> | string | null
+  posterUrl?: Prisma.StringNullableFilter<"Movie"> | string | null
   trailerUrl?: Prisma.StringFilter<"Movie"> | string
   synopsis?: Prisma.StringFilter<"Movie"> | string
   createdBy?: Prisma.StringFilter<"Movie"> | string
@@ -688,6 +713,7 @@ export type MovieCreateWithoutReviewsInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdAt?: Date | string
@@ -703,6 +729,7 @@ export type MovieUncheckedCreateWithoutReviewsInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdBy: string
@@ -734,6 +761,7 @@ export type MovieUpdateWithoutReviewsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -749,6 +777,7 @@ export type MovieUncheckedUpdateWithoutReviewsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -764,6 +793,7 @@ export type MovieCreateWithoutRatingsInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdAt?: Date | string
@@ -779,6 +809,7 @@ export type MovieUncheckedCreateWithoutRatingsInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdBy: string
@@ -810,6 +841,7 @@ export type MovieUpdateWithoutRatingsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -825,6 +857,7 @@ export type MovieUncheckedUpdateWithoutRatingsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdBy?: Prisma.StringFieldUpdateOperationsInput | string
@@ -840,6 +873,7 @@ export type MovieCreateManyCreatedByUserInput = {
   title: string
   releaseDate: Date | string
   posterMediaId?: string | null
+  posterUrl?: string | null
   trailerUrl: string
   synopsis: string
   createdAt?: Date | string
@@ -853,6 +887,7 @@ export type MovieUpdateWithoutCreatedByUserInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -868,6 +903,7 @@ export type MovieUncheckedUpdateWithoutCreatedByUserInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -883,6 +919,7 @@ export type MovieUncheckedUpdateManyWithoutCreatedByUserInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   releaseDate?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   posterMediaId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  posterUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   trailerUrl?: Prisma.StringFieldUpdateOperationsInput | string
   synopsis?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -936,6 +973,7 @@ export type MovieSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   title?: boolean
   releaseDate?: boolean
   posterMediaId?: boolean
+  posterUrl?: boolean
   trailerUrl?: boolean
   synopsis?: boolean
   createdBy?: boolean
@@ -954,6 +992,7 @@ export type MovieSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   title?: boolean
   releaseDate?: boolean
   posterMediaId?: boolean
+  posterUrl?: boolean
   trailerUrl?: boolean
   synopsis?: boolean
   createdBy?: boolean
@@ -969,6 +1008,7 @@ export type MovieSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   title?: boolean
   releaseDate?: boolean
   posterMediaId?: boolean
+  posterUrl?: boolean
   trailerUrl?: boolean
   synopsis?: boolean
   createdBy?: boolean
@@ -984,6 +1024,7 @@ export type MovieSelectScalar = {
   title?: boolean
   releaseDate?: boolean
   posterMediaId?: boolean
+  posterUrl?: boolean
   trailerUrl?: boolean
   synopsis?: boolean
   createdBy?: boolean
@@ -993,7 +1034,7 @@ export type MovieSelectScalar = {
   reviewCount?: boolean
 }
 
-export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "releaseDate" | "posterMediaId" | "trailerUrl" | "synopsis" | "createdBy" | "createdAt" | "rank" | "averageRating" | "reviewCount", ExtArgs["result"]["movie"]>
+export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "releaseDate" | "posterMediaId" | "posterUrl" | "trailerUrl" | "synopsis" | "createdBy" | "createdAt" | "rank" | "averageRating" | "reviewCount", ExtArgs["result"]["movie"]>
 export type MovieInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   reviews?: boolean | Prisma.Movie$reviewsArgs<ExtArgs>
   ratings?: boolean | Prisma.Movie$ratingsArgs<ExtArgs>
@@ -1019,6 +1060,7 @@ export type $MoviePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     title: string
     releaseDate: Date
     posterMediaId: string | null
+    posterUrl: string | null
     trailerUrl: string
     synopsis: string
     createdBy: string
@@ -1456,6 +1498,7 @@ export interface MovieFieldRefs {
   readonly title: Prisma.FieldRef<"Movie", 'String'>
   readonly releaseDate: Prisma.FieldRef<"Movie", 'DateTime'>
   readonly posterMediaId: Prisma.FieldRef<"Movie", 'String'>
+  readonly posterUrl: Prisma.FieldRef<"Movie", 'String'>
   readonly trailerUrl: Prisma.FieldRef<"Movie", 'String'>
   readonly synopsis: Prisma.FieldRef<"Movie", 'String'>
   readonly createdBy: Prisma.FieldRef<"Movie", 'String'>
