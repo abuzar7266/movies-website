@@ -24,6 +24,7 @@ export const reviewSelect = {
   id: true,
   movieId: true,
   userId: true,
+  user: { select: { id: true, name: true, avatarMediaId: true } },
   content: true,
   createdAt: true,
   updatedAt: true

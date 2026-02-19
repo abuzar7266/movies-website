@@ -60,6 +60,13 @@ const Review = registry.register(
     id: z.string().uuid(),
     movieId: z.string().uuid(),
     userId: z.string().uuid(),
+    user: z
+      .object({
+        id: z.string().uuid(),
+        name: z.string(),
+        avatarMediaId: z.string().uuid().nullable().optional()
+      })
+      .optional(),
     content: z.string(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime()
