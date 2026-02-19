@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useMovies } from "../context/MovieContext"
 import { useAuth } from "../context/AuthContext"
@@ -12,6 +12,7 @@ import { ArrowLeft, Calendar, MessageSquare, Trash2, Trophy } from "lucide-react
 import MovieForm from "../components/movies/MovieForm"
 import { toEmbedUrl } from "../lib/utils"
 import { toast } from "../hooks/use-toast"
+import { api, API_BASE } from "../lib/api"
 
 function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete }: {
   movie: import("../types/movie").Movie;
@@ -167,7 +168,44 @@ function MovieDetail() {
   const [editingReview, setEditingReview] = useState<import("../types/movie").Review | null>(null)
   const [showEditMovie, setShowEditMovie] = useState(false)
 
-  const movie = getMovieById(id || "")
+  const [remoteMovie, setRemoteMovie] = useState<null | import("../types/movie").Movie>(null)
+  const [remoteStats, setRemoteStats] = useState<{ averageRating: number; reviewCount: number; rank: number } | null>(null)
+
+  useEffect(() => {
+    if (!API_BASE || !id) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const res = await api.get<{ success: true; data: any }>(`/movies/${id}`);
+        if (cancelled) return;
+        const m = res.data;
+        const posterUrl = m.posterMediaId ? `${API_BASE}/media/${m.posterMediaId}` : "https://placehold.co/480x720?text=Poster";
+        const mapped: import("../types/movie").Movie = {
+          id: m.id,
+          title: m.title,
+          releaseDate: new Date(m.releaseDate).toISOString(),
+          posterUrl,
+          trailerUrl: m.trailerUrl || "",
+          synopsis: m.synopsis,
+          createdBy: m.createdBy,
+          createdAt: new Date(m.createdAt).toISOString(),
+        };
+        setRemoteMovie(mapped);
+        setRemoteStats({
+          averageRating: m.averageRating ?? 0,
+          reviewCount: m.reviewCount ?? 0,
+          rank: m.rank ?? 0,
+        });
+      } catch {
+        setRemoteMovie(null);
+        setRemoteStats(null);
+      }
+    };
+    run();
+    return () => { cancelled = true };
+  }, [id]);
+
+  const movie = API_BASE ? remoteMovie : getMovieById(id || "")
   if (!movie) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -181,26 +219,28 @@ function MovieDetail() {
     )
   }
 
-  const reviews = getReviewsForMovie(movie.id)
-  const stats = getMovieStats(movie.id)
-  const owner = sampleUsers.find((u) => u.id === movie.createdBy)
-  const isOwner = user?.id === movie.createdBy
+  const reviews = API_BASE ? [] : getReviewsForMovie(movie.id)
+  const stats = API_BASE ? (remoteStats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
+  const owner = API_BASE ? undefined : sampleUsers.find((u) => u.id === movie.createdBy)
+  const isOwner = API_BASE ? false : user?.id === movie.createdBy
 
   const handleDeleteMovie = () => {
     if (window.confirm("Are you sure you want to delete this movie?")) {
-      deleteMovie(movie.id)
+      if (!API_BASE) deleteMovie(movie.id)
       navigate("/")
       toast.success("Movie deleted")
     }
   }
   const handleSubmitMovie = (data: { title: string; releaseDate: string; posterUrl: string; trailerUrl: string; synopsis: string }) => {
-    updateMovie(movie.id, {
-      title: data.title,
-      releaseDate: data.releaseDate,
-      posterUrl: data.posterUrl,
-      trailerUrl: toEmbedUrl(data.trailerUrl || ""),
-      synopsis: data.synopsis,
-    })
+    if (!API_BASE) {
+      updateMovie(movie.id, {
+        title: data.title,
+        releaseDate: data.releaseDate,
+        posterUrl: data.posterUrl,
+        trailerUrl: toEmbedUrl(data.trailerUrl || ""),
+        synopsis: data.synopsis,
+      })
+    }
     setShowEditMovie(false)
     toast.success("Movie updated")
   }
