@@ -170,6 +170,9 @@ function MovieDetail() {
 
   const [remoteMovie, setRemoteMovie] = useState<null | import("../types/movie").Movie>(null)
   const [remoteStats, setRemoteStats] = useState<{ averageRating: number; reviewCount: number; rank: number } | null>(null)
+  const [remoteReviews, setRemoteReviews] = useState<Array<import("../types/movie").Review>>([])
+  const [, setUserRating] = useState<number | null>(null)
+  const [, setLoadingReviews] = useState(false)
 
   useEffect(() => {
     if (!API_BASE || !id) return;
@@ -205,6 +208,42 @@ function MovieDetail() {
     return () => { cancelled = true };
   }, [id]);
 
+  useEffect(() => {
+    if (!API_BASE || !id) return;
+    let cancelled = false;
+    const run = async () => {
+      setLoadingReviews(true);
+      try {
+        const res = await api.get<{ success: true; data: { items: any[] } }>(`/reviews?movieId=${id}&page=1&pageSize=50`);
+        if (cancelled) return;
+        const items = res.data.items.map((r) => ({
+          id: r.id,
+          movieId: r.movieId,
+          userId: r.userId,
+          rating: 0,
+          content: r.content,
+          createdAt: new Date(r.createdAt).toISOString(),
+          updatedAt: new Date(r.updatedAt).toISOString(),
+        })) as Array<import("../types/movie").Review>;
+        setRemoteReviews(items);
+      } catch {
+        if (!cancelled) setRemoteReviews([]);
+      } finally {
+        if (!cancelled) setLoadingReviews(false);
+      }
+    };
+    run();
+    return () => { cancelled = true };
+  }, [id]);
+
+  useEffect(() => {
+    if (!API_BASE || !id) return;
+    api.get<{ success: true; data: { value: number | null } }>(`/ratings/${id}`).then(
+      (r) => setUserRating(r.data.value),
+      () => setUserRating(null)
+    );
+  }, [id]);
+
   const movie = API_BASE ? remoteMovie : getMovieById(id || "")
   if (!movie) {
     return (
@@ -219,7 +258,7 @@ function MovieDetail() {
     )
   }
 
-  const reviews = API_BASE ? [] : getReviewsForMovie(movie.id)
+  const reviews = API_BASE ? remoteReviews : getReviewsForMovie(movie.id)
   const stats = API_BASE ? (remoteStats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
   const owner = API_BASE ? undefined : sampleUsers.find((u) => u.id === movie.createdBy)
   const isOwner = API_BASE ? false : user?.id === movie.createdBy
@@ -247,15 +286,44 @@ function MovieDetail() {
 
   const handleSubmitReview = (rating: number, content: string) => {
     if (!user) return
-    if (editingReview) {
-      updateReview(editingReview.id, { rating, content })
-      setEditingReview(null)
-      toast.success("Review updated")
-    } else {
-      addReview({ movieId: movie.id, userId: user.id, rating, content })
-      toast.success("Review added")
+    const doLocal = () => {
+      if (editingReview) {
+        updateReview(editingReview.id, { rating, content })
+        setEditingReview(null)
+        toast.success("Review updated")
+      } else {
+        addReview({ movieId: movie.id, userId: user.id, rating, content })
+        toast.success("Review added")
+      }
+      setShowReviewForm(false)
+    };
+    if (!API_BASE) {
+      doLocal();
+      return;
     }
-    setShowReviewForm(false)
+    (async () => {
+      try {
+        await api.post("/ratings", { movieId: movie.id, value: rating });
+        if (editingReview) {
+          await api.patch(`/reviews/${editingReview.id}`, { content });
+          setEditingReview(null);
+          toast.success("Review updated");
+        } else {
+          await api.post("/reviews", { movieId: movie.id, content });
+          toast.success("Review added");
+        }
+        const res = await api.get<{ success: true; data: { items: any[] } }>(`/reviews?movieId=${movie.id}&page=1&pageSize=50`);
+        const items = res.data.items.map((r) => ({
+          id: r.id, movieId: r.movieId, userId: r.userId, rating: 0, content: r.content,
+          createdAt: new Date(r.createdAt).toISOString(), updatedAt: new Date(r.updatedAt).toISOString(),
+        })) as Array<import("../types/movie").Review>;
+        setRemoteReviews(items);
+      } catch {
+        toast.error("Failed to submit review");
+      } finally {
+        setShowReviewForm(false);
+      }
+    })();
   }
 
   const handleEditReview = (review: import("../types/movie").Review) => {
@@ -264,7 +332,21 @@ function MovieDetail() {
   }
 
   const handleDeleteReview = (reviewId: string) => {
-    if (window.confirm("Delete this review?")) { deleteReview(reviewId); toast.success("Review deleted") }
+    if (!window.confirm("Delete this review?")) return;
+    if (!API_BASE) {
+      deleteReview(reviewId);
+      toast.success("Review deleted");
+      return;
+    }
+    (async () => {
+      try {
+        await api.delete(`/reviews/${reviewId}`);
+        setRemoteReviews(prev => prev.filter(r => r.id !== reviewId));
+        toast.success("Review deleted");
+      } catch {
+        toast.error("Failed to delete review");
+      }
+    })();
   }
 
   // reserved for future edit modal; keeping layout parity with sample
