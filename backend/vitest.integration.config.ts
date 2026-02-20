@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 export default defineConfig({
   resolve: {
     alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@src": fileURLToPath(new URL("./src", import.meta.url)),
       "@auth": fileURLToPath(new URL("./src/auth", import.meta.url)),
       "@config": fileURLToPath(new URL("./src/config", import.meta.url)),
