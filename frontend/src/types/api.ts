@@ -31,6 +31,7 @@ export interface MovieDTO {
   averageRating: number;
   reviewCount: number;
   rank?: number;
+  myRating?: number | null;
 }
 
 export interface CreateMovieBody {

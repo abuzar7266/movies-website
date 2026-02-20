@@ -269,6 +269,7 @@ function mapReviewDtoToReview(r: ReviewDTO): Review {
 function useRemoteMovieData(id: string | undefined, reloadKey: number) {
   const [movie, setMovie] = useState<Movie | null>(null)
   const [stats, setStats] = useState<RemoteStats | null>(null)
+  const [myRating, setMyRating] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const [loadFailed, setLoadFailed] = useState(false)
@@ -289,10 +290,12 @@ function useRemoteMovieData(id: string | undefined, reloadKey: number) {
           reviewCount: res.data.reviewCount ?? 0,
           rank: res.data.rank ?? 0,
         })
+        setMyRating(res.data.myRating ?? null)
       } catch (e) {
         if (cancelled) return
         setMovie(null)
         setStats(null)
+        setMyRating(null)
         if (e instanceof ApiError && (e.status === 404 || e.status === 400)) {
           setNotFound(true)
         } else {
@@ -306,7 +309,7 @@ function useRemoteMovieData(id: string | undefined, reloadKey: number) {
     return () => { cancelled = true }
   }, [id, reloadKey])
 
-  return { movie, stats, setStats, loading, notFound, loadFailed }
+  return { movie, stats, setStats, myRating, setMyRating, loading, notFound, loadFailed }
 }
 
 function useRemoteReviewsData(id: string | undefined) {
@@ -335,17 +338,6 @@ function useRemoteReviewsData(id: string | undefined) {
   return { reviews, setReviews, loading }
 }
 
-function useRemoteUserRating(id: string | undefined, isAuthenticated: boolean) {
-  const [rating, setRating] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!API_BASE || !id || !isAuthenticated) return
-    ratingsApi.getMyRating(id).then((res) => setRating(res.data.value), () => setRating(null))
-  }, [id, isAuthenticated])
-
-  return { rating, setRating }
-}
-
 function MovieDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -366,7 +358,6 @@ function MovieDetail() {
 
   const remoteMovie = useRemoteMovieData(id, reloadKey)
   const remoteReviews = useRemoteReviewsData(id)
-  const remoteRating = useRemoteUserRating(id, isAuthenticated)
 
   const movie = API_BASE ? remoteMovie.movie : getMovieById(id || "")
   if (API_BASE) {
@@ -414,7 +405,7 @@ function MovieDetail() {
   const isOwner = API_BASE ? false : user?.id === movie.createdBy
   const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
   const canStartNewReview = Boolean(user && !hasMyReview)
-  const displayedUserRating = API_BASE ? (hasMyReview ? remoteRating.rating : null) : undefined
+  const displayedUserRating = API_BASE ? (hasMyReview ? remoteMovie.myRating : null) : undefined
 
   const deleteMovieConfirmed = async () => {
     if (deleting) return
@@ -450,7 +441,7 @@ function MovieDetail() {
     (async () => {
       try {
         const r = await ratingsApi.upsertRating({ movieId: movie.id, value });
-        remoteRating.setRating(value);
+        remoteMovie.setMyRating(value);
         remoteMovie.setStats((prev) => ({ averageRating: r.data.averageRating, reviewCount: prev?.reviewCount ?? 0, rank: prev?.rank ?? 0 }));
         toast.success("Rating saved");
       } catch {
@@ -518,7 +509,7 @@ function MovieDetail() {
     }
     try {
       const ratingRes = await ratingsApi.upsertRating({ movieId: movie.id, value: rating });
-      remoteRating.setRating(rating)
+      remoteMovie.setMyRating(rating)
       remoteMovie.setStats((prev) => ({
         averageRating: ratingRes.data.averageRating,
         reviewCount: prev?.reviewCount ?? 0,
@@ -589,7 +580,7 @@ function MovieDetail() {
         setEditingReview(null)
         setShowReviewForm(false)
       }
-      if (target?.userId === user.id) remoteRating.setRating(null)
+      if (target?.userId === user.id) remoteMovie.setMyRating(null)
       remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: Math.max(0, prev.reviewCount - 1) }) : prev)
       toast.success("Review deleted");
     } catch (e) {
@@ -635,7 +626,7 @@ function MovieDetail() {
             isAuthenticated={isAuthenticated}
             currentUserId={user?.id}
             canStartNew={canStartNewReview}
-            initialRating={editingReview ? (API_BASE ? (remoteRating.rating ?? 5) : editingReview.rating) : draftReviewRating}
+            initialRating={editingReview ? (API_BASE ? (remoteMovie.myRating ?? 5) : editingReview.rating) : draftReviewRating}
             onStartNew={() => {
               if (!canStartNewReview) {
                 toast.error("You can only submit one review per movie")
