@@ -26,15 +26,15 @@ function extractMessage(body: unknown): string | undefined {
 }
 
 export function apiUrl(path: string): string {
-  if (import.meta.env.DEV) {
-    return path.startsWith("/") ? path : `/${path}`;
-  }
   if (API_BASE) {
     try {
       return new URL(path, API_BASE.endsWith("/") ? API_BASE : API_BASE + "/").toString();
     } catch {
       return (API_BASE || "") + path;
     }
+  }
+  if (import.meta.env.DEV) {
+    return path.startsWith("/") ? path : `/${path}`;
   }
   return path.startsWith("/") ? path : `/${path}`;
 }

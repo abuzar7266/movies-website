@@ -74,7 +74,7 @@ function Navbar() {
             </>
           ) : (
             <div className={styles.authButtons}>
-              <Button variant="ghost" size="sm" onClick={() => navigate("/login")}>Log In</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate("/login")}>Log In</Button>
               <Button size="sm" onClick={() => navigate("/register")}>Sign Up</Button>
             </div>
           )}
