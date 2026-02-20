@@ -1,10 +1,22 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { MovieWithStats } from "../../types/movie";
+import type { MovieWithStats } from "@src/types/movie";
 import { MovieCard } from "./MovieCard";
 import { Loader2 } from "lucide-react";
 import styles from "./MovieGrid.module.css";
 
-const PAGE_SIZE = 12;
+const MAX_PAGE_SIZE = 12;
+
+function columnsForWidth(width: number): number {
+  if (width >= 1280) return 6;
+  if (width >= 1024) return 5;
+  if (width >= 768) return 4;
+  if (width >= 640) return 3;
+  return 2;
+}
+
+function pageSizeForWidth(width: number): number {
+  return Math.min(MAX_PAGE_SIZE, columnsForWidth(width) * 2);
+}
 
 interface MovieGridProps {
   movies: MovieWithStats[];
@@ -16,8 +28,21 @@ interface MovieGridProps {
 }
 
 export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, loaded, error }: MovieGridProps) {
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(() => (typeof window === "undefined" ? MAX_PAGE_SIZE : pageSizeForWidth(window.innerWidth)));
+  const [visibleCount, setVisibleCount] = useState(() => (typeof window === "undefined" ? MAX_PAGE_SIZE : pageSizeForWidth(window.innerWidth)));
   const loaderRef = useRef<HTMLDivElement>(null);
+  const inFlightRef = useRef(false);
+  const wasIntersectingRef = useRef(false);
+
+  useEffect(() => {
+    const onResize = () => {
+      const next = pageSizeForWidth(window.innerWidth);
+      setPageSize((prev) => (prev === next ? prev : next));
+      setVisibleCount((prev) => Math.max(prev, next));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const hasMoreLocal = visibleCount < movies.length;
   const isRemote = typeof onLoadMore === "function";
@@ -26,17 +51,35 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
       const [entry] = entries;
-      if (!entry.isIntersecting || !hasMore) return;
+      if (!entry) return;
+      if (!entry.isIntersecting) {
+        wasIntersectingRef.current = false;
+        return;
+      }
+      if (!hasMore) return;
+      if (wasIntersectingRef.current) return;
+      wasIntersectingRef.current = true;
+
+      if (inFlightRef.current) return;
+      if (isRemote && Boolean(loading)) return;
+      inFlightRef.current = true;
+
       if (isRemote) {
         onLoadMore?.();
       } else {
         setTimeout(() => {
-          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, movies.length));
+          setVisibleCount((prev) => Math.min(prev + pageSize, movies.length));
+          inFlightRef.current = false;
         }, 300);
       }
     },
-    [hasMore, movies.length, isRemote, onLoadMore]
+    [hasMore, isRemote, loading, movies.length, onLoadMore, pageSize]
   );
+
+  useEffect(() => {
+    if (!isRemote) return;
+    if (!loading) inFlightRef.current = false;
+  }, [isRemote, loading, movies.length, hasMore]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(handleObserver, {
@@ -51,7 +94,7 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
   if (movies.length === 0 && Boolean(loading)) {
     return (
       <div className={styles.grid}>
-        {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+        {Array.from({ length: pageSize }).map((_, i) => (
           <div key={i} className={styles.pulse}>
             <div className={styles.skeletonCard}>
               <div className={styles.skeletonPoster} />
@@ -104,7 +147,7 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
           <span className={styles.loaderText}>Loading more movies...</span>
         </div>
       )}
-      {!hasMore && !loading && movies.length > PAGE_SIZE && (
+      {!hasMore && !loading && movies.length > pageSize && (
         <p className={styles.endText}>You&apos;ve seen all {movies.length} movies</p>
       )}
     </>

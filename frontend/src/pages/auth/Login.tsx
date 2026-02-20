@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { Input } from "../../components/ui/input"
-import { Button } from "../../components/ui/button"
-import { useAuth } from "../../context/AuthContext"
-import { toast } from "../../hooks/use-toast"
+import { Input } from "@components/ui/input"
+import { Button } from "@components/ui/button"
+import { useAuth } from "@context/AuthContext"
+import { toast } from "@hooks/use-toast"
 import { Film } from "lucide-react"
 import styles from "./AuthPage.module.css"
 

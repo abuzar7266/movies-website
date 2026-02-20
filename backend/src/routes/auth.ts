@@ -1,15 +1,15 @@
 import { Router } from "express";
 import { z } from "zod";
-import { prisma } from "../db.js";
-import { validate } from "../middleware/validate.js";
+import { prisma } from "@/db.js";
+import { validate } from "@middleware/validate.js";
 import argon2 from "argon2";
-import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../auth/jwt.js";
-import { config } from "../config/index.js";
-import { HttpError } from "../middleware/errors.js";
+import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@auth/jwt.js";
+import { config } from "@config/index.js";
+import { HttpError } from "@middleware/errors.js";
 
 const router = Router();
 
-import { registerBody, loginBody } from "../dtos/auth.js";
+import { registerBody, loginBody } from "@dtos/auth.js";
 
 router.post("/register", validate({ body: registerBody }), async (req, res, next) => {
   try {

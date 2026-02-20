@@ -11,7 +11,18 @@
     "rootDir": "src",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@src/*": ["src/*"],
+      "@auth/*": ["src/auth/*"],
+      "@config/*": ["src/config/*"],
+      "@docs/*": ["src/docs/*"],
+      "@dtos/*": ["src/dtos/*"],
+      "@generated/*": ["src/generated/*"],
+      "@middleware/*": ["src/middleware/*"],
+      "@repositories/*": ["src/repositories/*"],
+      "@routes/*": ["src/routes/*"],
+      "@services/*": ["src/services/*"],
+      "@tools/*": ["src/tools/*"]
     }
   },
   "include": ["src"]

@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { z } from "zod";
-import { validate } from "../middleware/validate.js";
-import { requireAuth } from "../middleware/auth.js";
-import { ratings as Ratings } from "../services/index.js";
-import { upsertRatingBody as upsertBody, ratingMovieIdParam as idParam } from "../dtos/ratings.js";
+import { validate } from "@middleware/validate.js";
+import { requireAuth } from "@middleware/auth.js";
+import { ratings as Ratings } from "@services/index.js";
+import { upsertRatingBody as upsertBody, ratingMovieIdParam as idParam } from "@dtos/ratings.js";
 
 const router = Router();
 

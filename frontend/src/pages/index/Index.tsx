@@ -1,25 +1,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { useSearchParams } from "react-router-dom"
-import HeroSection from "../../components/HeroSection"
-import FiltersBar from "../../components/filters/FiltersBar"
-import MoviesHeader from "../../components/movies/MoviesHeader"
-import { useMovies } from "../../context/MovieContext"
-import { MovieGrid } from "../../components/movies/MovieGrid"
-import { useAuth } from "../../context/AuthContext"
-import MovieForm from "../../components/movies/MovieForm"
-import LoginRequiredDialog from "../../components/auth/LoginRequiredDialog"
-import { toEmbedUrl } from "../../lib/utils"
-import { QUERY_Q, QUERY_SCOPE, QUERY_SORT, QUERY_STARS } from "../../lib/keys"
-import type { StarsValue, ReviewScope, SortKey } from "../../lib/options"
-import { toast } from "../../hooks/use-toast"
-import type { MovieWithStats } from "../../types/movie"
-import type { MovieDTO } from "../../types/api"
-import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "../../api"
-import { DEFAULT_LABELS_EN, makeSortOptions } from "../../lib/options"
+import HeroSection from "@components/HeroSection"
+import FiltersBar from "@components/filters/FiltersBar"
+import MoviesHeader from "@components/movies/MoviesHeader"
+import { useMovies } from "@context/MovieContext"
+import { MovieGrid } from "@components/movies/MovieGrid"
+import { useAuth } from "@context/AuthContext"
+import MovieForm from "@components/movies/MovieForm"
+import LoginRequiredDialog from "@components/auth/LoginRequiredDialog"
+import { toEmbedUrl } from "@lib/utils"
+import { QUERY_Q, QUERY_SCOPE, QUERY_SORT, QUERY_STARS } from "@lib/keys"
+import type { StarsValue, ReviewScope, SortKey } from "@lib/options"
+import { toast } from "@hooks/use-toast"
+import type { MovieWithStats } from "@src/types/movie"
+import type { MovieDTO } from "@src/types/api"
+import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "@api"
+import { DEFAULT_LABELS_EN, makeSortOptions } from "@lib/options"
+import styles from "./Index.module.css"
 
 const DEFAULT_MIN_STARS: StarsValue = "0"
 const DEFAULT_REVIEW_SCOPE: ReviewScope = "all"
 const DEFAULT_SORT_BY: SortKey = "rank_asc"
+const MAX_REMOTE_PAGE_SIZE = 12
+
+function columnsForWidth(width: number): number {
+  if (width >= 1280) return 6
+  if (width >= 1024) return 5
+  if (width >= 768) return 4
+  if (width >= 640) return 3
+  return 2
+}
+
+function pageSizeForWidth(width: number): number {
+  return Math.min(MAX_REMOTE_PAGE_SIZE, columnsForWidth(width) * 2)
+}
 
 const STARS_VALUES = ["0", "1", "2", "3", "4", "5"] as const satisfies readonly StarsValue[]
 const REVIEW_SCOPES = ["all", "mine", "not_mine"] as const satisfies readonly ReviewScope[]
@@ -57,6 +71,7 @@ function Index() {
   const [remoteLoaded, setRemoteLoaded] = useState(false)
   const [remoteFailed, setRemoteFailed] = useState(false)
   const [remoteReloadKey, setRemoteReloadKey] = useState(0)
+  const [remotePageSize, setRemotePageSize] = useState(() => (typeof window === "undefined" ? MAX_REMOTE_PAGE_SIZE : pageSizeForWidth(window.innerWidth)))
   const [recentlyAddedMovieId, setRecentlyAddedMovieId] = useState<string | null>(null)
   const remoteRequestSeq = useRef(0)
 
@@ -116,6 +131,24 @@ function Index() {
   }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
 
   const isRemote = Boolean(API_BASE)
+
+  useEffect(() => {
+    if (!API_BASE) return
+    const onResize = () => {
+      const next = pageSizeForWidth(window.innerWidth)
+      setRemotePageSize((prev) => (prev === next ? prev : next))
+    }
+    onResize()
+    window.addEventListener("resize", onResize)
+    return () => window.removeEventListener("resize", onResize)
+  }, [])
+
+  useEffect(() => {
+    if (!API_BASE) return
+    setPage(1)
+    setRemoteReloadKey((k) => k + 1)
+  }, [remotePageSize])
+
   const effectiveReviewScope = useMemo(() => {
     if (!isAuthenticated && (reviewScope === "mine" || reviewScope === "not_mine")) return DEFAULT_REVIEW_SCOPE
     return reviewScope
@@ -151,8 +184,7 @@ function Index() {
         if (effectiveReviewScope !== DEFAULT_REVIEW_SCOPE) params.set("reviewScope", effectiveReviewScope)
         if (sortBy) params.set("sort", sortBy)
         params.set("page", String(page))
-        const pageSize = 60
-        params.set("pageSize", String(pageSize))
+        params.set("pageSize", String(remotePageSize))
         const res = await moviesApi.listMovies(params)
         if (!active || seq !== remoteRequestSeq.current) return
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
@@ -186,7 +218,7 @@ function Index() {
     }
     run()
     return () => { active = false }
-  }, [searchQuery, minStars, effectiveReviewScope, sortBy, page, remoteReloadKey])
+  }, [searchQuery, minStars, effectiveReviewScope, sortBy, page, remoteReloadKey, remotePageSize])
 
   useEffect(() => {
     if (!API_BASE || !recentlyAddedMovieId) return
@@ -282,10 +314,10 @@ function Index() {
   }, [sortBy])
   const canReset = searchQuery !== "" || minStars !== DEFAULT_MIN_STARS || reviewScope !== DEFAULT_REVIEW_SCOPE || sortBy !== DEFAULT_SORT_BY
   return (
-    <div className="bg-background">
+    <div className={styles.page}>
       <HeroSection />
-      <section className="mx-auto max-w-screen-2xl px-4 sm:px-5 lg:px-6 py-8">
-        <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <section className={styles.section}>
+        <div className={styles.headerRow}>
           <MoviesHeader count={moviesToShow.length} sortLabel={sortLabel} />
           <FiltersBar
             searchQuery={searchQuery}

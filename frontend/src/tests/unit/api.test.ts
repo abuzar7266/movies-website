@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { api } from "../../lib/api";
+import { api } from "@lib/api";
 
-vi.mock("../../hooks/use-toast", () => {
+vi.mock("@hooks/use-toast", () => {
   return {
     toast: {
       error: vi.fn(),
     },
   };
 });
-import { toast as mockedToast } from "../../hooks/use-toast";
+import { toast as mockedToast } from "@hooks/use-toast";
 
 describe("api client", () => {
   const g = globalThis as typeof globalThis & { fetch: typeof fetch };

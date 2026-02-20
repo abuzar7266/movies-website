@@ -1,7 +1,7 @@
 import { Pencil, Trash2 } from "lucide-react";
-import StarRating from "../StarRating";
-import type { Review } from "../../types/movie";
-import { sampleUsers } from "../../data/sample-data";
+import StarRating from "@components/StarRating";
+import type { Review } from "@src/types/movie";
+import { sampleUsers } from "@data/sample-data";
 import styles from "./ReviewCard.module.css";
 
 interface ReviewCardProps {

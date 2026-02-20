@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
-import { useMovies } from "../../context/MovieContext"
-import { useAuth } from "../../context/AuthContext"
-import { sampleUsers } from "../../data/sample-data"
-import StarRating from "../../components/StarRating"
-import ReviewCard from "../../components/review/ReviewCard"
-import ReviewForm from "../../components/review/ReviewForm"
-import { Button } from "../../components/ui/button"
-import LoginRequiredDialog from "../../components/auth/LoginRequiredDialog"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "../../components/ui/dialog"
+import { useMovies } from "@context/MovieContext"
+import { useAuth } from "@context/AuthContext"
+import { sampleUsers } from "@data/sample-data"
+import StarRating from "@components/StarRating"
+import ReviewCard from "@components/review/ReviewCard"
+import ReviewForm from "@components/review/ReviewForm"
+import { Button } from "@components/ui/button"
+import LoginRequiredDialog from "@components/auth/LoginRequiredDialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@components/ui/dialog"
 import { ArrowLeft, Calendar, Loader2, MessageSquare, Trash2, Trophy } from "lucide-react"
-import MovieForm from "../../components/movies/MovieForm"
-import { toEmbedUrl } from "../../lib/utils"
-import { toast } from "../../hooks/use-toast"
-import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi } from "../../api"
-import type { MovieDTO, ReviewDTO } from "../../types/api"
+import MovieForm from "@components/movies/MovieForm"
+import { toEmbedUrl } from "@lib/utils"
+import { toast } from "@hooks/use-toast"
+import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi } from "@api"
+import type { MovieDTO, ReviewDTO } from "@src/types/api"
+import type { Movie, Review } from "@src/types/movie"
 import styles from "./MovieDetail.module.css"
 
 function MovieDetailSkeleton() {
@@ -61,7 +62,7 @@ function MovieDetailSkeleton() {
 }
 
 function DetailHeader({ movie, stats, owner, isOwner, onEdit, onDelete, userRating, onRate }: {
-  movie: import("../../types/movie").Movie;
+  movie: Movie;
   stats: { averageRating: number; reviewCount: number; rank: number };
   owner?: { name: string } | undefined;
   isOwner: boolean;
@@ -160,7 +161,7 @@ function TrailerSection({ title, url }: { title: string; url: string }) {
 }
 
 function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canStartNew, initialRating, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
-  reviews: Array<import("../../types/movie").Review>;
+  reviews: Review[];
   loading?: boolean;
   isAuthenticated: boolean;
   currentUserId?: string;
@@ -170,10 +171,10 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
   onLogin: () => void;
   onSubmit: (rating: number, content: string) => void | Promise<void>;
   onCancel: () => void;
-  onEdit: (r: import("../../types/movie").Review) => void;
+  onEdit: (r: Review) => void;
   onDelete: (id: string) => void;
   showReviewForm: boolean;
-  editingReview: import("../../types/movie").Review | null;
+  editingReview: Review | null;
 }) {
   return (
     <section className={styles.section}>
@@ -227,7 +228,7 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
 
 type RemoteStats = { averageRating: number; reviewCount: number; rank: number }
 
-function mapMovieDtoToMovie(m: MovieDTO): import("../../types/movie").Movie {
+function mapMovieDtoToMovie(m: MovieDTO): Movie {
   const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
   const posterUrl = candidate
     ? candidate.startsWith("http://") || candidate.startsWith("https://")
@@ -246,7 +247,7 @@ function mapMovieDtoToMovie(m: MovieDTO): import("../../types/movie").Movie {
   }
 }
 
-function mapReviewDtoToReview(r: ReviewDTO): import("../../types/movie").Review {
+function mapReviewDtoToReview(r: ReviewDTO): Review {
   return {
     id: r.id,
     movieId: r.movieId,
@@ -262,11 +263,11 @@ function mapReviewDtoToReview(r: ReviewDTO): import("../../types/movie").Review 
     content: r.content,
     createdAt: new Date(r.createdAt).toISOString(),
     updatedAt: new Date(r.updatedAt).toISOString(),
-  } as import("../../types/movie").Review
+  } as Review
 }
 
 function useRemoteMovieData(id: string | undefined, reloadKey: number) {
-  const [movie, setMovie] = useState<import("../../types/movie").Movie | null>(null)
+  const [movie, setMovie] = useState<Movie | null>(null)
   const [stats, setStats] = useState<RemoteStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [notFound, setNotFound] = useState(false)
@@ -309,7 +310,7 @@ function useRemoteMovieData(id: string | undefined, reloadKey: number) {
 }
 
 function useRemoteReviewsData(id: string | undefined) {
-  const [reviews, setReviews] = useState<Array<import("../../types/movie").Review>>([])
+  const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -339,7 +340,7 @@ function useRemoteUserRating(id: string | undefined, isAuthenticated: boolean) {
 
   useEffect(() => {
     if (!API_BASE || !id || !isAuthenticated) return
-    ratingsApi.getMyRating(id).then((r) => setRating(r.data.value), () => setRating(null))
+    ratingsApi.getMyRating(id).then((res) => setRating(res.data.value), () => setRating(null))
   }, [id, isAuthenticated])
 
   return { rating, setRating }
@@ -353,7 +354,7 @@ function MovieDetail() {
   const [showLoginDialog, setShowLoginDialog] = useState(false)
 
   const [showReviewForm, setShowReviewForm] = useState(false)
-  const [editingReview, setEditingReview] = useState<import("../../types/movie").Review | null>(null)
+  const [editingReview, setEditingReview] = useState<Review | null>(null)
   const [draftReviewRating, setDraftReviewRating] = useState<number | undefined>(undefined)
   const [showEditMovie, setShowEditMovie] = useState(false)
   const reviewsSectionRef = useRef<HTMLDivElement | null>(null)
@@ -546,7 +547,7 @@ function MovieDetail() {
     }
   }
 
-  const handleEditReview = (review: import("../../types/movie").Review) => {
+  const handleEditReview = (review: Review) => {
     if (!user || review.userId !== user.id) {
       toast.error("You can only edit your own review")
       return

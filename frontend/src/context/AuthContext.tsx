@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
-import type { User } from "../types/movie";
-import { loadJSON, saveJSON } from "../lib/utils";
-import { STORAGE_AUTH } from "../lib/keys";
-import { ApiError, apiUrl, authApi, mediaApi, usersApi } from "../api";
+import type { User } from "@src/types/movie";
+import { loadJSON, saveJSON } from "@lib/utils";
+import { STORAGE_AUTH } from "@lib/keys";
+import { ApiError, apiUrl, authApi, mediaApi, usersApi } from "@api";
 
 interface AuthState {
   user: User | null;

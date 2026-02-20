@@ -1,5 +1,5 @@
-import type { CreateMovieBody, Envelope, MovieDTO, Paginated, UpdateMovieBody } from "../types/api";
-import { api } from "./client";
+import type { CreateMovieBody, Envelope, MovieDTO, Paginated, UpdateMovieBody } from "@src/types/api";
+import { api } from "@api/client";
 
 export async function listMovies(params: URLSearchParams): Promise<Envelope<Paginated<MovieDTO>>> {
   return api.get<Envelope<Paginated<MovieDTO>>>(`/movies?${params.toString()}`);

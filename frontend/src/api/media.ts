@@ -1,5 +1,5 @@
-import type { Envelope } from "../types/api";
-import { ApiError, apiUrl } from "./client";
+import type { Envelope } from "@src/types/api";
+import { ApiError, apiUrl } from "@api/client";
 
 export interface UploadResult {
   id: string;

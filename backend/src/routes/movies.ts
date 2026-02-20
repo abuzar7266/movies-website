@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { z } from "zod";
-import { validate } from "../middleware/validate.js";
-import { requireAuth } from "../middleware/auth.js";
-import { movies as Movies } from "../services/index.js";
+import { validate } from "@middleware/validate.js";
+import { requireAuth } from "@middleware/auth.js";
+import { movies as Movies } from "@services/index.js";
 
 const router = Router();
 
-import { createMovieBody as createBody, updateMovieBody as updateBody, movieIdParam as idParam, posterBody } from "../dtos/movies.js";
+import { createMovieBody as createBody, updateMovieBody as updateBody, movieIdParam as idParam, posterBody } from "@dtos/movies.js";
 
 router.post("/", requireAuth(), validate({ body: createBody }), async (req, res, next) => {
   try {

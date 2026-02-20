@@ -1,4 +1,4 @@
-import { toast } from "../hooks/use-toast";
+import { toast } from "@hooks/use-toast";
 
 export const API_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "";
 

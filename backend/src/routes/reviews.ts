@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { z } from "zod";
-import { validate } from "../middleware/validate.js";
-import { requireAuth } from "../middleware/auth.js";
-import { HttpError } from "../middleware/errors.js";
-import { reviews as Reviews } from "../services/index.js";
-import { createReviewBody as createBody, reviewIdParam as idParam, updateReviewBody as updateBody } from "../dtos/reviews.js";
+import { validate } from "@middleware/validate.js";
+import { requireAuth } from "@middleware/auth.js";
+import { HttpError } from "@middleware/errors.js";
+import { reviews as Reviews } from "@services/index.js";
+import { createReviewBody as createBody, reviewIdParam as idParam, updateReviewBody as updateBody } from "@dtos/reviews.js";
 
 const router = Router();
 

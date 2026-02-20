@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
-import RankBadge from "../RankBadge";
-import StarRating from "../StarRating";
+import RankBadge from "@components/RankBadge";
+import StarRating from "@components/StarRating";
 import { MessageSquare } from "lucide-react";
-import type { MovieWithStats } from "../../types/movie";
+import type { MovieWithStats } from "@src/types/movie";
 import styles from "./MovieCard.module.css";
 
 interface MovieCardProps {

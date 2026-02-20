@@ -1,6 +1,6 @@
 import { useState } from "react";
-import StarRating from "../StarRating";
-import { Button } from "../ui/button";
+import StarRating from "@components/StarRating";
+import { Button } from "@components/ui/button";
 import { Loader2 } from "lucide-react";
 import styles from "./ReviewForm.module.css";
 

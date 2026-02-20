@@ -1,14 +1,14 @@
-import SearchBar from "../SearchBar";
+import SearchBar from "@components/SearchBar";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
-import { Button } from "../ui/button";
-import { DEFAULT_LABELS_EN, makeRatingOptions, makeReviewScopeOptions, makeSortOptions } from "../../lib/options";
-import type { ReviewScope, StarsValue, SortKey } from "../../lib/options";
+} from "@components/ui/select";
+import { Button } from "@components/ui/button";
+import { DEFAULT_LABELS_EN, makeRatingOptions, makeReviewScopeOptions, makeSortOptions } from "@lib/options";
+import type { ReviewScope, StarsValue, SortKey } from "@lib/options";
 import styles from "./FiltersBar.module.css";
 
 interface FiltersBarProps {

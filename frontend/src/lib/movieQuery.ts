@@ -1,4 +1,4 @@
-import type { MovieWithStats, Review } from "../types/movie";
+import type { MovieWithStats, Review } from "@src/types/movie";
 
 export type ReviewScope = "all" | "mine" | "not_mine";
 export type SortKey = "rank_asc" | "reviews_desc" | "rating_desc" | "release_desc" | "release_asc" | "uploaded_desc";

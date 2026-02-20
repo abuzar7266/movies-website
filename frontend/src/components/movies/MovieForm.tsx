@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Loader2, X } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "@components/ui/button";
 import styles from "./MovieForm.module.css";
 
 interface MovieFormData {

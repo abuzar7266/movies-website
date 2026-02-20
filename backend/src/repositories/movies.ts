@@ -1,6 +1,6 @@
-import { prisma as defaultClient } from "../db.js";
-import type { Prisma } from "../generated/prisma/client.js";
-import { movieSelect } from "../selects.js";
+import { prisma as defaultClient } from "@/db.js";
+import type { Prisma } from "@generated/prisma/client.js";
+import { movieSelect } from "@/selects.js";
 
 export function moviesRepo(client: any = defaultClient) {
   return {

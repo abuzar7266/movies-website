@@ -1,7 +1,7 @@
-import { HttpError } from "../middleware/errors.js";
-import { moviesRepo } from "../repositories/movies.js";
-import { prisma } from "../db.js";
-import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { HttpError } from "@middleware/errors.js";
+import { moviesRepo } from "@repositories/movies.js";
+import { prisma } from "@/db.js";
+import type { Prisma, PrismaClient } from "@generated/prisma/client.js";
 
 type MovieListItem = Awaited<ReturnType<ReturnType<typeof moviesRepo>["findMany"]>>[number];
 

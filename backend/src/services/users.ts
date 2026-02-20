@@ -1,6 +1,6 @@
-import { HttpError } from "../middleware/errors.js";
-import { usersRepo } from "../repositories/users.js";
-import { mediaRepo } from "../repositories/media.js";
+import { HttpError } from "@middleware/errors.js";
+import { usersRepo } from "@repositories/users.js";
+import { mediaRepo } from "@repositories/media.js";
 
 export async function getUserPublic(userId: string) {
   const Users = usersRepo();

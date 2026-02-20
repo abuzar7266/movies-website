@@ -1,12 +1,12 @@
 import "dotenv/config";
-import app from "./app.js";
-import { prisma } from "./db.js";
-import { logger } from "./config/logger.js";
+import app from "@/app.js";
+import { prisma } from "@/db.js";
+import { logger } from "@config/logger.js";
 import { execSync } from "node:child_process";
 import os from "node:os";
 import process from "node:process";
-import { config } from "./config/index.js";
-import { recomputeMovieRanks } from "./services/movies.js";
+import { config } from "@config/index.js";
+import { recomputeMovieRanks } from "@services/movies.js";
 
 const port = config.port;
 

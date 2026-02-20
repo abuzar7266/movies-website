@@ -1,5 +1,5 @@
-import { prisma as defaultClient } from "../db.js";
-import { reviewSelect } from "../selects.js";
+import { prisma as defaultClient } from "@/db.js";
+import { reviewSelect } from "@/selects.js";
 
 export function reviewsRepo(client: any = defaultClient) {
   return {

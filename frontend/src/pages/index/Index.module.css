@@ -1,0 +1,41 @@
+.page {
+  background-color: hsl(var(--background));
+}
+
+.section {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  max-width: 96rem;
+  padding: 2rem 1rem;
+}
+
+@media (min-width: 640px) {
+  .section {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+.headerRow {
+  margin-bottom: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .headerRow {
+    flex-direction: row;
+    align-items: center;
+  }
+}

@@ -1,5 +1,5 @@
-import type { CreateReviewBody, Envelope, Paginated, ReviewDTO, UpdateReviewBody } from "../types/api";
-import { api } from "./client";
+import type { CreateReviewBody, Envelope, Paginated, ReviewDTO, UpdateReviewBody } from "@src/types/api";
+import { api } from "@api/client";
 
 export async function listByMovie(movieId: string, page = 1, pageSize = 50): Promise<Envelope<Paginated<ReviewDTO>>> {
   const params = new URLSearchParams({ movieId, page: String(page), pageSize: String(pageSize) });
