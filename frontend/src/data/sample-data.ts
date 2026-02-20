@@ -1,4 +1,4 @@
-import type { User, Movie, Review } from "../types/movie";
+import type { User, Movie, Review } from "@src/types/movie";
 
 export const sampleUsers: User[] = [
   { id: "user-1", name: "Alex Rivera", email: "alex@example.com", avatarUrl: "https://i.pravatar.cc/150?u=alex", createdAt: "2024-01-15T10:00:00Z" },

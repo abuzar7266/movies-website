@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { validate } from "../middleware/validate.js";
-import { requireAuth } from "../middleware/auth.js";
-import { users as Users } from "../services/index.js";
-import { updateUserBody as updateBody, avatarBody } from "../dtos/users.js";
+import { validate } from "@middleware/validate.js";
+import { requireAuth } from "@middleware/auth.js";
+import { users as Users } from "@services/index.js";
+import { updateUserBody as updateBody, avatarBody } from "@dtos/users.js";
 
 const router = Router();
 

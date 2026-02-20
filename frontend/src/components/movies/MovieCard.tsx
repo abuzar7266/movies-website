@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
-import RankBadge from "../RankBadge";
-import StarRating from "../StarRating";
+import RankBadge from "@components/RankBadge";
+import StarRating from "@components/StarRating";
 import { MessageSquare } from "lucide-react";
-import type { MovieWithStats } from "../../types/movie";
+import type { MovieWithStats } from "@src/types/movie";
+import styles from "./MovieCard.module.css";
 
 interface MovieCardProps {
   movie: MovieWithStats;
@@ -10,14 +11,14 @@ interface MovieCardProps {
 
 export function MovieCard({ movie }: MovieCardProps) {
   return (
-    <Link to={`/movie/${movie.id}`} className="group block">
-      <div className="card-hover-lift relative overflow-hidden rounded-xl bg-[hsl(var(--card))] border border-[hsl(var(--border))]">
+    <Link to={`/movie/${movie.id}`} className={styles.link}>
+      <div className={styles.card}>
         <RankBadge rank={movie.rank} />
-        <div className="aspect-[2/3] overflow-hidden">
+        <div className={styles.posterFrame}>
           <img
             src={movie.posterUrl}
             alt={movie.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className={styles.poster}
             onError={(e) => {
               const t = e.currentTarget
               if (!t.dataset.fallback) {
@@ -27,18 +28,18 @@ export function MovieCard({ movie }: MovieCardProps) {
             }}
             loading="lazy"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--card))] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          <div className={styles.posterOverlay} />
         </div>
-        <div className="p-3 space-y-1.5">
-          <h3 className="text-sm font-semibold truncate text-[hsl(var(--foreground))] group-hover:text-[hsl(var(--primary))] transition-colors">
+        <div className={styles.content}>
+          <h3 className={styles.title}>
             {movie.title}
           </h3>
-          <p className="text-xs text-[hsl(var(--muted-foreground))]">
+          <p className={styles.year}>
             {new Date(movie.releaseDate).getFullYear()}
           </p>
-          <div className="flex items-center justify-between">
+          <div className={styles.metaRow}>
             <StarRating rating={Math.round(movie.averageRating)} size={12} />
-            <div className="flex items-center gap-1 text-xs text-[hsl(var(--muted-foreground))]">
+            <div className={styles.reviewCount}>
               <MessageSquare size={11} />
               <span>{movie.reviewCount}</span>
             </div>

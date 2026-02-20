@@ -1,9 +1,9 @@
 import { Link, useNavigate } from "react-router-dom"
 import { useRef, useState } from "react"
-import { useAuth } from "../../context/AuthContext"
-import { Button } from "../ui/button"
+import { useAuth } from "@context/AuthContext"
+import { Button } from "@components/ui/button"
 import { Film, LogOut, Plus, Camera } from "lucide-react"
-import { toast } from "../../hooks/use-toast"
+import { toast } from "@hooks/use-toast"
 import styles from "./Navbar.module.css"
 
 function Navbar() {

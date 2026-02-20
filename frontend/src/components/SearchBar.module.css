@@ -1,0 +1,61 @@
+.root {
+  position: relative;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .root {
+    width: 18rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .root {
+    width: 20rem;
+  }
+}
+
+.icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: hsl(var(--muted-foreground));
+}
+
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--secondary) / 0.5);
+  padding: 0.625rem 2.5rem 0.625rem 2.5rem;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  transition: box-shadow 150ms, border-color 150ms;
+}
+
+.input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.clearButton {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  padding: 0;
+  transition: color 150ms;
+}
+
+.clearButton:hover {
+  color: hsl(var(--foreground));
+}

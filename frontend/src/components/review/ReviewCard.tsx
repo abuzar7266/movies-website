@@ -1,7 +1,8 @@
 import { Pencil, Trash2 } from "lucide-react";
-import StarRating from "../StarRating";
-import type { Review } from "../../types/movie";
-import { sampleUsers } from "../../data/sample-data";
+import StarRating from "@components/StarRating";
+import type { Review } from "@src/types/movie";
+import { sampleUsers } from "@data/sample-data";
+import styles from "./ReviewCard.module.css";
 
 interface ReviewCardProps {
   review: Review;
@@ -17,33 +18,33 @@ export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: 
   const initials = (author?.name || "User").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "U";
 
   return (
-    <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4">
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className={styles.card}>
+      <div className={styles.topRow}>
+        <div className={styles.authorRow}>
           {author?.avatarUrl ? (
-            <img src={author.avatarUrl} alt={author.name} className="h-8 w-8 rounded-full object-cover" />
+            <img src={author.avatarUrl} alt={author.name} className={styles.avatarImg} />
           ) : (
-            <div className="h-8 w-8 rounded-full bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] grid place-items-center text-xs font-semibold">
+            <div className={styles.avatarFallback}>
               {initials}
             </div>
           )}
-          <div className="text-sm">
-            <p className="font-medium">{author?.name || "User"}</p>
-            <p className="text-[hsl(var(--muted-foreground))]">{new Date(review.createdAt).toLocaleString()}</p>
+          <div className={styles.authorMeta}>
+            <p className={styles.authorName}>{author?.name || "User"}</p>
+            <p className={styles.timestamp}>{new Date(review.createdAt).toLocaleString()}</p>
           </div>
         </div>
         {canManage && (
-          <div className="flex items-center gap-1.5">
+          <div className={styles.actions}>
             <button
               onClick={() => onEdit(review)}
-              className="rounded-md p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--secondary))] hover:text-[hsl(var(--foreground))] transition-colors"
+              className={styles.iconButton}
               aria-label="Edit review"
             >
               <Pencil size={16} />
             </button>
             <button
               onClick={() => onDelete(review.id)}
-              className="rounded-md p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--secondary))] hover:text-[hsl(var(--foreground))] transition-colors"
+              className={styles.iconButton}
               aria-label="Delete review"
             >
               <Trash2 size={16} />
@@ -52,11 +53,11 @@ export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: 
         )}
       </div>
       {review.rating > 0 && (
-        <div className="mb-2">
+        <div className={styles.ratingRow}>
           <StarRating rating={review.rating} />
         </div>
       )}
-      <p className="text-sm leading-relaxed text-[hsl(var(--foreground))]">{review.content}</p>
+      <p className={styles.content}>{review.content}</p>
     </div>
   );
 }

@@ -1,0 +1,178 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: hsl(220 20% 4% / 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  width: 100%;
+  max-width: 32rem;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  padding: 1.5rem;
+  box-shadow: 0 28px 70px hsl(220 20% 2% / 0.65);
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.headerRow {
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.title {
+  font-family: "Space Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.closeButton {
+  border: none;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+  transition: background-color 150ms, color 150ms, opacity 150ms;
+}
+
+.closeButton:hover:not(:disabled) {
+  color: hsl(var(--foreground));
+  background-color: hsl(var(--secondary) / 0.6);
+}
+
+.closeButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.label {
+  margin-bottom: 0.375rem;
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--secondary) / 0.5);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  transition: box-shadow 150ms;
+}
+
+.input::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.textarea {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--secondary) / 0.5);
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+  resize: none;
+  transition: box-shadow 150ms;
+}
+
+.textarea::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+.textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+}
+
+.fileGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fileInput {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground));
+}
+
+.fileHelp {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.previewWrap {
+  margin-top: 0.25rem;
+}
+
+.previewFrame {
+  overflow: hidden;
+  width: 8rem;
+  border-radius: 0.5rem;
+  border: 1px solid hsl(var(--border));
+}
+
+.previewImg {
+  display: block;
+  height: 12rem;
+  width: 8rem;
+  object-fit: cover;
+}
+
+.error {
+  font-size: 0.875rem;
+  color: hsl(var(--destructive));
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.flex1 {
+  flex: 1 1 0%;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  margin-right: 0.5rem;
+  animation: spin 1s linear infinite;
+}

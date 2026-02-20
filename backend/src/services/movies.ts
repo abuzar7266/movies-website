@@ -1,7 +1,8 @@
-import { HttpError } from "../middleware/errors.js";
-import { moviesRepo } from "../repositories/movies.js";
-import { prisma } from "../db.js";
-import type { Prisma, PrismaClient } from "../generated/prisma/client.js";
+import { HttpError } from "@middleware/errors.js";
+import { moviesRepo } from "@repositories/movies.js";
+import { prisma } from "@/db.js";
+import type { Prisma, PrismaClient } from "@generated/prisma/client.js";
+import { bumpCacheVersion } from "@/redis.js";
 
 type MovieListItem = Awaited<ReturnType<ReturnType<typeof moviesRepo>["findMany"]>>[number];
 
@@ -76,18 +77,23 @@ export async function createMovie(
     });
   });
   enqueueMovieRankRecompute();
+  await bumpCacheVersion("v:movies");
   return movie;
 }
 
-export async function getMovieOrThrow(id: string) {
+export async function getMovieOrThrow(id: string, userId?: string) {
   const Repo = moviesRepo();
   const movie = await Repo.findUnique({ id });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
+  const myRating =
+    userId
+      ? (await prisma.rating.findUnique({ where: { movieId_userId: { movieId: id, userId } }, select: { value: true } }))?.value ?? null
+      : undefined;
   if (movie.rank === 0) {
     const map = await computeMovieRankMap(prisma);
-    return { ...movie, rank: map.get(movie.id) ?? 0 };
+    return { ...movie, rank: map.get(movie.id) ?? 0, myRating };
   }
-  return movie;
+  return { ...movie, myRating };
 }
 
 export async function listMovies(opts: {
@@ -139,12 +145,35 @@ export async function listMovies(opts: {
     });
     return { total, items };
   });
+
+  const userRatings =
+    opts.userId && items.length
+      ? await prisma.rating.findMany({
+          where: { userId: opts.userId, movieId: { in: items.map((m) => m.id) } },
+          select: { movieId: true, value: true }
+        })
+      : [];
+  const ratingByMovieId = new Map<string, number>();
+  userRatings.forEach((r) => ratingByMovieId.set(r.movieId, r.value));
+
   if (items.some((m) => m.rank === 0)) {
     const map = await computeMovieRankMap(prisma);
-    const patched = items.map((m) => (m.rank === 0 ? { ...m, rank: map.get(m.id) ?? 0 } : m));
+    const patched = items.map((m) => ({
+      ...m,
+      rank: m.rank === 0 ? (map.get(m.id) ?? 0) : m.rank,
+      myRating: opts.userId ? (ratingByMovieId.get(m.id) ?? null) : undefined
+    }));
     return { items: patched, total, page: opts.page, pageSize: opts.pageSize };
   }
-  return { items, total, page: opts.page, pageSize: opts.pageSize };
+  return {
+    items: items.map((m) => ({
+      ...m,
+      myRating: opts.userId ? (ratingByMovieId.get(m.id) ?? null) : undefined
+    })),
+    total,
+    page: opts.page,
+    pageSize: opts.pageSize
+  };
 }
 
 export async function ensureOwnedMovie(userId: string, id: string) {
@@ -166,7 +195,7 @@ export async function updateMovie(
     const exists = await Repo.findUnique({ title: updates.title });
     if (exists) throw new HttpError(409, "Movie title already exists", "title_taken");
   }
-  return Repo.update(
+  const updated = await Repo.update(
     { id },
     {
       title: updates.title ?? undefined,
@@ -176,6 +205,8 @@ export async function updateMovie(
       posterUrl: updates.posterUrl ?? undefined
     }
   );
+  await bumpCacheVersion("v:movies");
+  return updated;
 }
 
 export async function deleteMovie(userId: string, id: string) {
@@ -185,6 +216,7 @@ export async function deleteMovie(userId: string, id: string) {
     await Repo.remove({ id });
   });
   enqueueMovieRankRecompute();
+  await bumpCacheVersion("v:movies");
 }
 
 export async function setPoster(userId: string, id: string, mediaId: string) {
@@ -193,7 +225,9 @@ export async function setPoster(userId: string, id: string, mediaId: string) {
   if (!media) throw new HttpError(404, "Media not found", "not_found");
   if (media.ownerUserId && media.ownerUserId !== userId) throw new HttpError(403, "Forbidden", "forbidden");
   const Repo = moviesRepo();
-  return Repo.setPoster({ id }, mediaId);
+  const updated = await Repo.setPoster({ id }, mediaId);
+  await bumpCacheVersion("v:movies");
+  return updated;
 }
 
 export async function suggestMovies(q: string) {

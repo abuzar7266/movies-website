@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
-import { verifyAccessToken } from "../auth/jwt.js";
-import { HttpError } from "./errors.js";
+import { verifyAccessToken } from "@auth/jwt.js";
+import { HttpError } from "@middleware/errors.js";
 
 declare module "express-serve-static-core" {
   interface Request {

@@ -1,5 +1,5 @@
-import type { Envelope } from "../types/api";
-import { api } from "./client";
+import type { Envelope } from "@src/types/api";
+import { api } from "@api/client";
 
 export interface AuthUser {
   id: string;

@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { OpenAPIRegistry, OpenApiGeneratorV3, extendZodWithOpenApi } from "@asteasolutions/zod-to-openapi";
-import { registerBody, loginBody } from "../dtos/auth.js";
-import { createMovieBody, updateMovieBody, movieIdParam, posterBody } from "../dtos/movies.js";
-import { updateUserBody, avatarBody } from "../dtos/users.js";
-import { createReviewBody, updateReviewBody, reviewIdParam } from "../dtos/reviews.js";
-import { upsertRatingBody, ratingMovieIdParam } from "../dtos/ratings.js";
+import { registerBody, loginBody } from "@dtos/auth.js";
+import { createMovieBody, updateMovieBody, movieIdParam, posterBody } from "@dtos/movies.js";
+import { updateUserBody, avatarBody } from "@dtos/users.js";
+import { createReviewBody, updateReviewBody, reviewIdParam } from "@dtos/reviews.js";
+import { upsertRatingBody, ratingMovieIdParam } from "@dtos/ratings.js";
 
 extendZodWithOpenApi(z);
 

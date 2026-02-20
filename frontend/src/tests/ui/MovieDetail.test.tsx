@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import MovieDetail from "../../pages/MovieDetail";
+import MovieDetail from "@pages/movie-detail/MovieDetail";
 
 const apiMocks = vi.hoisted(() => {
   class ApiError extends Error {
@@ -44,7 +44,7 @@ const apiMocks = vi.hoisted(() => {
   return { ApiError, apiUrl, moviesApi, reviewsApi, ratingsApi, mediaApi };
 });
 
-vi.mock("../../api", () => ({
+vi.mock("@api", () => ({
   API_BASE: "http://test",
   ApiError: apiMocks.ApiError,
   apiUrl: apiMocks.apiUrl,
@@ -54,14 +54,14 @@ vi.mock("../../api", () => ({
   mediaApi: apiMocks.mediaApi,
 }));
 
-vi.mock("../../hooks/use-toast", () => ({
+vi.mock("@hooks/use-toast", () => ({
   toast: {
     success: vi.fn(),
     error: vi.fn(),
   },
 }));
 
-vi.mock("../../context/AuthContext", () => ({
+vi.mock("@context/AuthContext", () => ({
   useAuth: () => ({
     isAuthenticated: true,
     user: {
@@ -73,7 +73,7 @@ vi.mock("../../context/AuthContext", () => ({
   }),
 }));
 
-vi.mock("../../context/MovieContext", () => ({
+vi.mock("@context/MovieContext", () => ({
   useMovies: () => ({
     getMovieById: vi.fn(),
     getReviewsForMovie: vi.fn(),

@@ -1,9 +1,9 @@
 import { Router } from "express";
 import multer from "multer";
-import { prisma } from "../db.js";
-import { requireAuth } from "../middleware/auth.js";
+import { prisma } from "@/db.js";
+import { requireAuth } from "@middleware/auth.js";
 import crypto from "crypto";
-import { HttpError } from "../middleware/errors.js";
+import { HttpError } from "@middleware/errors.js";
 
 const router = Router();
 const upload = multer({

@@ -1,8 +1,9 @@
-import { HttpError } from "../middleware/errors.js";
-import { reviewSelect } from "../selects.js";
-import { prisma } from "../db.js";
-import { reviewsRepo } from "../repositories/reviews.js";
-import { enqueueMovieRankRecompute } from "./movies.js";
+import { HttpError } from "@middleware/errors.js";
+import { reviewSelect } from "@/selects.js";
+import { prisma } from "@/db.js";
+import { reviewsRepo } from "@repositories/reviews.js";
+import { enqueueMovieRankRecompute } from "@services/movies.js";
+import { bumpCacheVersion } from "@/redis.js";
 
 export async function createReview(userId: string, data: { movieId: string; content: string }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
@@ -19,6 +20,8 @@ export async function createReview(userId: string, data: { movieId: string; cont
     return review;
   });
   enqueueMovieRankRecompute();
+  await bumpCacheVersion("v:movies");
+  await bumpCacheVersion(`v:reviews:${data.movieId}`);
   return result;
 }
 
@@ -36,11 +39,15 @@ export async function updateReview(userId: string, id: string, content: string) 
   const Reviews = reviewsRepo();
   const updatedCount = await Reviews.updateContentIfOwned(id, userId, content);
   if (updatedCount.count === 0) throw new HttpError(404, "Review not found", "not_found");
-  return Reviews.findById(id);
+  const updated = await Reviews.findById(id);
+  if (updated) {
+    await bumpCacheVersion(`v:reviews:${updated.movieId}`);
+  }
+  return updated;
 }
 
 export async function deleteReview(userId: string, id: string) {
-  await prisma.$transaction(async (tx) => {
+  const movieId = await prisma.$transaction(async (tx) => {
     const r = await tx.review.findFirst({ where: { id, userId } });
     if (!r) throw new HttpError(404, "Review not found", "not_found");
     await tx.review.delete({ where: { id } });
@@ -48,7 +55,10 @@ export async function deleteReview(userId: string, id: string) {
       where: { id: r.movieId },
       data: { reviewCount: { decrement: 1 } }
     });
+    return r.movieId;
   });
   enqueueMovieRankRecompute();
+  await bumpCacheVersion("v:movies");
+  await bumpCacheVersion(`v:reviews:${movieId}`);
 }
 

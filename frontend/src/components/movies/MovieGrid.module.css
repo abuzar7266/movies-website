@@ -1,0 +1,154 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+
+.fadeIn {
+  opacity: 1;
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.pulse {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.skeletonCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+}
+
+.skeletonPoster {
+  aspect-ratio: 2 / 3;
+  background-color: hsl(var(--muted));
+}
+
+.skeletonBody {
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.skeletonLineLg {
+  height: 1rem;
+  width: 75%;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+}
+
+.skeletonLineSm {
+  height: 0.75rem;
+  width: 33%;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+}
+
+.skeletonRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skeletonPillWide {
+  height: 0.75rem;
+  width: 5rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+}
+
+.skeletonPillNarrow {
+  height: 0.75rem;
+  width: 2rem;
+  border-radius: 0.5rem;
+  background-color: hsl(var(--muted));
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 5rem 0;
+  text-align: center;
+}
+
+.emptyTitle {
+  font-family: "Space Grotesk", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  font-size: 1.125rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.emptySubtitle {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.loaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  color: hsl(var(--primary));
+}
+
+.loaderText {
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.endText {
+  padding: 2rem 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}

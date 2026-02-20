@@ -1,0 +1,33 @@
+.root {
+  display: flex;
+  width: 100%;
+  flex-direction: column-reverse;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .root {
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.label {
+  font-size: 0.875rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.triggerRating {
+  width: 110px;
+}
+
+.triggerWide {
+  width: 170px;
+}

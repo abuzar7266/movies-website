@@ -1,5 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { getRedisClient } from "../redis.js";
+import { getRedisClient } from "@/redis.js";
 
 type Options = {
   windowMs: number;

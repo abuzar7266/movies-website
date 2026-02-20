@@ -1,10 +1,10 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from "react";
-import type { Movie, Review, MovieWithStats } from "../types/movie";
-import { sampleMovies, sampleReviews } from "../data/sample-data";
-import { loadJSON, saveJSON } from "../lib/utils";
-import { STORAGE_MOVIES } from "../lib/keys";
-import { queryMoviesPure } from "../lib/movieQuery";
-import type { ReviewScope, SortKey } from "../lib/options";
+import type { Movie, Review, MovieWithStats } from "@src/types/movie";
+import { sampleMovies, sampleReviews } from "@data/sample-data";
+import { loadJSON, saveJSON } from "@lib/utils";
+import { STORAGE_MOVIES } from "@lib/keys";
+import { queryMoviesPure } from "@lib/movieQuery";
+import type { ReviewScope, SortKey } from "@lib/options";
 
 interface MovieContextType {
   movies: Movie[];

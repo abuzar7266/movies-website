@@ -1,7 +1,7 @@
 import "dotenv/config";
-import { prisma } from "../db.js";
+import { prisma } from "@/db.js";
 import argon2 from "argon2";
-import { recomputeMovieRanks } from "../services/movies.js";
+import { recomputeMovieRanks } from "@services/movies.js";
 
 async function main() {
   const basePwd = process.env.SEED_USER_PASSWORD || "demo1234";

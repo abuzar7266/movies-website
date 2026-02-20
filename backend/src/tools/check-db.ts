@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { prisma } from "../db.js";
+import { prisma } from "@/db.js";
 
 async function main() {
   const rows = await prisma.$queryRaw<

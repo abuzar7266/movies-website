@@ -1,5 +1,5 @@
-import { prisma as defaultClient } from "../db.js";
-import { userPublicSelect } from "../selects.js";
+import { prisma as defaultClient } from "@/db.js";
+import { userPublicSelect } from "@/selects.js";
 
 export function usersRepo(client: any = defaultClient) {
   return {
