@@ -4,7 +4,7 @@ import crypto from "crypto";
 import { validate } from "@middleware/validate.js";
 import { requireAuth } from "@middleware/auth.js";
 import { movies as Movies } from "@services/index.js";
-import { getCacheVersion, getRedisClient } from "@/redis.js";
+import { getCacheVersion, getRedisClient } from "@/redisClient.js";
 
 const router = Router();
 

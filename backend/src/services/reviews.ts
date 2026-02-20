@@ -3,7 +3,7 @@ import { reviewSelect } from "@/selects.js";
 import { prisma } from "@/db.js";
 import { reviewsRepo } from "@repositories/reviews.js";
 import { enqueueMovieRankRecompute } from "@services/movies.js";
-import { bumpCacheVersion } from "@/redis.js";
+import { bumpCacheVersion } from "@/redisClient.js";
 
 export async function createReview(userId: string, data: { movieId: string; content: string }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });

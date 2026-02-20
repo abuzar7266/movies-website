@@ -6,7 +6,7 @@ import { requireAuth } from "@middleware/auth.js";
 import { HttpError } from "@middleware/errors.js";
 import { reviews as Reviews } from "@services/index.js";
 import { createReviewBody as createBody, reviewIdParam as idParam, updateReviewBody as updateBody } from "@dtos/reviews.js";
-import { getCacheVersion, getRedisClient } from "@/redis.js";
+import { getCacheVersion, getRedisClient } from "@/redisClient.js";
 
 const router = Router();
 
