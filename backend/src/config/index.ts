@@ -1,5 +1,21 @@
 import "dotenv/config";
 import { z } from "zod";
+import fs from "node:fs";
+import path from "node:path";
+
+function loadSecretFile(envKeyFile: string, targetKey: string) {
+  const p = process.env[envKeyFile];
+  if (p && !process.env[targetKey]) {
+    try {
+      const abs = path.isAbsolute(p) ? p : path.join(process.cwd(), p);
+      const val = fs.readFileSync(abs, "utf8").trim();
+      if (val) process.env[targetKey] = val;
+    } catch {}
+  }
+}
+loadSecretFile("JWT_ACCESS_SECRET_FILE", "JWT_ACCESS_SECRET");
+loadSecretFile("JWT_REFRESH_SECRET_FILE", "JWT_REFRESH_SECRET");
+loadSecretFile("DATABASE_URL_FILE", "DATABASE_URL");
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),

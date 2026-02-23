@@ -32,8 +32,6 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-ENV DATABASE_URL=postgres://postgres:postgres@localhost:5432/movieshelf
-
 RUN npm run prisma:generate && npm run build
 
 FROM base AS runner
@@ -44,7 +42,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/.env.example ./.env
 
 EXPOSE 4000
 CMD ["npm", "run", "start"]
