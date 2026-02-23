@@ -4,10 +4,6 @@ process.env.NODE_ENV = "test";
 
 process.env.LOG_LEVEL = process.env.LOG_LEVEL || "silent";
 
-// Prefer dedicated test database if provided
-if (process.env.DATABASE_URL_TEST) {
-  process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
-}
 // Avoid domain-bound cookies in tests; let cookies be host-only
 delete process.env.COOKIE_DOMAIN;
 
@@ -15,8 +11,9 @@ import { beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const shouldUseDb = !!process.env.DATABASE_URL && process.env.DATABASE_URL.includes("postgres");
-const adapter = shouldUseDb ? new PrismaPg({ connectionString: process.env.DATABASE_URL || "" }) : undefined;
+const testDbUrl = process.env.DATABASE_URL_TEST || "";
+const shouldUseDb = !!testDbUrl && testDbUrl.includes("postgres");
+const adapter = shouldUseDb ? new PrismaPg({ connectionString: testDbUrl }) : undefined;
 const prisma = shouldUseDb && adapter ? new PrismaClient({ adapter }) : undefined;
 
 async function purgeDatabase() {

@@ -30,6 +30,7 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().optional(),
   RATE_LIMIT_LIMIT: z.coerce.number().int().positive().optional(),
   DATABASE_URL: z.string().optional(),
+  DATABASE_URL_TEST: z.string().optional(),
   REDIS_URL: z.string().optional(),
   METRICS_ENABLED: z.string().optional(),
   LOG_LEVEL: z.string().optional(),
@@ -75,7 +76,7 @@ export const config = {
   isDev,
   isTest,
   port: env.PORT,
-  databaseUrl: env.DATABASE_URL ?? "",
+  databaseUrl: isTest ? (env.DATABASE_URL_TEST ?? env.DATABASE_URL ?? "") : (env.DATABASE_URL ?? ""),
   jwt: {
     accessSecret,
     refreshSecret,
