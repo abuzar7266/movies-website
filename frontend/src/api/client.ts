@@ -106,4 +106,5 @@ export const api = {
   put:  <T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "PUT", json, ...(init || {}) }),
   patch:<T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "PATCH", json, ...(init || {}) }),
   delete:<T>(path: string, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "DELETE", ...(init || {}) }),
+  request:<T>(path: string, init: RequestInit & { silentError?: boolean }) => request<T>(path, init),
 };
