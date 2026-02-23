@@ -28,7 +28,13 @@ const envSchema = z.object({
   COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).optional(),
   CORS_ORIGINS: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().optional(),
-  RATE_LIMIT_LIMIT: z.coerce.number().int().positive().optional()
+  RATE_LIMIT_LIMIT: z.coerce.number().int().positive().optional(),
+  S3_BUCKET: z.string().optional(),
+  S3_REGION: z.string().optional(),
+  S3_ENDPOINT: z.string().optional(),
+  S3_FORCE_PATH_STYLE: z.enum(["true", "false"]).optional(),
+  S3_ACCESS_KEY_ID: z.string().optional(),
+  S3_SECRET_ACCESS_KEY: z.string().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -81,5 +87,18 @@ export const config = {
   rateLimit: {
     windowMs: env.RATE_LIMIT_WINDOW_MS ?? 60_000,
     limit: env.RATE_LIMIT_LIMIT ?? 120
+  },
+  storage: {
+    s3:
+      env.S3_BUCKET
+        ? {
+            bucket: env.S3_BUCKET,
+            region: env.S3_REGION ?? "us-east-1",
+            endpoint: env.S3_ENDPOINT,
+            forcePathStyle: env.S3_FORCE_PATH_STYLE === "true",
+            accessKeyId: env.S3_ACCESS_KEY_ID,
+            secretAccessKey: env.S3_SECRET_ACCESS_KEY
+          }
+        : undefined
   }
 };

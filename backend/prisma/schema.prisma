@@ -80,7 +80,7 @@ model Media {
   id          String   @id @default(uuid())
   contentType String
   size        Int
-  data        Bytes
+  data        Bytes?
   ownerUserId String?
   createdAt   DateTime @default(now())
 
