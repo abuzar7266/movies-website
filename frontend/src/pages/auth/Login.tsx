@@ -10,12 +10,27 @@ import styles from "./AuthPage.module.css"
 function Login() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [emailError, setEmailError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
   const [submitting, setSubmitting] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    let valid = true
+    setEmailError("")
+    setPasswordError("")
+    const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())
+    if (!emailOk) {
+      setEmailError("Enter a valid email address")
+      valid = false
+    }
+    if (password.trim().length < 8) {
+      setPasswordError("Password must be at least 8 characters")
+      valid = false
+    }
+    if (!valid) return
     setSubmitting(true)
     const res = await login(email, password)
     setSubmitting(false)
@@ -44,10 +59,12 @@ function Login() {
           <div>
             <label className={styles.label}>Email</label>
             <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            {emailError && <p className={styles.error}>{emailError}</p>}
           </div>
           <div>
             <label className={styles.label}>Password</label>
             <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
+            {passwordError && <p className={styles.error}>{passwordError}</p>}
           </div>
           <Button type="submit" className={styles.fullWidth} disabled={submitting}>{submitting ? "Signing in..." : "Sign In"}</Button>
         </form>
