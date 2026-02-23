@@ -29,6 +29,12 @@ const emptyForm: MovieFormData = {
 const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) => {
   const [form, setForm] = useState<MovieFormData>(initialData || emptyForm);
   const [validationError, setValidationError] = useState("");
+  const [titleError, setTitleError] = useState("");
+  const [dateError, setDateError] = useState("");
+  const [posterUrlError, setPosterUrlError] = useState("");
+  const [posterFileError, setPosterFileError] = useState("");
+  const [trailerUrlError, setTrailerUrlError] = useState("");
+  const [synopsisError, setSynopsisError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [posterFile, setPosterFile] = useState<File | null>(null);
   const [posterPreview, setPosterPreview] = useState<string>("");
@@ -41,7 +47,21 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
   const handlePosterFile = (file: File | null) => {
     if (posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview);
     setPosterFile(file);
+    setPosterFileError("");
     if (!file) {
+      setPosterPreview("");
+      return;
+    }
+    const allowed = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
+    if (!allowed.has(file.type)) {
+      setPosterFileError("Poster must be PNG, JPEG, WEBP, or GIF.");
+      setPosterFile(null);
+      setPosterPreview("");
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setPosterFileError("Poster image must be 2MB or smaller.");
+      setPosterFile(null);
       setPosterPreview("");
       return;
     }
@@ -51,14 +71,61 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
-    if (!form.title.trim() || !form.releaseDate) {
-      setValidationError("Title and release date are required.");
-      return;
+    setTitleError("");
+    setDateError("");
+    setPosterUrlError("");
+    setPosterFileError((prev) => prev); // keep file errors from selection step
+    setTrailerUrlError("");
+    setSynopsisError("");
+    let ok = true;
+    const title = form.title.trim();
+    if (title.length < 2) {
+      setTitleError("Title must be at least 2 characters.");
+      ok = false;
     }
+    if (!form.releaseDate) {
+      setDateError("Release date is required.");
+      ok = false;
+    } else if (Number.isNaN(Date.parse(form.releaseDate))) {
+      setDateError("Enter a valid date.");
+      ok = false;
+    }
+    const urlRegex = /^https?:\/\//i;
+    if (form.posterUrl.trim()) {
+      try {
+        // eslint-disable-next-line no-new
+        new URL(form.posterUrl.trim());
+        if (!urlRegex.test(form.posterUrl.trim())) {
+          posterUrlError || setPosterUrlError("Poster URL must start with http or https.");
+          ok = false;
+        }
+      } catch {
+        setPosterUrlError("Enter a valid poster URL.");
+        ok = false;
+      }
+    }
+    if (form.trailerUrl.trim()) {
+      try {
+        // eslint-disable-next-line no-new
+        new URL(form.trailerUrl.trim());
+        if (!urlRegex.test(form.trailerUrl.trim())) {
+          trailerUrlError || setTrailerUrlError("Trailer URL must start with http or https.");
+          ok = false;
+        }
+      } catch {
+        setTrailerUrlError("Enter a valid trailer URL.");
+        ok = false;
+      }
+    }
+    if (form.synopsis && form.synopsis.length > 500) {
+      setSynopsisError("Synopsis cannot exceed 500 characters.");
+      ok = false;
+    }
+    if (!ok) return;
     setValidationError("");
     try {
       setSubmitting(true);
-      await onSubmit({ ...form, posterUrl: form.posterUrl }, posterFile);
+      await onSubmit({ ...form, posterUrl: form.posterUrl.trim(), trailerUrl: form.trailerUrl.trim(), title }, posterFile);
     } finally {
       setSubmitting(false);
     }
@@ -94,6 +161,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
               className={styles.input}
               required
             />
+            {titleError && <p className={styles.error}>{titleError}</p>}
           </div>
 
           <div>
@@ -105,6 +173,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
               className={styles.input}
               required
             />
+            {dateError && <p className={styles.error}>{dateError}</p>}
           </div>
 
           <div className={styles.fileGrid}>
@@ -120,6 +189,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
                 />
                 <span className={styles.fileHelp}>Max 2MB (png, jpg, webp, gif)</span>
               </div>
+              {posterFileError && <p className={styles.error}>{posterFileError}</p>}
             </div>
             <div>
               <label className={styles.label}>Or Poster Image URL</label>
@@ -131,6 +201,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
                 placeholder="https://..."
                 className={styles.input}
               />
+              {posterUrlError && <p className={styles.error}>{posterUrlError}</p>}
             </div>
             {(posterPreview || form.posterUrl) && (
               <div className={styles.previewWrap}>
@@ -162,6 +233,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
               placeholder="https://www.youtube.com/embed/..."
               className={styles.input}
             />
+            {trailerUrlError && <p className={styles.error}>{trailerUrlError}</p>}
           </div>
 
           <div>
@@ -174,6 +246,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
               rows={3}
               className={styles.textarea}
             />
+            {synopsisError && <p className={styles.error}>{synopsisError}</p>}
           </div>
 
           {(validationError || error) && (

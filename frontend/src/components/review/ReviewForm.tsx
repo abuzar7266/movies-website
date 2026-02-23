@@ -27,14 +27,23 @@ export default function ReviewForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
-    if (!content.trim()) {
-      setError("Review content cannot be empty.");
+    const trimmed = content.trim();
+    if (rating < 1 || rating > 5) {
+      setError("Please select a rating between 1 and 5 stars.");
+      return;
+    }
+    if (trimmed.length < 10) {
+      setError("Review must be at least 10 characters.");
+      return;
+    }
+    if (trimmed.length > 1000) {
+      setError("Review cannot exceed 1000 characters.");
       return;
     }
     setError("");
     try {
       setSubmitting(true);
-      await onSubmit(rating, content.trim());
+      await onSubmit(rating, trimmed);
     } finally {
       setSubmitting(false);
     }
