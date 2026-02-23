@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useMovies } from "@context/MovieContext"
 import { useAuth } from "@context/AuthContext"
-import { sampleUsers } from "@data/sample-data"
 import StarRating from "@components/StarRating"
 import ReviewCard from "@components/review/ReviewCard"
 import ReviewForm from "@components/review/ReviewForm"
@@ -341,9 +340,22 @@ function useRemoteReviewsData(id: string | undefined) {
 function MovieDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { getMovieById, getReviewsForMovie, getMovieStats, deleteMovie, addReview, updateReview, deleteReview, updateMovie } = useMovies()
+  const { deleteMovie, addReview, updateReview, deleteReview, updateMovie } = useMovies()
   const { user, isAuthenticated } = useAuth()
   const [showLoginDialog, setShowLoginDialog] = useState(false)
+
+  if (!API_BASE) {
+    return (
+      <div className={`${styles.page} ${styles.centerPage}`}>
+        <div className={styles.centerContent}>
+          <h1 className={styles.centerTitle}>Server unavailable</h1>
+          <Button variant="ghost" onClick={() => navigate("/")}>
+            <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
+          </Button>
+        </div>
+      </div>
+    )
+  }
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [editingReview, setEditingReview] = useState<Review | null>(null)
@@ -359,8 +371,8 @@ function MovieDetail() {
   const remoteMovie = useRemoteMovieData(id, reloadKey)
   const remoteReviews = useRemoteReviewsData(id)
 
-  const movie = API_BASE ? remoteMovie.movie : getMovieById(id || "")
-  if (API_BASE) {
+  const movie = remoteMovie.movie
+  {
     if (remoteMovie.loading && !movie) return <MovieDetailSkeleton />
     if (remoteMovie.loadFailed && !movie) {
       return (
@@ -386,23 +398,11 @@ function MovieDetail() {
     }
     if (!movie) return <MovieDetailSkeleton />
   }
-  if (!movie) {
-    return (
-      <div className={`${styles.page} ${styles.centerPage}`}>
-        <div className={styles.centerContent}>
-          <h1 className={styles.centerTitle}>Movie not found</h1>
-          <Button variant="ghost" onClick={() => navigate("/")}>
-            <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
-          </Button>
-        </div>
-      </div>
-    )
-  }
 
-  const reviews = API_BASE ? remoteReviews.reviews : getReviewsForMovie(movie.id)
-  const stats = API_BASE ? (remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
-  const owner = API_BASE ? undefined : sampleUsers.find((u) => u.id === movie.createdBy)
-  const isOwner = API_BASE ? false : user?.id === movie.createdBy
+  const reviews = remoteReviews.reviews
+  const stats = remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }
+  const owner = undefined
+  const isOwner = false
   const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
   const canStartNewReview = Boolean(user && !hasMyReview)
   const displayedUserRating = API_BASE ? (hasMyReview ? remoteMovie.myRating : null) : undefined

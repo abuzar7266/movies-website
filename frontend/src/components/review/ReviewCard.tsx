@@ -1,7 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import StarRating from "@components/StarRating";
 import type { Review } from "@src/types/movie";
-import { sampleUsers } from "@data/sample-data";
 import styles from "./ReviewCard.module.css";
 
 interface ReviewCardProps {
@@ -12,8 +11,7 @@ interface ReviewCardProps {
 }
 
 export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: ReviewCardProps) {
-  const fallbackAuthor = sampleUsers.find((u) => u.id === review.userId);
-  const author = review.author || (fallbackAuthor ? { id: fallbackAuthor.id, name: fallbackAuthor.name, avatarUrl: fallbackAuthor.avatarUrl } : undefined);
+  const author = review.author;
   const canManage = Boolean(currentUserId && review.userId === currentUserId);
   const initials = (author?.name || "User").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "U";
 

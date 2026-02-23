@@ -168,43 +168,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           },
           isAuthenticated: true,
         }));
-        return;
       } catch (e) {
-        if (e instanceof ApiError && e.status === 401) {
-          const refreshOk = await (async (): Promise<boolean> => {
-            try {
-              await authApi.refresh();
-              return true;
-            } catch {
-              return false;
-            }
-          })();
-          if (refreshOk) {
-            try {
-              const me2 = await usersApi.me();
-              if (cancelled) return;
-              const avatarMediaId = me2.data.avatarMediaId ?? null;
-              setAuthState(prev => ({
-                user: {
-                  id: me2.data.id,
-                  name: me2.data.name,
-                  email: me2.data.email,
-                  role: me2.data.role,
-                  avatarMediaId,
-                  avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
-                  createdAt: prev.user?.createdAt ?? new Date().toISOString(),
-                },
-                isAuthenticated: true,
-              }));
-              return;
-            } catch {
-              void 0;
-            }
-          }
+        if (!cancelled) {
+          localStorage.removeItem(STORAGE_AUTH);
+          setAuthState({ user: null, isAuthenticated: false });
         }
-        return;
       }
-      if (!cancelled) setAuthState({ user: null, isAuthenticated: false });
     };
     restore();
     return () => { cancelled = true };

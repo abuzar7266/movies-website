@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom"
 import HeroSection from "@components/HeroSection"
 import FiltersBar from "@components/filters/FiltersBar"
 import MoviesHeader from "@components/movies/MoviesHeader"
-import { useMovies } from "@context/MovieContext"
 import { MovieGrid } from "@components/movies/MovieGrid"
 import { useAuth } from "@context/AuthContext"
 import MovieForm from "@components/movies/MovieForm"
@@ -55,8 +54,18 @@ function parseSortKey(raw: string | null, fallback: SortKey): SortKey {
 }
 
 function Index() {
-  const { addMovie, queryMovies } = useMovies()
   const { user, isAuthenticated } = useAuth()
+  if (!API_BASE) {
+    return (
+      <div className={`${styles.page} ${styles.centerPage}`}>
+        <div className={styles.centerContent}>
+          <h1 className={styles.centerTitle}>Server unavailable</h1>
+          <p className={styles.centerSubtitle}>The application requires a running backend. Please check server connection.</p>
+          <button className={styles.retryButton} onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      </div>
+    )
+  }
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get(QUERY_Q) || "")
   const [formError, setFormError] = useState("")
@@ -130,10 +139,9 @@ function Index() {
     setPage((p) => p === 1 ? p : 1)
   }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
 
-  const isRemote = Boolean(API_BASE)
+  // remote-only mode
 
   useEffect(() => {
-    if (!API_BASE) return
     const onResize = () => {
       const next = pageSizeForWidth(window.innerWidth)
       setRemotePageSize((prev) => (prev === next ? prev : next))
@@ -144,7 +152,6 @@ function Index() {
   }, [])
 
   useEffect(() => {
-    if (!API_BASE) return
     setPage(1)
     setRemoteReloadKey((k) => k + 1)
   }, [remotePageSize])
@@ -154,19 +161,9 @@ function Index() {
     return reviewScope
   }, [isAuthenticated, reviewScope])
 
-  const resultsWithReviewScope = useMemo(() => {
-    if (isRemote) return []
-    return queryMovies({
-      search: searchQuery,
-      minStars: Number(minStars),
-      reviewScope: effectiveReviewScope,
-      sortBy,
-      userId: isAuthenticated ? user?.id : undefined,
-    })
-  }, [searchQuery, minStars, effectiveReviewScope, sortBy, user, queryMovies, isRemote, isAuthenticated])
+  // no local results in remote-only mode
 
   useEffect(() => {
-    if (!API_BASE) return;
     const seq = ++remoteRequestSeq.current
     let active = true
     const run = async () => {
@@ -252,25 +249,6 @@ function Index() {
       setShowLoginDialog(true)
       return
     }
-    if (!API_BASE) {
-      const success = addMovie({
-        title: data.title,
-        releaseDate: data.releaseDate,
-        posterUrl: data.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500",
-        trailerUrl: toEmbedUrl(data.trailerUrl || ""),
-        synopsis: data.synopsis,
-        createdBy: user.id,
-      })
-      if (success) {
-        closeAdd()
-        setFormError("")
-        toast.success("Movie added")
-      } else {
-        setFormError("A movie with this title already exists.")
-        toast.error("Movie already exists")
-      }
-      return
-    }
 
     setFormError("")
     try {
@@ -307,7 +285,17 @@ function Index() {
       toast.error("Failed to add movie")
     }
   }
-  const moviesToShow = API_BASE ? remoteMovies : resultsWithReviewScope
+  if (remoteLoaded && remoteFailed && remoteMovies.length === 0 && page === 1) {
+    return (
+      <div className={`${styles.page} ${styles.centerPage}`}>
+        <div className={styles.centerContent}>
+          <h1 className={styles.centerTitle}>Failed to connect to server</h1>
+          <button className={styles.retryButton} onClick={() => setRemoteReloadKey((k) => k + 1)}>Retry</button>
+        </div>
+      </div>
+    )
+  }
+  const moviesToShow = remoteMovies
 
   const sortLabel = useMemo(() => {
     return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
@@ -335,13 +323,13 @@ function Index() {
           />
         </div>
         <MovieGrid
-          key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-${API_BASE ? "remote" : "local"}`}
+          key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-remote`}
           movies={moviesToShow}
           loading={loadingRemote}
-          loaded={isRemote ? remoteLoaded : true}
-          error={isRemote ? remoteFailed : false}
-          hasMore={API_BASE ? remoteMovies.length < remoteTotal : undefined}
-          onLoadMore={API_BASE ? (() => setPage((p) => p + 1)) : undefined}
+          loaded={remoteLoaded}
+          error={remoteFailed}
+          hasMore={remoteMovies.length < remoteTotal}
+          onLoadMore={() => setPage((p) => p + 1)}
         />
       </section>
       {showAddForm && (
