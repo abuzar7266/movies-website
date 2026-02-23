@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@components/ui/dialog";
 import { Button } from "@components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface LoginRequiredDialogProps {
   open: boolean;
@@ -10,6 +10,8 @@ interface LoginRequiredDialogProps {
 
 export default function LoginRequiredDialog({ open, onOpenChange, message }: LoginRequiredDialogProps) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirect = `${location.pathname}${location.search || ""}`;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -21,7 +23,7 @@ export default function LoginRequiredDialog({ open, onOpenChange, message }: Log
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={() => navigate("/login")}>Go to Login</Button>
+          <Button onClick={() => navigate(`/login?redirect=${encodeURIComponent(redirect)}`)}>Go to Login</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
