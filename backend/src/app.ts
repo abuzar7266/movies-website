@@ -36,8 +36,8 @@ app.use(cookieParser());
 app.use(authenticate);
 app.use(requestId);
 app.use(metricsMiddleware);
-const rlWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
-const rlLimit = Number(process.env.RATE_LIMIT_LIMIT || 120);
+const rlWindowMs = config.rateLimit.windowMs;
+const rlLimit = config.rateLimit.limit;
 if (process.env.REDIS_URL) {
   app.use(redisRateLimit({ windowMs: rlWindowMs, limit: rlLimit }));
 } else {

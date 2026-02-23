@@ -10,7 +10,9 @@ const envSchema = z.object({
   JWT_REFRESH_TTL_SEC: z.coerce.number().int().positive().optional(),
   COOKIE_DOMAIN: z.string().optional(),
   COOKIE_SAMESITE: z.enum(["lax", "strict", "none"]).optional(),
-  CORS_ORIGINS: z.string().optional()
+  CORS_ORIGINS: z.string().optional(),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().optional(),
+  RATE_LIMIT_LIMIT: z.coerce.number().int().positive().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -56,5 +58,9 @@ export const config = {
   },
   cors: {
     origins: env.CORS_ORIGINS ? env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean) : null
+  },
+  rateLimit: {
+    windowMs: env.RATE_LIMIT_WINDOW_MS ?? 60_000,
+    limit: env.RATE_LIMIT_LIMIT ?? 120
   }
 };
