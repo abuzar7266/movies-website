@@ -165,7 +165,7 @@ function ReviewsSection({ reviews, loading, currentUserId, initialRating, initia
   currentUserId?: string;
   initialRating?: number;
   initialContent?: string;
-  onStartNew: () => void;
+  onStartNew?: () => void;
   onSubmit: (rating: number, content: string) => void | Promise<void>;
   onCancel: () => void;
   onEdit: (r: Review) => void;
@@ -177,7 +177,7 @@ function ReviewsSection({ reviews, loading, currentUserId, initialRating, initia
     <section className={styles.section}>
       <div className={styles.reviewsHeader}>
         <h3 className={styles.reviewsTitle}>Reviews ({reviews.length})</h3>
-        {!showReviewForm && (
+        {!showReviewForm && onStartNew && (
           <Button size="sm" onClick={onStartNew}>
             Write a Review
           </Button>
@@ -363,6 +363,28 @@ function MovieDetail() {
   const remoteReviews = useRemoteReviewsData(id)
 
   const movie = remoteMovie.movie
+  const reviews = remoteReviews.reviews
+  const stats = remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }
+  const owner = undefined
+  const isOwner = false
+  const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
+  const canStartNewReview = Boolean(user && !hasMyReview)
+  const displayedUserRating = API_BASE ? (hasMyReview ? remoteMovie.myRating : null) : undefined
+
+  useEffect(() => {
+    if (!isAuthenticated || !movie?.id) return
+    try {
+      const raw = sessionStorage.getItem(`draftReview:${movie.id}`)
+      if (raw) {
+        const parsed = JSON.parse(raw) as { rating?: number; content?: string }
+        setDraftReviewRating(parsed.rating ?? 5)
+        setDraftReviewContent(parsed.content ?? "")
+        setShowReviewForm(true)
+        sessionStorage.removeItem(`draftReview:${movie.id}`)
+      }
+    } catch {}
+  }, [isAuthenticated, movie?.id])
+
   {
     if (remoteMovie.loading && !movie) return <MovieDetailSkeleton />
     if (remoteMovie.loadFailed && !movie) {
@@ -389,28 +411,6 @@ function MovieDetail() {
     }
     if (!movie) return <MovieDetailSkeleton />
   }
-
-  const reviews = remoteReviews.reviews
-  const stats = remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }
-  const owner = undefined
-  const isOwner = false
-  const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
-  const canStartNewReview = Boolean(user && !hasMyReview)
-  const displayedUserRating = API_BASE ? (hasMyReview ? remoteMovie.myRating : null) : undefined
-
-  useEffect(() => {
-    if (!isAuthenticated || !movie?.id) return
-    try {
-      const raw = sessionStorage.getItem(`draftReview:${movie.id}`)
-      if (raw) {
-        const parsed = JSON.parse(raw) as { rating?: number; content?: string }
-        setDraftReviewRating(parsed.rating ?? 5)
-        setDraftReviewContent(parsed.content ?? "")
-        setShowReviewForm(true)
-        sessionStorage.removeItem(`draftReview:${movie.id}`)
-      }
-    } catch {}
-  }, [isAuthenticated, movie?.id])
 
   const deleteMovieConfirmed = async () => {
     if (deleting) return
@@ -640,15 +640,11 @@ function MovieDetail() {
             currentUserId={user?.id}
             initialRating={editingReview ? (API_BASE ? (remoteMovie.myRating ?? 5) : editingReview.rating) : draftReviewRating}
             initialContent={editingReview?.content ?? draftReviewContent}
-            onStartNew={() => {
-              if (user && !canStartNewReview) {
-                toast.error("You can only submit one review per movie")
-                return
-              }
+            onStartNew={canStartNewReview ? (() => {
               setEditingReview(null);
               setDraftReviewRating(undefined);
               setShowReviewForm(true);
-            }}
+            }) : undefined}
             onSubmit={handleSubmitReview}
             onCancel={() => { setShowReviewForm(false); setEditingReview(null); setDraftReviewRating(undefined); setDraftReviewContent(undefined); }}
             onEdit={handleEditReview}
