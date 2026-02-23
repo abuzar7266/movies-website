@@ -26,7 +26,7 @@ const isDev = process.env.NODE_ENV === "development";
 app.use(helmet());
 app.use(
   cors({
-    origin: config.cors.origins ? config.cors.origins : true,
+    origin: config.cors.origins,
     credentials: true
   })
 );
