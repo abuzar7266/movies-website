@@ -2,24 +2,11 @@ import "dotenv/config";
 import app from "@/app.js";
 import { prisma } from "@/db.js";
 import { logger } from "@config/logger.js";
-import { execSync } from "node:child_process";
-import os from "node:os";
 import process from "node:process";
 import { config } from "@config/index.js";
 import { recomputeMovieRanks } from "@services/movies.js";
 
 const port = config.port;
-
-function killPort(p: number) {
-  try {
-    if (os.platform() === "win32") {
-      const output = execSync(`powershell -NoProfile -Command \"Get-NetTCPConnection -LocalPort ${p} -State Listen | Select-Object -ExpandProperty OwningProcess\"`, { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
-      if (output) execSync(`taskkill /F /PID ${output}`, { stdio: "ignore" });
-    } else {
-      execSync(`sh -lc "lsof -ti tcp:${p} | xargs -r kill -9"`, { stdio: "ignore" });
-    }
-  } catch {}
-}
 
 async function start() {
   try {
@@ -41,10 +28,8 @@ async function start() {
     await listen();
   } catch (err: any) {
     if (err?.code === "EADDRINUSE") {
-      logger.warn({ port }, "Port busy; attempting to free it");
-      killPort(port);
-      await new Promise((r) => setTimeout(r, 700));
-      await listen();
+      logger.error({ port }, "Port busy; cannot start server");
+      process.exit(1);
     } else {
       throw err;
     }
