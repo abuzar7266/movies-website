@@ -32,6 +32,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   REDIS_URL: z.string().optional(),
   METRICS_ENABLED: z.string().optional(),
+  LOG_LEVEL: z.string().optional(),
   S3_BUCKET: z.string().optional(),
   S3_REGION: z.string().optional(),
   S3_ENDPOINT: z.string().optional(),
@@ -98,6 +99,7 @@ export const config = {
   },
   metricsEnabled: env.METRICS_ENABLED !== "false",
   redisUrl: env.REDIS_URL,
+  logLevel: env.LOG_LEVEL ?? (isProd ? "info" : "debug"),
   storage: {
     s3:
       env.S3_BUCKET
