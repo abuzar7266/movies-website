@@ -3,6 +3,7 @@ import { moviesRepo } from "@repositories/movies.js";
 import { prisma } from "@/db.js";
 import type { Prisma, PrismaClient } from "@generated/prisma/client.js";
 import { bumpCacheVersion } from "@/redisClient.js";
+import { config } from "@config/index.js";
 
 type MovieListItem = Awaited<ReturnType<ReturnType<typeof moviesRepo>["findMany"]>>[number];
 
@@ -40,7 +41,7 @@ export async function recomputeMovieRanks(client: Prisma.TransactionClient | Pri
 }
 
 export function enqueueMovieRankRecompute() {
-  if (process.env.NODE_ENV === "test") return;
+  if (config.isTest) return;
   if (recomputeInFlight) {
     recomputeQueued = true;
     return;

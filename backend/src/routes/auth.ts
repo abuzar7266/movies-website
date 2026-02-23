@@ -67,7 +67,7 @@ router.post("/logout", (req, res) => {
   res.clearCookie("access_token", cookieOpts());
   res.clearCookie("refresh_token", cookieOpts());
   res.clearCookie("csrf_token", cookieOpts() as any);
-  if (process.env.NODE_ENV === "test") {
+  if (config.isTest) {
     res.clearCookie("test_user_id", cookieOpts() as any);
   }
   res.json({ success: true });
@@ -90,7 +90,7 @@ function cookieOpts() {
 function setCookies(res: any, access: string, refresh: string) {
   res.cookie("access_token", access, { ...cookieOpts(), maxAge: config.jwt.accessTtlSec * 1000 });
   res.cookie("refresh_token", refresh, { ...cookieOpts(), maxAge: config.jwt.refreshTtlSec * 1000 });
-  if (process.env.NODE_ENV === "test") {
+  if (config.isTest) {
     try {
       const { sub } = verifyRefreshToken(refresh);
       res.cookie("test_user_id", sub, { ...cookieOpts(), httpOnly: true });

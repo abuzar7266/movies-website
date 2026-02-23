@@ -47,6 +47,7 @@ if (!parsed.success) {
 const env = parsed.data;
 const isProd = env.NODE_ENV === "production";
 const isDev = env.NODE_ENV === "development";
+const isTest = env.NODE_ENV === "test";
 
 const accessSecret =
   env.JWT_ACCESS_SECRET ?? (isProd ? (() => { throw new Error("JWT_ACCESS_SECRET required in production"); })() : "dev-access-secret");
@@ -71,6 +72,7 @@ function normalizeCookieDomain(input?: string) {
 export const config = {
   isProd,
   isDev,
+  isTest,
   port: env.PORT,
   databaseUrl: env.DATABASE_URL ?? "",
   jwt: {

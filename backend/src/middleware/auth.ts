@@ -1,6 +1,7 @@
 import type { RequestHandler } from "express";
 import { verifyAccessToken } from "@auth/jwt.js";
 import { HttpError } from "@middleware/errors.js";
+import { config } from "@config/index.js";
 
 declare module "express-serve-static-core" {
   interface Request {
@@ -15,7 +16,7 @@ export const authenticate: RequestHandler = (req, _res, next) => {
     const { sub, role } = verifyAccessToken(token);
     req.user = { id: sub, role };
   } catch {}
-  if (!req.user && process.env.NODE_ENV === "test") {
+  if (!req.user && config.isTest) {
     const testUserId = req.cookies?.test_user_id;
     if (typeof testUserId === "string" && testUserId) {
       req.user = { id: testUserId, role: "user" };

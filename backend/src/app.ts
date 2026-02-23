@@ -59,7 +59,7 @@ if (isDev) {
     next();
   });
 }
-if (process.env.NODE_ENV === "test") {
+if (config.isTest) {
   const testLimiter = rateLimit({ windowMs: 60_000, limit: 3, standardHeaders: false, legacyHeaders: false });
   app.get("/test/rl", testLimiter, (_req, res) => {
     res.json({ success: true });
