@@ -36,6 +36,7 @@ model Movie {
   ratings       Rating[]
   averageRating Float    @default(0)
   reviewCount   Int      @default(0)
+  ratingCount   Int      @default(0)
   createdByUser User     @relation("UserMovies", fields: [createdBy], references: [id])
 
   @@unique([title])

@@ -8,21 +8,41 @@ export async function upsertRating(userId: string, data: { movieId: string; valu
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
   const result = await prisma.$transaction(async (tx) => {
-    await tx.rating.upsert({
+    const existing = await tx.rating.findUnique({
       where: { movieId_userId: { movieId: data.movieId, userId } },
-      update: { value: data.value },
-      create: { movieId: data.movieId, userId, value: data.value }
+      select: { value: true }
     });
-    const agg = await tx.rating.aggregate({
-      where: { movieId: data.movieId },
-      _avg: { value: true }
-    });
-    const avg = Number(agg._avg.value ?? 0);
-    const updatedMovie = await tx.movie.update({
+    const m = await tx.movie.findUnique({
       where: { id: data.movieId },
-      data: { averageRating: avg }
+      select: { averageRating: true, ratingCount: true }
     });
-    return updatedMovie.averageRating;
+    if (!m) throw new HttpError(404, "Movie not found", "not_found");
+    let newAvg: number;
+    if (existing) {
+      await tx.rating.update({
+        where: { movieId_userId: { movieId: data.movieId, userId } },
+        data: { value: data.value }
+      });
+      const sum = m.averageRating * m.ratingCount;
+      newAvg = m.ratingCount > 0 ? (sum - existing.value + data.value) / m.ratingCount : data.value;
+      const updated = await tx.movie.update({
+        where: { id: data.movieId },
+        data: { averageRating: Number(newAvg.toFixed(2)) }
+      });
+      return updated.averageRating;
+    } else {
+      await tx.rating.create({
+        data: { movieId: data.movieId, userId, value: data.value }
+      });
+      const sum = m.averageRating * m.ratingCount;
+      const newCount = m.ratingCount + 1;
+      newAvg = (sum + data.value) / newCount;
+      const updated = await tx.movie.update({
+        where: { id: data.movieId },
+        data: { averageRating: Number(newAvg.toFixed(2)), ratingCount: { increment: 1 } }
+      });
+      return updated.averageRating;
+    }
   });
   enqueueMovieRankRecompute();
   await bumpCacheVersion("v:movies");
