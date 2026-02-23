@@ -6,11 +6,20 @@ import { prisma } from "../../src/db.js";
 
 describe("User avatar set/unset", () => {
   const agent = request.agent(app);
+  async function getCsrfToken(): Promise<string> {
+    const res = await agent.get("/auth/csrf");
+    expect(res.status).toBe(200);
+    const cookie = (res.headers["set-cookie"] as string[] | undefined)?.find((c) => c.startsWith("csrf_token=")) ?? "";
+    const match = /csrf_token=([^;]+)/.exec(cookie);
+    if (!match) throw new Error("csrf_token cookie not found");
+    return decodeURIComponent(match[1]);
+  }
   const runId = crypto.randomUUID();
   const email = `avatar_tester+${runId}@example.com`;
   const password = "pass12345";
   const name = "Avatar Tester";
   let mediaId: string;
+  let csrf: string;
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -21,6 +30,7 @@ describe("User avatar set/unset", () => {
     } else {
       expect(res.status).toBe(200);
     }
+    csrf = await getCsrfToken();
   });
 
   afterAll(async () => {
@@ -32,13 +42,16 @@ describe("User avatar set/unset", () => {
 
   it("uploads an image", async () => {
     const buf = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
-    const res = await agent.post("/media").attach("file", buf, { filename: "a.png", contentType: "image/png" });
+    const res = await agent
+      .post("/media")
+      .set("X-CSRF-Token", csrf)
+      .attach("file", buf, { filename: "a.png", contentType: "image/png" });
     expect(res.status).toBe(200);
     mediaId = res.body.data.id;
   });
 
   it("sets the avatar to mediaId and reflects in /users/me", async () => {
-    const set = await agent.patch("/users/me/avatar").send({ mediaId });
+    const set = await agent.patch("/users/me/avatar").set("X-CSRF-Token", csrf).send({ mediaId });
     expect(set.status).toBe(200);
     const me = await agent.get("/users/me");
     expect(me.status).toBe(200);
@@ -46,7 +59,7 @@ describe("User avatar set/unset", () => {
   });
 
   it("unsets the avatar", async () => {
-    const unset = await agent.patch("/users/me/avatar").send({ mediaId: null });
+    const unset = await agent.patch("/users/me/avatar").set("X-CSRF-Token", csrf).send({ mediaId: null });
     expect(unset.status).toBe(200);
     const me = await agent.get("/users/me");
     expect(me.status).toBe(200);

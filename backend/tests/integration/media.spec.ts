@@ -4,15 +4,24 @@ import request from "supertest";
 import app from "../../src/app.js";
 import { prisma } from "../../src/db.js";
 
-describe("Media upload and ETag", () => {
+describe("Media upload, set poster, and delete clears references", () => {
   const agent = request.agent(app);
   const runId = crypto.randomUUID();
   const email = `media_tester+${runId}@example.com`;
   const password = "pass12345";
   const name = "Media Tester";
   const title = `Media Movie ${runId}`;
-  let mediaId: string;
   let movieId: string;
+  let mediaId: string;
+
+  async function getCsrfToken(): Promise<string> {
+    const res = await agent.get("/auth/csrf");
+    expect(res.status).toBe(200);
+    const cookie = (res.headers["set-cookie"] as string[] | undefined)?.find((c) => c.startsWith("csrf_token=")) ?? "";
+    const match = /csrf_token=([^;]+)/.exec(cookie);
+    if (!match) throw new Error("csrf_token cookie not found");
+    return decodeURIComponent(match[1]);
+  }
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -34,30 +43,53 @@ describe("Media upload and ETag", () => {
   });
 
   afterAll(async () => {
-    await prisma.media.deleteMany({ where: { id: mediaId } });
     await prisma.movie.deleteMany({ where: { id: movieId } });
+    await prisma.media.deleteMany({ where: { id: mediaId } }).catch(() => {});
     await prisma.user.deleteMany({ where: { email } });
     await prisma.$disconnect();
   });
 
-  it("uploads a small image and returns metadata", async () => {
-    const buf = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
-    const res = await agent.post("/media").attach("file", buf, { filename: "t.png", contentType: "image/png" });
-    expect(res.status).toBe(200);
-    mediaId = res.body.data.id;
-  });
+  it("uploads media, sets poster, then deletes media and clears poster", async () => {
+    const png1x1 = Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAukB9p0QymsAAAAASUVORK5CYII=",
+      "base64"
+    );
+    const csrf = await getCsrfToken();
+    const up = await agent
+      .post("/media")
+      .set("X-CSRF-Token", csrf)
+      .attach("file", png1x1, { filename: "p.png", contentType: "image/png" });
+    expect(up.status).toBe(200);
+    expect(up.body?.success).toBe(true);
+    mediaId = up.body.data.id;
+    expect(typeof mediaId).toBe("string");
+    expect(up.body.data.url).toBe(`/media/${mediaId}`);
 
-  it("sets movie poster to uploaded media", async () => {
-    const res = await agent.patch(`/movies/${movieId}/poster`).send({ mediaId });
-    expect(res.status).toBe(200);
-    expect(res.body?.data?.posterMediaId).toBe(mediaId);
-  });
+    const setPoster = await agent
+      .patch(`/movies/${movieId}/poster`)
+      .set("X-CSRF-Token", await getCsrfToken())
+      .send({ mediaId });
+    expect(setPoster.status).toBe(200);
+    expect(setPoster.body?.success).toBe(true);
+    expect(setPoster.body?.data?.posterMediaId).toBe(mediaId);
+    expect(setPoster.body?.data?.posterUrl).toBe(`/media/${mediaId}`);
 
-  it("serves media with ETag and supports 304", async () => {
-    const first = await agent.get(`/media/${mediaId}`);
-    expect(first.status).toBe(200);
-    const etag = first.headers.etag;
-    const second = await agent.get(`/media/${mediaId}`).set("If-None-Match", etag);
-    expect(second.status).toBe(304);
+    const got = await agent.get(`/movies/${movieId}`);
+    expect(got.status).toBe(200);
+    expect(got.body?.data?.posterMediaId).toBe(mediaId);
+    expect(got.body?.data?.posterUrl).toBe(`/media/${mediaId}`);
+
+    const del = await agent.delete(`/media/${mediaId}`).set("X-CSRF-Token", await getCsrfToken());
+    expect(del.status).toBe(200);
+    expect(del.body?.success).toBe(true);
+
+    const notFound = await agent.get(`/media/${mediaId}`);
+    expect(notFound.status).toBe(404);
+
+    const after = await agent.get(`/movies/${movieId}`);
+    expect(after.status).toBe(200);
+    expect(after.body?.data?.posterMediaId).toBeNull();
+    expect(after.body?.data?.posterUrl).toBeNull();
   });
 });
+

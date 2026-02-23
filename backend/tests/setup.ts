@@ -8,12 +8,16 @@ process.env.LOG_LEVEL = process.env.LOG_LEVEL || "silent";
 if (process.env.DATABASE_URL_TEST) {
   process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
 }
+// Avoid domain-bound cookies in tests; let cookies be host-only
+delete process.env.COOKIE_DOMAIN;
 
-import { beforeEach, afterAll } from "vitest";
+import { beforeAll, afterAll } from "vitest";
 import { PrismaClient } from "@generated/prisma/client.js";
+import { PrismaPg } from "@prisma/adapter-pg";
 
 const shouldUseDb = !!process.env.DATABASE_URL && process.env.DATABASE_URL.includes("postgres");
-const prisma = shouldUseDb ? new PrismaClient() : undefined;
+const adapter = shouldUseDb ? new PrismaPg({ connectionString: process.env.DATABASE_URL || "" }) : undefined;
+const prisma = shouldUseDb && adapter ? new PrismaClient({ adapter }) : undefined;
 
 async function purgeDatabase() {
   if (!prisma) return;
@@ -29,7 +33,7 @@ async function purgeDatabase() {
 }
 
 if (prisma) {
-  beforeEach(async () => {
+  beforeAll(async () => {
     await purgeDatabase();
   });
   afterAll(async () => {

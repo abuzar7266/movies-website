@@ -95,7 +95,7 @@ router.get("/:id", async (req, res, next) => {
         res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
         const body = obj.Body as Readable;
         body.pipe(res);
-      } catch (err) {
+      } catch {
         throw new HttpError(404, "Media not found", "not_found");
       }
     } else {
