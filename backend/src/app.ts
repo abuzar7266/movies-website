@@ -19,6 +19,7 @@ import swaggerUi from "swagger-ui-express";
 import { openapi } from "@docs/openapi.js";
 import { config } from "@config/index.js";
 import { metricsMiddleware, metricsHandler } from "@config/metrics.js";
+import { csrfProtection } from "@middleware/csrf.js";
 
 const app = express();
 const isDev = process.env.NODE_ENV === "development";
@@ -87,6 +88,7 @@ app.get("/openapi.json", (_req, res) => {
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.use("/auth", authRouter);
+app.use(csrfProtection);
 app.use("/users", usersRouter);
 app.use("/movies", moviesRouter);
 app.use("/reviews", reviewsRouter);

@@ -6,6 +6,7 @@ import argon2 from "argon2";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@auth/jwt.js";
 import { config } from "@config/index.js";
 import { HttpError } from "@middleware/errors.js";
+import { issueCsrfCookie } from "@middleware/csrf.js";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.post("/register", validate({ body: registerBody }), async (req, res, next
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
     setCookies(res, access, refresh);
+    issueCsrfCookie(res);
     res.json({ success: true, data: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (e) {
     next(e);
@@ -37,6 +39,7 @@ router.post("/login", validate({ body: loginBody }), async (req, res, next) => {
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
     setCookies(res, access, refresh);
+    issueCsrfCookie(res);
     res.json({ success: true, data: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (e) {
     next(e);
@@ -53,6 +56,7 @@ router.post("/refresh", async (req, res, next) => {
     const access = signAccessToken(user.id, role);
     const refresh = signRefreshToken(user.id, role);
     setCookies(res, access, refresh);
+    issueCsrfCookie(res);
     res.json({ success: true });
   } catch (e) {
     next(e);
@@ -62,6 +66,12 @@ router.post("/refresh", async (req, res, next) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("access_token", cookieOpts());
   res.clearCookie("refresh_token", cookieOpts());
+  res.clearCookie("csrf_token", cookieOpts() as any);
+  res.json({ success: true });
+});
+
+router.get("/csrf", (_req, res) => {
+  issueCsrfCookie(res);
   res.json({ success: true });
 });
 

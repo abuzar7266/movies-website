@@ -45,6 +45,20 @@ async function request<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
+  // Attach CSRF token for unsafe methods when available
+  const method = (init.method || "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+    try {
+      const m = typeof document !== "undefined" ? document.cookie : "";
+      const match = m?.match(/(?:^|;)\s*csrf_token=([^;]+)/);
+      const token = match ? decodeURIComponent(match[1]) : "";
+      if (token && !headers.has("X-CSRF-Token")) {
+        headers.set("X-CSRF-Token", token);
+      }
+    } catch {
+      void 0;
+    }
+  }
   let body = init.body;
   if (init.json !== undefined) {
     headers.set("Content-Type", "application/json");
