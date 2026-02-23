@@ -6,11 +6,25 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: movieshelf
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d movieshelf || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
     networks:
       - appnet
 
   redis:
     image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
     networks:
       - appnet
 
@@ -22,11 +36,22 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports:
       - "4000:4000"
     restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"const http=require('http');const req=http.request({host:'localhost',port:4000,path:'/healthz'},r=>process.exit(r.statusCode===200?0:1));req.on('error',()=>process.exit(1));req.end();\""
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - appnet
 
@@ -40,6 +65,11 @@ services:
     ports:
       - "8080:80"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - appnet
 
