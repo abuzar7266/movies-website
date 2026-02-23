@@ -35,6 +35,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     image: movieshelf-backend:latest
+    environment:
+      NODE_ENV: development
     env_file:
       - ./backend/.env
     depends_on:
@@ -61,6 +63,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: http://backend:4000
     image: movieshelf-frontend:latest
     env_file:
       - ./frontend/.env

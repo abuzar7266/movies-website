@@ -28,6 +28,8 @@ RUN set -eux; \
 
 FROM node:20-alpine AS build
 WORKDIR /app
+ARG VITE_API_BASE
+ENV VITE_API_BASE=${VITE_API_BASE}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Build production assets

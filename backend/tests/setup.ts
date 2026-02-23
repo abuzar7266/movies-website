@@ -1,3 +1,4 @@
+import type {} from "./types/generated.d.ts";
 import "dotenv/config";
 
 process.env.NODE_ENV = "test";
