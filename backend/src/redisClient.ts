@@ -1,4 +1,5 @@
 import type { RedisClientType } from "redis";
+import { config } from "@config/index.js";
 
 let client: RedisClientType | null = null;
 type CreateClientFn = (options: any) => RedisClientType;
@@ -12,7 +13,7 @@ async function getCreateClient() {
 }
 
 export async function getRedisClient(): Promise<RedisClientType | null> {
-  const url = process.env.REDIS_URL;
+  const url = config.redisUrl;
   if (!url) return null;
   if (!client) {
     const createClient = await getCreateClient();

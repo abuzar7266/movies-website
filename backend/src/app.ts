@@ -22,7 +22,7 @@ import { metricsMiddleware, metricsHandler } from "@config/metrics.js";
 import { csrfProtection } from "@middleware/csrf.js";
 
 const app = express();
-const isDev = process.env.NODE_ENV === "development";
+const isDev = config.isDev;
 
 app.use(helmet());
 app.use(
@@ -39,7 +39,7 @@ app.use(requestId);
 app.use(metricsMiddleware);
 const rlWindowMs = config.rateLimit.windowMs;
 const rlLimit = config.rateLimit.limit;
-if (process.env.REDIS_URL) {
+if (config.redisUrl) {
   app.use(redisRateLimit({ windowMs: rlWindowMs, limit: rlLimit }));
 } else {
   app.use(
@@ -78,7 +78,7 @@ app.get("/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-if (process.env.METRICS_ENABLED !== "false") {
+if (config.metricsEnabled) {
   app.get("/metrics", metricsHandler);
 }
 

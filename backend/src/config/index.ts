@@ -29,6 +29,9 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().optional(),
   RATE_LIMIT_LIMIT: z.coerce.number().int().positive().optional(),
+  DATABASE_URL: z.string().optional(),
+  REDIS_URL: z.string().optional(),
+  METRICS_ENABLED: z.string().optional(),
   S3_BUCKET: z.string().optional(),
   S3_REGION: z.string().optional(),
   S3_ENDPOINT: z.string().optional(),
@@ -43,6 +46,7 @@ if (!parsed.success) {
 }
 const env = parsed.data;
 const isProd = env.NODE_ENV === "production";
+const isDev = env.NODE_ENV === "development";
 
 const accessSecret =
   env.JWT_ACCESS_SECRET ?? (isProd ? (() => { throw new Error("JWT_ACCESS_SECRET required in production"); })() : "dev-access-secret");
@@ -66,7 +70,9 @@ function normalizeCookieDomain(input?: string) {
 
 export const config = {
   isProd,
+  isDev,
   port: env.PORT,
+  databaseUrl: env.DATABASE_URL ?? "",
   jwt: {
     accessSecret,
     refreshSecret,
@@ -88,6 +94,8 @@ export const config = {
     windowMs: env.RATE_LIMIT_WINDOW_MS ?? 60_000,
     limit: env.RATE_LIMIT_LIMIT ?? 120
   },
+  metricsEnabled: env.METRICS_ENABLED !== "false",
+  redisUrl: env.REDIS_URL,
   storage: {
     s3:
       env.S3_BUCKET
