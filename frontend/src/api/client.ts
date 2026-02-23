@@ -49,14 +49,29 @@ async function request<T>(
   const method = (init.method || "GET").toUpperCase();
   if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
     try {
-      const m = typeof document !== "undefined" ? document.cookie : "";
-      const match = m?.match(/(?:^|;)\s*csrf_token=([^;]+)/);
-      const token = match ? decodeURIComponent(match[1]) : "";
+      const getTokenFromCookies = () => {
+        const m = typeof document !== "undefined" ? document.cookie : "";
+        const match = m?.match(/(?:^|;)\s*csrf_token=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      };
+      let token = getTokenFromCookies();
+      if (!token) {
+        try {
+          await fetch(apiUrl("/auth/csrf"), {
+            method: "GET",
+            credentials: "include",
+            headers: new Headers({ Accept: "application/json" }),
+          });
+        } catch {
+          /* ignore */
+        }
+        token = getTokenFromCookies();
+      }
       if (token && !headers.has("X-CSRF-Token")) {
         headers.set("X-CSRF-Token", token);
       }
     } catch {
-      void 0;
+      /* ignore */
     }
   }
   let body = init.body;
