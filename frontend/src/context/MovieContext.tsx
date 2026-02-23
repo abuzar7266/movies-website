@@ -5,6 +5,7 @@ import { loadJSON, saveJSON } from "@lib/utils";
 import { STORAGE_MOVIES } from "@lib/keys";
 import { queryMoviesPure } from "@lib/movieQuery";
 import type { ReviewScope, SortKey } from "@lib/options";
+import { API_BASE } from "@api";
 
 interface MovieContextType {
   movies: Movie[];
@@ -33,14 +34,19 @@ const MovieContext = createContext<MovieContextType | undefined>(undefined);
 
 export const MovieProvider = ({ children }: { children: ReactNode }) => {
   const STORAGE_KEY = STORAGE_MOVIES;
-  const initial = loadJSON<{ movies: Movie[]; reviews: Review[] }>(STORAGE_KEY, { movies: sampleMovies, reviews: sampleReviews });
+  const isRemote = Boolean(API_BASE);
+  const initial = isRemote
+    ? { movies: [] as Movie[], reviews: [] as Review[] }
+    : loadJSON<{ movies: Movie[]; reviews: Review[] }>(STORAGE_KEY, { movies: sampleMovies, reviews: sampleReviews });
 
   const [movies, setMovies] = useState<Movie[]>(initial.movies);
   const [reviews, setReviews] = useState<Review[]>(initial.reviews);
 
   useEffect(() => {
-    saveJSON(STORAGE_KEY, { movies, reviews });
-  }, [movies, reviews, STORAGE_KEY]);
+    if (!isRemote) {
+      saveJSON(STORAGE_KEY, { movies, reviews });
+    }
+  }, [movies, reviews, STORAGE_KEY, isRemote]);
 
   // in-memory caches (invalidated on data changes)
   const movieByIdCache = useRef(new Map<string, Movie | undefined>());
