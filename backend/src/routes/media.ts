@@ -7,6 +7,7 @@ import { HttpError } from "@middleware/errors.js";
 import { config } from "@config/index.js";
 import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "node:stream";
+import { bumpCacheVersion } from "@/redisClient.js";
 
 const router = Router();
 const upload = multer({
@@ -130,7 +131,12 @@ router.delete("/:id", requireAuth(), async (req, res, next) => {
         // ignore delete errors to avoid leaking DB rows
       }
     }
-    await prisma.media.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.movie.updateMany({ where: { posterMediaId: id }, data: { posterMediaId: null, posterUrl: null } });
+      await tx.user.updateMany({ where: { avatarMediaId: id }, data: { avatarMediaId: null } });
+      await tx.media.delete({ where: { id } });
+    });
+    await bumpCacheVersion("v:movies");
     res.json({ success: true });
   } catch (e) {
     next(e);
