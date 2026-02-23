@@ -5,7 +5,7 @@ import { requireAuth } from "@middleware/auth.js";
 import crypto from "crypto";
 import { HttpError } from "@middleware/errors.js";
 import { config } from "@config/index.js";
-import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "node:stream";
 
 const router = Router();
@@ -76,7 +76,7 @@ router.post("/", requireAuth(), upload.single("file"), async (req, res, next) =>
 
 router.get("/:id", async (req, res, next) => {
   try {
-    const id = req.params.id;
+    const id = req.params.id as string;
     const media = await prisma.media.findUnique({ where: { id } });
     if (!media) throw new HttpError(404, "Media not found", "not_found");
     if (s3 && config.storage.s3 && media.data == null) {
@@ -109,6 +109,29 @@ router.get("/:id", async (req, res, next) => {
       res.setHeader("ETag", etag);
       res.send(Buffer.from(media.data as Buffer));
     }
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.delete("/:id", requireAuth(), async (req, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const media = await prisma.media.findUnique({ where: { id } });
+    if (!media) throw new HttpError(404, "Media not found", "not_found");
+    const user = req.user!;
+    const isOwner = media.ownerUserId ? media.ownerUserId === user.id : true;
+    const isAdmin = user.role === "admin";
+    if (!isOwner && !isAdmin) throw new HttpError(403, "Forbidden", "forbidden");
+    if (s3 && config.storage.s3 && media.data == null) {
+      try {
+        await s3.send(new DeleteObjectCommand({ Bucket: config.storage.s3.bucket, Key: id as string }));
+      } catch {
+        // ignore delete errors to avoid leaking DB rows
+      }
+    }
+    await prisma.media.delete({ where: { id } });
+    res.json({ success: true });
   } catch (e) {
     next(e);
   }

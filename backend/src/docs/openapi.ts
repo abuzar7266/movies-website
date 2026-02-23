@@ -400,6 +400,20 @@ registry.registerPath({
   }
 });
 
+registry.registerPath({
+  method: "delete",
+  path: "/media/{id}",
+  summary: "Delete media",
+  security: [{ cookieAuth: [] }],
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    200: { description: "OK", content: { "application/json": { schema: Success } } },
+    401: { description: "Unauthorized", content: { "application/json": { schema: ErrorResponse } } },
+    403: { description: "Forbidden", content: { "application/json": { schema: ErrorResponse } } },
+    404: { description: "Not found", content: { "application/json": { schema: ErrorResponse } } }
+  }
+});
+
 const generator = new OpenApiGeneratorV3(registry.definitions);
 
 export const openapi = generator.generateDocument({
