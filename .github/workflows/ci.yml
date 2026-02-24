@@ -236,7 +236,9 @@ jobs:
           docker compose logs db || true
           exit 1
       - name: Run migrations in Compose
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm -e DATABASE_URL backend npx prisma migrate deploy
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml build backend
+          docker compose -f docker-compose.yml -f docker-compose.ci.yml run --rm --no-deps -e DATABASE_URL backend npx prisma migrate deploy
       - name: Compose up (backend, frontend)
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build backend frontend
       - name: Wait for backend health
