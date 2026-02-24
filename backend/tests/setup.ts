@@ -13,6 +13,10 @@ import { PrismaClient } from "@generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import argon2 from "argon2";
 
+if (!process.env.DATABASE_URL_TEST) {
+  throw new Error("DATABASE_URL_TEST must be set to run unit/integration tests");
+}
+
 const testDbUrl = process.env.DATABASE_URL_TEST || "";
 const shouldUseDb = !!testDbUrl && testDbUrl.includes("postgres");
 const adapter = shouldUseDb ? new PrismaPg({ connectionString: testDbUrl }) : undefined;
