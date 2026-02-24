@@ -37,6 +37,7 @@ services:
     image: movieshelf-backend:latest
     environment:
       NODE_ENV: development
+      REDIS_URL: redis://redis:6379
     env_file:
       - ./backend/.env
     depends_on:
