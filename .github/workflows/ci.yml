@@ -10,6 +10,26 @@ jobs:
   backend-unit:
     name: Backend • Lint • Typecheck • Unit Tests
     runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL_TEST: ${{ secrets.DATABASE_URL_TEST }}
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+      VALIDATE_ENV_STRICT: "true"
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      METRICS_ENABLED: ${{ secrets.METRICS_ENABLED }}
+      RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
+      RATE_LIMIT_LIMIT: ${{ secrets.RATE_LIMIT_LIMIT }}
+      RANK_RECOMPUTE_LIMIT: ${{ secrets.RANK_RECOMPUTE_LIMIT }}
+      COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
+      COOKIE_SAMESITE: ${{ secrets.COOKIE_SAMESITE }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      S3_REGION: ${{ secrets.S3_REGION }}
+      S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+      S3_FORCE_PATH_STYLE: ${{ secrets.S3_FORCE_PATH_STYLE }}
+      S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+      S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
     defaults:
       run:
         working-directory: backend
@@ -51,7 +71,33 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/movieshelf_test
+      NODE_ENV: test
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL_TEST: ${{ secrets.DATABASE_URL_TEST }}
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
+      JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
+      VALIDATE_ENV_STRICT: "true"
+      # Optional services and tuning
+      REDIS_URL: ${{ secrets.REDIS_URL }}
+      METRICS_ENABLED: ${{ secrets.METRICS_ENABLED }}
+      RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
+      RATE_LIMIT_LIMIT: ${{ secrets.RATE_LIMIT_LIMIT }}
+      RANK_RECOMPUTE_LIMIT: ${{ secrets.RANK_RECOMPUTE_LIMIT }}
+      COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
+      COOKIE_SAMESITE: ${{ secrets.COOKIE_SAMESITE }}
+      # S3 (used only if S3_BUCKET is set)
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      S3_REGION: ${{ secrets.S3_REGION }}
+      S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+      S3_FORCE_PATH_STYLE: ${{ secrets.S3_FORCE_PATH_STYLE }}
+      S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+      S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+      S3_BUCKET: ${{ secrets.S3_BUCKET }}
+      S3_REGION: ap-southeast-1
+      S3_ENDPOINT=https://acxrgvljqozvrjoqgfce.storage.supabase.co/storage/v1/s3
+      S3_FORCE_PATH_STYLE=true
+      S3_ACCESS_KEY_ID=ce9164102085f3b021fb6e23c75207d5
+      S3_SECRET_ACCESS_KEY=9923afa59a881a256cd06b411d12abdbaa329b6f21b26ad7f23e88dff310ba35
     defaults:
       run:
         working-directory: backend
@@ -76,6 +122,8 @@ jobs:
   frontend:
     name: Frontend • Lint • Build • Tests
     runs-on: ubuntu-latest
+    env:
+      VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
     defaults:
       run:
         working-directory: frontend
@@ -101,11 +149,14 @@ jobs:
     name: Docker • Build Images
     runs-on: ubuntu-latest
     needs: [backend-unit, frontend]
+    env:
+      # API base to bake into the frontend container image. Set this secret to http://backend:4000
+      # if the image will be used alongside the backend container on the same Docker network.
+      VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build backend image
         run: docker build -f backend/Dockerfile -t movieshelf-backend:ci .
       - name: Build frontend image
-        run: docker build -f frontend/Dockerfile -t movieshelf-frontend:ci .
-
+        run: docker build -f frontend/Dockerfile --build-arg VITE_API_BASE="$VITE_API_BASE" -t movieshelf-frontend:ci .
