@@ -191,15 +191,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-unit, frontend]
     env:
-      # Backend env
+      # Backend env (target Compose DB/Redis services over internal network)
       NODE_ENV: production
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      DATABASE_URL_TEST: ${{ secrets.DATABASE_URL_TEST }}
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/movieshelf
+      DATABASE_URL_TEST: postgresql://postgres:postgres@db:5432/movieshelf
       JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
       JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
       VALIDATE_ENV_STRICT: "true"
-      REDIS_URL: ${{ secrets.REDIS_URL }}
-      METRICS_ENABLED: ${{ secrets.METRICS_ENABLED }}
+      REDIS_URL: redis://redis:6379
+      METRICS_ENABLED: "false"
       RATE_LIMIT_WINDOW_MS: ${{ secrets.RATE_LIMIT_WINDOW_MS }}
       RATE_LIMIT_LIMIT: ${{ secrets.RATE_LIMIT_LIMIT }}
       RANK_RECOMPUTE_LIMIT: ${{ secrets.RANK_RECOMPUTE_LIMIT }}
@@ -211,8 +211,8 @@ jobs:
       S3_FORCE_PATH_STYLE: ${{ secrets.S3_FORCE_PATH_STYLE }}
       S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
       S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-      # Frontend build arg
-      VITE_API_BASE: ${{ secrets.VITE_API_BASE }}
+      # Frontend build arg for Compose network
+      VITE_API_BASE: http://backend:4000
     steps:
       - name: Checkout
         uses: actions/checkout@v4
