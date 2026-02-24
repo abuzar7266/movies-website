@@ -39,12 +39,11 @@ RUN DATABASE_URL=$DATABASE_URL DATABASE_URL_TEST=$DATABASE_URL_TEST npm run pris
 FROM base AS runner
 ENV NODE_ENV=production
 
-COPY --from=builder /app/node_modules ./node_modules
-
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+RUN npm ci --omit=dev --no-audit --no-fund
 
 EXPOSE 4000
 CMD ["npm", "run", "start"]
