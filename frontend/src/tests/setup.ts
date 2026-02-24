@@ -29,12 +29,11 @@ if (typeof window !== "undefined") {
 
 if (!("IntersectionObserver" in globalThis)) {
   class IntersectionObserver {
-    constructor(_cb?: any, _opts?: any) {}
+    constructor() {}
     observe() {}
     unobserve() {}
     disconnect() {}
     takeRecords() { return []; }
   }
-  // @ts-ignore
-  globalThis.IntersectionObserver = IntersectionObserver;
+  (globalThis as unknown as { IntersectionObserver: typeof IntersectionObserver }).IntersectionObserver = IntersectionObserver;
 }
