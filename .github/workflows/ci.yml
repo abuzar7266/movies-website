@@ -182,9 +182,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Build backend image
-        run: docker build -f backend/Dockerfile -t movieshelf-backend:ci .
+        run: docker build -f backend/Dockerfile -t movieshelf-backend:ci backend
       - name: Build frontend image
-        run: docker build -f frontend/Dockerfile --build-arg VITE_API_BASE="$VITE_API_BASE" -t movieshelf-frontend:ci .
+        run: docker build -f frontend/Dockerfile --build-arg VITE_API_BASE="$VITE_API_BASE" -t movieshelf-frontend:ci frontend
 
   compose-smoke:
     name: Docker Compose • Smoke Test
