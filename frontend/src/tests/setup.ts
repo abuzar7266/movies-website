@@ -26,3 +26,15 @@ if (typeof window !== "undefined") {
     }) as typeof window.matchMedia;
   }
 }
+
+if (!("IntersectionObserver" in globalThis)) {
+  class IntersectionObserver {
+    constructor(_cb?: any, _opts?: any) {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return []; }
+  }
+  // @ts-ignore
+  globalThis.IntersectionObserver = IntersectionObserver;
+}
