@@ -93,7 +93,6 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
     const urlRegex = /^https?:\/\//i;
     if (form.posterUrl.trim()) {
       try {
-        // eslint-disable-next-line no-new
         new URL(form.posterUrl.trim());
         if (!urlRegex.test(form.posterUrl.trim())) {
           if (!posterUrlError) setPosterUrlError("Poster URL must start with http or https.");
@@ -106,7 +105,6 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
     }
     if (form.trailerUrl.trim()) {
       try {
-        // eslint-disable-next-line no-new
         new URL(form.trailerUrl.trim());
         if (!urlRegex.test(form.trailerUrl.trim())) {
           if (!trailerUrlError) setTrailerUrlError("Trailer URL must start with http or https.");
