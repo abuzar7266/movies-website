@@ -16,7 +16,7 @@ const posterUrl = z
 export const createMovieBody = z.object({
   title: z.string().min(1),
   releaseDate: z.string().datetime(),
-  trailerUrl: z.string().url().optional().default(""),
+  trailerUrl: z.union([z.string().url(), z.literal("")]).optional().default(""),
   synopsis: z.string().min(1),
   posterUrl: posterUrl.optional()
 });
@@ -24,7 +24,7 @@ export const createMovieBody = z.object({
 export const updateMovieBody = z.object({
   title: z.string().min(1).optional(),
   releaseDate: z.string().datetime().optional(),
-  trailerUrl: z.string().url().optional(),
+  trailerUrl: z.union([z.string().url(), z.literal("")]).optional(),
   synopsis: z.string().min(1).optional(),
   posterUrl: posterUrl.optional()
 });

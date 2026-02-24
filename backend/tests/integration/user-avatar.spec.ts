@@ -9,8 +9,10 @@ describe("User avatar set/unset", () => {
   async function getCsrfToken(): Promise<string> {
     const res = await agent.get("/auth/csrf");
     expect(res.status).toBe(200);
-    const cookie = (res.headers["set-cookie"] as string[] | undefined)?.find((c) => c.startsWith("csrf_token=")) ?? "";
-    const match = /csrf_token=([^;]+)/.exec(cookie);
+    const sc = res.headers["set-cookie"];
+    const arr = Array.isArray(sc) ? sc : typeof sc === "string" ? [sc] : [];
+    const row = arr.find((c) => c.startsWith("csrf_token=")) ?? "";
+    const match = /csrf_token=([^;]+)/.exec(row);
     if (!match) throw new Error("csrf_token cookie not found");
     return decodeURIComponent(match[1]);
   }

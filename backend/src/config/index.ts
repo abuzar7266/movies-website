@@ -72,12 +72,16 @@ function normalizeCookieDomain(input?: string) {
   return d;
 }
 
+const databaseUrl =
+  isDev || isProd ? (env.DATABASE_URL ?? (() => { throw new Error("DATABASE_URL required for development/production"); })())
+                  : (env.DATABASE_URL_TEST ?? (() => { throw new Error("DATABASE_URL_TEST required for test"); })());
+
 export const config = {
   isProd,
   isDev,
   isTest,
   port: env.PORT,
-  databaseUrl: isTest ? (env.DATABASE_URL_TEST ?? env.DATABASE_URL ?? "") : (env.DATABASE_URL ?? ""),
+  databaseUrl,
   jwt: {
     accessSecret,
     refreshSecret,

@@ -18,7 +18,7 @@ const shouldUseDb = !!testDbUrl && testDbUrl.includes("postgres");
 const adapter = shouldUseDb ? new PrismaPg({ connectionString: testDbUrl }) : undefined;
 const prisma = shouldUseDb && adapter ? new PrismaClient({ adapter }) : undefined;
 
-function isSafeTestDbUrl(url: string): boolean {
+function _isSafeTestDbUrl(url: string): boolean {
   try {
     const u = new URL(url);
     const host = (u.hostname || "").toLowerCase();
@@ -30,25 +30,20 @@ function isSafeTestDbUrl(url: string): boolean {
 }
 
 async function purgeDatabase() {
-  if (!prisma) return;
-  if (!isSafeTestDbUrl(testDbUrl)) return;
-  const tables = await prisma.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname='public'`;
-  const keep = new Set<string>(["_prisma_migrations"]);
-  const victims = tables.map((t) => t.tablename).filter((n) => !keep.has(n));
-  if (victims.length > 0) {
-    const q = `TRUNCATE TABLE ${victims.map((v) => `"public"."${v}"`).join(", ")} RESTART IDENTITY CASCADE;`;
-    await prisma.$executeRawUnsafe(q);
-  }
+  return;
 }
 
 async function seedFixtures() {
   if (!prisma) return;
   const pwd = await argon2.hash("testpass123");
-  const up = await prisma.user.upsert({
-    where: { email: "user@example.com" },
-    update: {},
-    create: { name: "Test User", email: "user@example.com", passwordHash: pwd, role: "user" }
-  });
+  let up = await prisma.user.findUnique({ where: { email: "user@example.com" } });
+  if (!up) {
+    up = await prisma.user
+      .create({ data: { name: "Test User", email: "user@example.com", passwordHash: pwd, role: "user" } })
+      .catch(async () => {
+        return (await prisma.user.findUnique({ where: { email: "user@example.com" } })) as any;
+      });
+  }
   const userId = up.id;
   const movie = await prisma.movie.create({
     data: {

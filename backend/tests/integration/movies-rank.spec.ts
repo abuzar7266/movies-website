@@ -9,8 +9,9 @@ describe("Movies rank ordering (rank_asc) with on-demand ranks", () => {
   async function getCsrfToken(): Promise<string> {
     const res = await agent.get("/auth/csrf");
     expect(res.status).toBe(200);
-    const cookies = res.headers["set-cookie"] as string[] | undefined;
-    const row = cookies?.find((c) => c.startsWith("csrf_token=")) ?? "";
+    const sc = res.headers["set-cookie"];
+    const arr = Array.isArray(sc) ? sc : typeof sc === "string" ? [sc] : [];
+    const row = arr.find((c) => c.startsWith("csrf_token=")) ?? "";
     const m = /csrf_token=([^;]+)/.exec(row);
     if (!m) throw new Error("csrf_token cookie not found");
     return decodeURIComponent(m[1]);
