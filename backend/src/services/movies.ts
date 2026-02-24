@@ -182,7 +182,20 @@ export async function listMovies(opts: {
       rank: m.rank === 0 ? (rankById.get(m.id) ?? 0) : m.rank,
       myRating: opts.userId ? (ratingByMovieId.get(m.id) ?? null) : undefined
     }));
-    return { items: patched, total, page: opts.page, pageSize: opts.pageSize };
+    // Ensure correct ordering when sorting by rank_asc: push zero/unknown ranks to the end
+    const finalItems =
+      opts.sort === "rank_asc"
+        ? [...patched].sort((a, b) => {
+            const ar = a.rank && a.rank > 0 ? a.rank : Number.MAX_SAFE_INTEGER;
+            const br = b.rank && b.rank > 0 ? b.rank : Number.MAX_SAFE_INTEGER;
+            if (ar !== br) return ar - br;
+            const ad = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt as any).getTime();
+            const bd = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt as any).getTime();
+            if (ad !== bd) return bd - ad;
+            return a.id.localeCompare(b.id);
+          })
+        : patched;
+    return { items: finalItems, total, page: opts.page, pageSize: opts.pageSize };
   }
   return {
     items: items.map((m) => ({
