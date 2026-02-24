@@ -97,6 +97,9 @@ export const config = {
     windowMs: env.RATE_LIMIT_WINDOW_MS ?? 60_000,
     limit: env.RATE_LIMIT_LIMIT ?? 120
   },
+  rank: {
+    recomputeLimit: 200
+  },
   metricsEnabled: env.METRICS_ENABLED !== "false",
   redisUrl: env.REDIS_URL,
   logLevel: env.LOG_LEVEL ?? (isProd ? "info" : "debug"),

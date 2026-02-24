@@ -10,31 +10,46 @@ type MovieListItem = Awaited<ReturnType<ReturnType<typeof moviesRepo>["findMany"
 let recomputeInFlight: Promise<void> | null = null;
 let recomputeQueued = false;
 
-async function computeMovieRankMap(
+// kept for possible admin maintenance tasks if needed in the future
+async function _computeMovieRankMap(
   client: Prisma.TransactionClient | PrismaClient = prisma
 ): Promise<Map<string, number>> {
   const rows = await client.movie.findMany({
     select: { id: true, reviewCount: true, averageRating: true, createdAt: true },
     orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }, { id: "asc" }]
   });
-
   const map = new Map<string, number>();
   rows.forEach((m, i) => map.set(m.id, i + 1));
   return map;
 }
 
 export async function recomputeMovieRanks(client: Prisma.TransactionClient | PrismaClient = prisma) {
-  const rows = await client.movie.findMany({
-    select: { id: true, rank: true },
-    orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }, { id: "asc" }]
+  const limit = Math.max(1, Number(config.rank.recomputeLimit) || 200);
+  // Determine top N by ordering keys
+  const top = await client.movie.findMany({
+    select: { id: true },
+    orderBy: [{ reviewCount: "desc" }, { averageRating: "desc" }, { createdAt: "desc" }, { id: "asc" }],
+    take: limit
   });
-
-  const rankMap = await computeMovieRankMap(client);
+  const topIds = new Set(top.map(m => m.id));
+  // Existing ranks within the window
+  const existing = await client.movie.findMany({
+    where: { rank: { gt: 0, lte: limit } },
+    select: { id: true, rank: true }
+  });
   const updates: Array<Promise<unknown>> = [];
-  rows.forEach((m) => {
-    const rank = rankMap.get(m.id) ?? 0;
-    if (m.rank !== rank) {
-      updates.push(client.movie.update({ where: { id: m.id }, data: { rank } }));
+  // Update expected ranks for current top window
+  top.forEach((m, i) => {
+    const expected = i + 1;
+    const curr = existing.find(e => e.id === m.id)?.rank ?? 0;
+    if (curr !== expected) {
+      updates.push(client.movie.update({ where: { id: m.id }, data: { rank: expected } }));
+    }
+  });
+  // Clear ranks that fell out of the window
+  existing.forEach((e) => {
+    if (!topIds.has(e.id)) {
+      updates.push(client.movie.update({ where: { id: e.id }, data: { rank: 0 } }));
     }
   });
   await Promise.all(updates);
@@ -91,8 +106,8 @@ export async function getMovieOrThrow(id: string, userId?: string) {
       ? (await prisma.rating.findUnique({ where: { movieId_userId: { movieId: id, userId } }, select: { value: true } }))?.value ?? null
       : undefined;
   if (movie.rank === 0) {
-    const map = await computeMovieRankMap(prisma);
-    return { ...movie, rank: map.get(movie.id) ?? 0, myRating };
+    const rank = await computeRankForMovie(movie.id);
+    return { ...movie, rank, myRating };
   }
   return { ...movie, myRating };
 }
@@ -158,10 +173,13 @@ export async function listMovies(opts: {
   userRatings.forEach((r) => ratingByMovieId.set(r.movieId, r.value));
 
   if (items.some((m) => m.rank === 0)) {
-    const map = await computeMovieRankMap(prisma);
+    const zeroIds = items.filter(m => m.rank === 0).map(m => m.id);
+    const ranks = await Promise.all(zeroIds.map(id => computeRankForMovie(id)));
+    const rankById = new Map<string, number>();
+    zeroIds.forEach((id, idx) => rankById.set(id, ranks[idx]));
     const patched = items.map((m) => ({
       ...m,
-      rank: m.rank === 0 ? (map.get(m.id) ?? 0) : m.rank,
+      rank: m.rank === 0 ? (rankById.get(m.id) ?? 0) : m.rank,
       myRating: opts.userId ? (ratingByMovieId.get(m.id) ?? null) : undefined
     }));
     return { items: patched, total, page: opts.page, pageSize: opts.pageSize };
@@ -175,6 +193,43 @@ export async function listMovies(opts: {
     page: opts.page,
     pageSize: opts.pageSize
   };
+}
+
+async function computeRankForMovie(id: string, client: Prisma.TransactionClient | PrismaClient = prisma): Promise<number> {
+  const m = await client.movie.findUnique({
+    where: { id },
+    select: { id: true, reviewCount: true, averageRating: true, createdAt: true }
+  });
+  if (!m) return 0;
+  const better = await client.movie.count({
+    where: {
+      OR: [
+        { reviewCount: { gt: m.reviewCount } },
+        {
+          AND: [
+            { reviewCount: m.reviewCount },
+            { averageRating: { gt: m.averageRating } }
+          ]
+        },
+        {
+          AND: [
+            { reviewCount: m.reviewCount },
+            { averageRating: m.averageRating },
+            { createdAt: { gt: m.createdAt } }
+          ]
+        },
+        {
+          AND: [
+            { reviewCount: m.reviewCount },
+            { averageRating: m.averageRating },
+            { createdAt: m.createdAt },
+            { id: { lt: m.id } } // id asc as final tie-breaker
+          ]
+        }
+      ]
+    }
+  });
+  return better + 1;
 }
 
 export async function ensureOwnedMovie(userId: string, id: string) {
