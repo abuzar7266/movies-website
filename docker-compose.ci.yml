@@ -19,6 +19,7 @@ services:
       S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
 
   frontend:
+    env_file: []
     build:
       args:
         # Bake API base into SPA at build time
