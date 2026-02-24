@@ -327,25 +327,12 @@ function useRemoteReviewsData(id: string | undefined) {
   return { reviews, setReviews, loading }
 }
 
-function MovieDetail() {
+function MovieDetailMain() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { deleteMovie, addReview, updateReview, deleteReview, updateMovie } = useMovies()
   const { user, isAuthenticated } = useAuth()
   const [showLoginDialog, setShowLoginDialog] = useState(false)
-
-  if (!API_BASE) {
-    return (
-      <div className={`${styles.page} ${styles.centerPage}`}>
-        <div className={styles.centerContent}>
-          <h1 className={styles.centerTitle}>Server unavailable</h1>
-          <Button variant="ghost" onClick={() => navigate("/")}>
-            <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
-          </Button>
-        </div>
-      </div>
-    )
-  }
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [editingReview, setEditingReview] = useState<Review | null>(null)
@@ -382,7 +369,7 @@ function MovieDetail() {
         setShowReviewForm(true)
         sessionStorage.removeItem(`draftReview:${movie.id}`)
       }
-    } catch {}
+    } catch { void 0 }
   }, [isAuthenticated, movie?.id])
 
   {
@@ -493,7 +480,7 @@ function MovieDetail() {
       setDraftReviewContent(content)
       try {
         if (movie?.id) sessionStorage.setItem(`draftReview:${movie.id}`, JSON.stringify({ rating, content }))
-      } catch {}
+      } catch { void 0 }
       return
     }
     if (!editingReview && hasMyReview) {
@@ -505,7 +492,7 @@ function MovieDetail() {
     setDraftReviewContent(undefined)
     try {
       if (movie?.id) sessionStorage.removeItem(`draftReview:${movie.id}`)
-    } catch {}
+    } catch { void 0 }
     const doLocal = () => {
       if (editingReview) {
         updateReview(editingReview.id, { rating, content })
@@ -707,4 +694,21 @@ function MovieDetail() {
   )
 }
 
-export default MovieDetail
+function ServerUnavailableDetail() {
+  const navigate = useNavigate()
+  return (
+    <div className={`${styles.page} ${styles.centerPage}`}>
+      <div className={styles.centerContent}>
+        <h1 className={styles.centerTitle}>Server unavailable</h1>
+        <Button variant="ghost" onClick={() => navigate("/")}>
+          <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export default function MovieDetail() {
+  if (!API_BASE) return <ServerUnavailableDetail />
+  return <MovieDetailMain />
+}

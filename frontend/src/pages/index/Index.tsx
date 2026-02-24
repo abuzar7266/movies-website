@@ -53,19 +53,8 @@ function parseSortKey(raw: string | null, fallback: SortKey): SortKey {
   return fallback
 }
 
-function Index() {
+function IndexMain() {
   const { user, isAuthenticated } = useAuth()
-  if (!API_BASE) {
-    return (
-      <div className={`${styles.page} ${styles.centerPage}`}>
-        <div className={styles.centerContent}>
-          <h1 className={styles.centerTitle}>Server unavailable</h1>
-          <p className={styles.centerSubtitle}>The application requires a running backend. Please check server connection.</p>
-          <button className={styles.retryButton} onClick={() => window.location.reload()}>Retry</button>
-        </div>
-      </div>
-    )
-  }
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get(QUERY_Q) || "")
   const [formError, setFormError] = useState("")
@@ -296,10 +285,7 @@ function Index() {
     )
   }
   const moviesToShow = remoteMovies
-
-  const sortLabel = useMemo(() => {
-    return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
-  }, [sortBy])
+  const sortLabel = makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
   const canReset = searchQuery !== "" || minStars !== DEFAULT_MIN_STARS || reviewScope !== DEFAULT_REVIEW_SCOPE || sortBy !== DEFAULT_SORT_BY
   return (
     <div className={styles.page}>
@@ -351,4 +337,19 @@ function Index() {
   )
 }
 
-export default Index
+function ServerUnavailable() {
+  return (
+    <div className={`${styles.page} ${styles.centerPage}`}>
+      <div className={styles.centerContent}>
+        <h1 className={styles.centerTitle}>Server unavailable</h1>
+        <p className={styles.centerSubtitle}>The application requires a running backend. Please check server connection.</p>
+        <button className={styles.retryButton} onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    </div>
+  )
+}
+
+export default function Index() {
+  if (!API_BASE) return <ServerUnavailable />
+  return <IndexMain />
+}

@@ -168,7 +168,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           },
           isAuthenticated: true,
         }));
-      } catch (e) {
+      } catch {
         if (!cancelled) {
           localStorage.removeItem(STORAGE_AUTH);
           setAuthState({ user: null, isAuthenticated: false });

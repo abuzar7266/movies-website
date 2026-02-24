@@ -96,7 +96,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
         // eslint-disable-next-line no-new
         new URL(form.posterUrl.trim());
         if (!urlRegex.test(form.posterUrl.trim())) {
-          posterUrlError || setPosterUrlError("Poster URL must start with http or https.");
+          if (!posterUrlError) setPosterUrlError("Poster URL must start with http or https.");
           ok = false;
         }
       } catch {
@@ -109,7 +109,7 @@ const MovieForm = ({ initialData, onSubmit, onClose, error }: MovieFormProps) =>
         // eslint-disable-next-line no-new
         new URL(form.trailerUrl.trim());
         if (!urlRegex.test(form.trailerUrl.trim())) {
-          trailerUrlError || setTrailerUrlError("Trailer URL must start with http or https.");
+          if (!trailerUrlError) setTrailerUrlError("Trailer URL must start with http or https.");
           ok = false;
         }
       } catch {
