@@ -81,6 +81,7 @@ jobs:
   backend-integration:
     name: Backend • Integration Tests (Postgres)
     runs-on: ubuntu-latest
+    needs: [backend-unit, frontend]
     services:
       postgres:
         image: postgres:16
@@ -173,7 +174,7 @@ jobs:
   docker-build:
     name: Docker • Build Images
     runs-on: ubuntu-latest
-    needs: [backend-unit, frontend]
+    needs: [backend-integration]
     env:
       # API base to bake into the frontend container image. Set this secret to http://backend:4000
       # if the image will be used alongside the backend container on the same Docker network.
@@ -189,7 +190,7 @@ jobs:
   compose-smoke:
     name: Docker Compose • Smoke Test
     runs-on: ubuntu-latest
-    needs: [backend-unit, frontend]
+    needs: [docker-build]
     env:
       # Backend env (target Compose DB/Redis services over internal network)
       NODE_ENV: production
