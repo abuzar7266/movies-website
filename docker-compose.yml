@@ -67,8 +67,6 @@ services:
       args:
         VITE_API_BASE: http://backend:4000
     image: movieshelf-frontend:latest
-    env_file:
-      - ./frontend/.env
     ports:
       - "8080:80"
     restart: unless-stopped
