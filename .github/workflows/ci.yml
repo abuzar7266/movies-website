@@ -38,17 +38,15 @@ jobs:
       # Ephemeral services for unit tests
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/movieshelf_test
       DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/movieshelf_test
+      JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
       JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
       VALIDATE_ENV_STRICT: "true"
-      REDIS_URL: ${{ secrets.REDIS_URL }}
       # Optional services and tuning
       REDIS_URL: redis://localhost:6379
       METRICS_ENABLED: "false"
       RANK_RECOMPUTE_LIMIT: ${{ secrets.RANK_RECOMPUTE_LIMIT }}
       COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
       COOKIE_SAMESITE: ${{ secrets.COOKIE_SAMESITE }}
-      S3_BUCKET: ${{ secrets.S3_BUCKET }}
-      S3_REGION: ${{ secrets.S3_REGION }}
       S3_BUCKET: ${{ secrets.S3_BUCKET }}
       S3_REGION: ${{ secrets.S3_REGION }}
       S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
@@ -117,7 +115,6 @@ jobs:
       RANK_RECOMPUTE_LIMIT: ${{ secrets.RANK_RECOMPUTE_LIMIT }}
       COOKIE_DOMAIN: ${{ secrets.COOKIE_DOMAIN }}
       COOKIE_SAMESITE: ${{ secrets.COOKIE_SAMESITE }}
-      S3_BUCKET: ${{ secrets.S3_BUCKET }}
       S3_BUCKET: ${{ secrets.S3_BUCKET }}
       S3_REGION: ${{ secrets.S3_REGION }}
       S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
