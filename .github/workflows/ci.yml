@@ -69,6 +69,8 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: Generate Prisma client
         run: npm run prisma:generate
+      - name: Apply schema to test DB
+        run: npx prisma db push
       - name: Lint
         run: npm run lint
       - name: Typecheck
