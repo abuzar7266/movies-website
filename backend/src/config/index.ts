@@ -29,6 +29,7 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().optional(),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().optional(),
   RATE_LIMIT_LIMIT: z.coerce.number().int().positive().optional(),
+  RANK_RECOMPUTE_LIMIT: z.coerce.number().int().positive().optional(),
   DATABASE_URL: z.string().optional(),
   DATABASE_URL_TEST: z.string().optional(),
   REDIS_URL: z.string().optional(),
@@ -98,7 +99,7 @@ export const config = {
     limit: env.RATE_LIMIT_LIMIT ?? 120
   },
   rank: {
-    recomputeLimit: 200
+    recomputeLimit: env.RANK_RECOMPUTE_LIMIT ?? 200
   },
   metricsEnabled: env.METRICS_ENABLED !== "false",
   redisUrl: env.REDIS_URL,
