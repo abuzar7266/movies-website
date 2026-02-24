@@ -218,6 +218,11 @@ jobs:
         uses: actions/checkout@v4
       - name: Docker Compose version
         run: docker compose version
+      - name: Create stub env files (compose expects them)
+        run: |
+          mkdir -p backend frontend
+          : > backend/.env
+          : > frontend/.env
       - name: Compose up (db, redis only)
         run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d --build db redis
       - name: Wait for Postgres readiness
