@@ -197,6 +197,8 @@ jobs:
       NODE_ENV: production
       DATABASE_URL: postgresql://postgres:postgres@db:5432/movieshelf
       DATABASE_URL_TEST: postgresql://postgres:postgres@db:5432/movieshelf
+      # Allow SPA on localhost to call backend during smoke checks
+      CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
       JWT_ACCESS_SECRET: ${{ secrets.JWT_ACCESS_SECRET }}
       JWT_REFRESH_SECRET: ${{ secrets.JWT_REFRESH_SECRET }}
       VALIDATE_ENV_STRICT: "true"
