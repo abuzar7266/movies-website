@@ -89,10 +89,9 @@ export const config = {
     sameSite: (env.COOKIE_SAMESITE ?? (isProd ? "none" : "lax")) as "lax" | "strict" | "none"
   },
   cors: {
-    origins:
-      env.CORS_ORIGINS
-        ? env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
-        : ["http://localhost:8080", "http://127.0.0.1:8080"]
+    origins: env.CORS_ORIGINS
+      ? env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+      : (isProd ? [] : ["http://localhost:8080", "http://127.0.0.1:8080"])
   },
   rateLimit: {
     windowMs: env.RATE_LIMIT_WINDOW_MS ?? 60_000,
