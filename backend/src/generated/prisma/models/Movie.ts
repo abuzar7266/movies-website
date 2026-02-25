@@ -30,12 +30,14 @@ export type MovieAvgAggregateOutputType = {
   rank: number | null
   averageRating: number | null
   reviewCount: number | null
+  ratingCount: number | null
 }
 
 export type MovieSumAggregateOutputType = {
   rank: number | null
   averageRating: number | null
   reviewCount: number | null
+  ratingCount: number | null
 }
 
 export type MovieMinAggregateOutputType = {
@@ -51,6 +53,7 @@ export type MovieMinAggregateOutputType = {
   rank: number | null
   averageRating: number | null
   reviewCount: number | null
+  ratingCount: number | null
 }
 
 export type MovieMaxAggregateOutputType = {
@@ -66,6 +69,7 @@ export type MovieMaxAggregateOutputType = {
   rank: number | null
   averageRating: number | null
   reviewCount: number | null
+  ratingCount: number | null
 }
 
 export type MovieCountAggregateOutputType = {
@@ -81,6 +85,7 @@ export type MovieCountAggregateOutputType = {
   rank: number
   averageRating: number
   reviewCount: number
+  ratingCount: number
   _all: number
 }
 
@@ -89,12 +94,14 @@ export type MovieAvgAggregateInputType = {
   rank?: true
   averageRating?: true
   reviewCount?: true
+  ratingCount?: true
 }
 
 export type MovieSumAggregateInputType = {
   rank?: true
   averageRating?: true
   reviewCount?: true
+  ratingCount?: true
 }
 
 export type MovieMinAggregateInputType = {
@@ -110,6 +117,7 @@ export type MovieMinAggregateInputType = {
   rank?: true
   averageRating?: true
   reviewCount?: true
+  ratingCount?: true
 }
 
 export type MovieMaxAggregateInputType = {
@@ -125,6 +133,7 @@ export type MovieMaxAggregateInputType = {
   rank?: true
   averageRating?: true
   reviewCount?: true
+  ratingCount?: true
 }
 
 export type MovieCountAggregateInputType = {
@@ -140,6 +149,7 @@ export type MovieCountAggregateInputType = {
   rank?: true
   averageRating?: true
   reviewCount?: true
+  ratingCount?: true
   _all?: true
 }
 
@@ -242,6 +252,7 @@ export type MovieGroupByOutputType = {
   rank: number
   averageRating: number
   reviewCount: number
+  ratingCount: number
   _count: MovieCountAggregateOutputType | null
   _avg: MovieAvgAggregateOutputType | null
   _sum: MovieSumAggregateOutputType | null
@@ -280,6 +291,7 @@ export type MovieWhereInput = {
   rank?: Prisma.IntFilter<"Movie"> | number
   averageRating?: Prisma.FloatFilter<"Movie"> | number
   reviewCount?: Prisma.IntFilter<"Movie"> | number
+  ratingCount?: Prisma.IntFilter<"Movie"> | number
   reviews?: Prisma.ReviewListRelationFilter
   ratings?: Prisma.RatingListRelationFilter
   createdByUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -298,6 +310,7 @@ export type MovieOrderByWithRelationInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
   reviews?: Prisma.ReviewOrderByRelationAggregateInput
   ratings?: Prisma.RatingOrderByRelationAggregateInput
   createdByUser?: Prisma.UserOrderByWithRelationInput
@@ -319,6 +332,7 @@ export type MovieWhereUniqueInput = Prisma.AtLeast<{
   rank?: Prisma.IntFilter<"Movie"> | number
   averageRating?: Prisma.FloatFilter<"Movie"> | number
   reviewCount?: Prisma.IntFilter<"Movie"> | number
+  ratingCount?: Prisma.IntFilter<"Movie"> | number
   reviews?: Prisma.ReviewListRelationFilter
   ratings?: Prisma.RatingListRelationFilter
   createdByUser?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -337,6 +351,7 @@ export type MovieOrderByWithAggregationInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
   _count?: Prisma.MovieCountOrderByAggregateInput
   _avg?: Prisma.MovieAvgOrderByAggregateInput
   _max?: Prisma.MovieMaxOrderByAggregateInput
@@ -360,6 +375,7 @@ export type MovieScalarWhereWithAggregatesInput = {
   rank?: Prisma.IntWithAggregatesFilter<"Movie"> | number
   averageRating?: Prisma.FloatWithAggregatesFilter<"Movie"> | number
   reviewCount?: Prisma.IntWithAggregatesFilter<"Movie"> | number
+  ratingCount?: Prisma.IntWithAggregatesFilter<"Movie"> | number
 }
 
 export type MovieCreateInput = {
@@ -374,6 +390,7 @@ export type MovieCreateInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   reviews?: Prisma.ReviewCreateNestedManyWithoutMovieInput
   ratings?: Prisma.RatingCreateNestedManyWithoutMovieInput
   createdByUser: Prisma.UserCreateNestedOneWithoutMoviesInput
@@ -392,6 +409,7 @@ export type MovieUncheckedCreateInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutMovieInput
   ratings?: Prisma.RatingUncheckedCreateNestedManyWithoutMovieInput
 }
@@ -408,6 +426,7 @@ export type MovieUpdateInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   reviews?: Prisma.ReviewUpdateManyWithoutMovieNestedInput
   ratings?: Prisma.RatingUpdateManyWithoutMovieNestedInput
   createdByUser?: Prisma.UserUpdateOneRequiredWithoutMoviesNestedInput
@@ -426,6 +445,7 @@ export type MovieUncheckedUpdateInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutMovieNestedInput
   ratings?: Prisma.RatingUncheckedUpdateManyWithoutMovieNestedInput
 }
@@ -443,6 +463,7 @@ export type MovieCreateManyInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
 }
 
 export type MovieUpdateManyMutationInput = {
@@ -457,6 +478,7 @@ export type MovieUpdateManyMutationInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type MovieUncheckedUpdateManyInput = {
@@ -472,6 +494,7 @@ export type MovieUncheckedUpdateManyInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type MovieListRelationFilter = {
@@ -497,12 +520,14 @@ export type MovieCountOrderByAggregateInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
 }
 
 export type MovieAvgOrderByAggregateInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
 }
 
 export type MovieMaxOrderByAggregateInput = {
@@ -518,6 +543,7 @@ export type MovieMaxOrderByAggregateInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
 }
 
 export type MovieMinOrderByAggregateInput = {
@@ -533,12 +559,14 @@ export type MovieMinOrderByAggregateInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
 }
 
 export type MovieSumOrderByAggregateInput = {
   rank?: Prisma.SortOrder
   averageRating?: Prisma.SortOrder
   reviewCount?: Prisma.SortOrder
+  ratingCount?: Prisma.SortOrder
 }
 
 export type MovieScalarRelationFilter = {
@@ -644,6 +672,7 @@ export type MovieCreateWithoutCreatedByUserInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   reviews?: Prisma.ReviewCreateNestedManyWithoutMovieInput
   ratings?: Prisma.RatingCreateNestedManyWithoutMovieInput
 }
@@ -660,6 +689,7 @@ export type MovieUncheckedCreateWithoutCreatedByUserInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutMovieInput
   ratings?: Prisma.RatingUncheckedCreateNestedManyWithoutMovieInput
 }
@@ -706,6 +736,7 @@ export type MovieScalarWhereInput = {
   rank?: Prisma.IntFilter<"Movie"> | number
   averageRating?: Prisma.FloatFilter<"Movie"> | number
   reviewCount?: Prisma.IntFilter<"Movie"> | number
+  ratingCount?: Prisma.IntFilter<"Movie"> | number
 }
 
 export type MovieCreateWithoutReviewsInput = {
@@ -720,6 +751,7 @@ export type MovieCreateWithoutReviewsInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   ratings?: Prisma.RatingCreateNestedManyWithoutMovieInput
   createdByUser: Prisma.UserCreateNestedOneWithoutMoviesInput
 }
@@ -737,6 +769,7 @@ export type MovieUncheckedCreateWithoutReviewsInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   ratings?: Prisma.RatingUncheckedCreateNestedManyWithoutMovieInput
 }
 
@@ -768,6 +801,7 @@ export type MovieUpdateWithoutReviewsInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   ratings?: Prisma.RatingUpdateManyWithoutMovieNestedInput
   createdByUser?: Prisma.UserUpdateOneRequiredWithoutMoviesNestedInput
 }
@@ -785,6 +819,7 @@ export type MovieUncheckedUpdateWithoutReviewsInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   ratings?: Prisma.RatingUncheckedUpdateManyWithoutMovieNestedInput
 }
 
@@ -800,6 +835,7 @@ export type MovieCreateWithoutRatingsInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   reviews?: Prisma.ReviewCreateNestedManyWithoutMovieInput
   createdByUser: Prisma.UserCreateNestedOneWithoutMoviesInput
 }
@@ -817,6 +853,7 @@ export type MovieUncheckedCreateWithoutRatingsInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutMovieInput
 }
 
@@ -848,6 +885,7 @@ export type MovieUpdateWithoutRatingsInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   reviews?: Prisma.ReviewUpdateManyWithoutMovieNestedInput
   createdByUser?: Prisma.UserUpdateOneRequiredWithoutMoviesNestedInput
 }
@@ -865,6 +903,7 @@ export type MovieUncheckedUpdateWithoutRatingsInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutMovieNestedInput
 }
 
@@ -880,6 +919,7 @@ export type MovieCreateManyCreatedByUserInput = {
   rank?: number
   averageRating?: number
   reviewCount?: number
+  ratingCount?: number
 }
 
 export type MovieUpdateWithoutCreatedByUserInput = {
@@ -894,6 +934,7 @@ export type MovieUpdateWithoutCreatedByUserInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   reviews?: Prisma.ReviewUpdateManyWithoutMovieNestedInput
   ratings?: Prisma.RatingUpdateManyWithoutMovieNestedInput
 }
@@ -910,6 +951,7 @@ export type MovieUncheckedUpdateWithoutCreatedByUserInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutMovieNestedInput
   ratings?: Prisma.RatingUncheckedUpdateManyWithoutMovieNestedInput
 }
@@ -926,6 +968,7 @@ export type MovieUncheckedUpdateManyWithoutCreatedByUserInput = {
   rank?: Prisma.IntFieldUpdateOperationsInput | number
   averageRating?: Prisma.FloatFieldUpdateOperationsInput | number
   reviewCount?: Prisma.IntFieldUpdateOperationsInput | number
+  ratingCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -981,6 +1024,7 @@ export type MovieSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   rank?: boolean
   averageRating?: boolean
   reviewCount?: boolean
+  ratingCount?: boolean
   reviews?: boolean | Prisma.Movie$reviewsArgs<ExtArgs>
   ratings?: boolean | Prisma.Movie$ratingsArgs<ExtArgs>
   createdByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -1000,6 +1044,7 @@ export type MovieSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   rank?: boolean
   averageRating?: boolean
   reviewCount?: boolean
+  ratingCount?: boolean
   createdByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["movie"]>
 
@@ -1016,6 +1061,7 @@ export type MovieSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   rank?: boolean
   averageRating?: boolean
   reviewCount?: boolean
+  ratingCount?: boolean
   createdByUser?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["movie"]>
 
@@ -1032,9 +1078,10 @@ export type MovieSelectScalar = {
   rank?: boolean
   averageRating?: boolean
   reviewCount?: boolean
+  ratingCount?: boolean
 }
 
-export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "releaseDate" | "posterMediaId" | "posterUrl" | "trailerUrl" | "synopsis" | "createdBy" | "createdAt" | "rank" | "averageRating" | "reviewCount", ExtArgs["result"]["movie"]>
+export type MovieOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "releaseDate" | "posterMediaId" | "posterUrl" | "trailerUrl" | "synopsis" | "createdBy" | "createdAt" | "rank" | "averageRating" | "reviewCount" | "ratingCount", ExtArgs["result"]["movie"]>
 export type MovieInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   reviews?: boolean | Prisma.Movie$reviewsArgs<ExtArgs>
   ratings?: boolean | Prisma.Movie$ratingsArgs<ExtArgs>
@@ -1068,6 +1115,7 @@ export type $MoviePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     rank: number
     averageRating: number
     reviewCount: number
+    ratingCount: number
   }, ExtArgs["result"]["movie"]>
   composites: {}
 }
@@ -1506,6 +1554,7 @@ export interface MovieFieldRefs {
   readonly rank: Prisma.FieldRef<"Movie", 'Int'>
   readonly averageRating: Prisma.FieldRef<"Movie", 'Float'>
   readonly reviewCount: Prisma.FieldRef<"Movie", 'Int'>
+  readonly ratingCount: Prisma.FieldRef<"Movie", 'Int'>
 }
     
 

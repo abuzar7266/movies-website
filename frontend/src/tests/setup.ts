@@ -26,3 +26,14 @@ if (typeof window !== "undefined") {
     }) as typeof window.matchMedia;
   }
 }
+
+if (!("IntersectionObserver" in globalThis)) {
+  class IntersectionObserver {
+    constructor() {}
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return []; }
+  }
+  (globalThis as unknown as { IntersectionObserver: typeof IntersectionObserver }).IntersectionObserver = IntersectionObserver;
+}

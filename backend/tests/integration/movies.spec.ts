@@ -6,6 +6,16 @@ import { prisma } from "../../src/db.js";
 
 describe("Movies CRUD and listing", () => {
   const agent = request.agent(app);
+  async function getCsrfToken(): Promise<string> {
+    const res = await agent.get("/auth/csrf");
+    expect(res.status).toBe(200);
+    const sc = res.headers["set-cookie"];
+    const arr = Array.isArray(sc) ? sc : typeof sc === "string" ? [sc] : [];
+    const row = arr.find((c) => c.startsWith("csrf_token=")) ?? "";
+    const match = /csrf_token=([^;]+)/.exec(row);
+    if (!match) throw new Error("csrf_token cookie not found");
+    return decodeURIComponent(match[1]);
+  }
   const runId = crypto.randomUUID();
   const email = `movies_tester+${runId}@example.com`;
   const password = "pass12345";
@@ -13,6 +23,7 @@ describe("Movies CRUD and listing", () => {
   const movieTitle = `Movie ${runId}`;
 
   let movieId: string;
+  let csrf: string;
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -23,6 +34,7 @@ describe("Movies CRUD and listing", () => {
     } else {
       expect(res.status).toBe(200);
     }
+    csrf = await getCsrfToken();
   });
 
   afterAll(async () => {
@@ -32,7 +44,10 @@ describe("Movies CRUD and listing", () => {
   });
 
   it("creates a movie", async () => {
-    const res = await agent.post("/movies").send({
+    const res = await agent
+      .post("/movies")
+      .set("X-CSRF-Token", csrf)
+      .send({
       title: movieTitle,
       releaseDate: new Date().toISOString(),
       trailerUrl: "https://example.com/trailer.mp4",
@@ -57,13 +72,13 @@ describe("Movies CRUD and listing", () => {
 
   it("updates the movie title", async () => {
     const newTitle = `Movie Updated ${runId}`;
-    const res = await agent.patch(`/movies/${movieId}`).send({ title: newTitle });
+    const res = await agent.patch(`/movies/${movieId}`).set("X-CSRF-Token", csrf).send({ title: newTitle });
     expect(res.status).toBe(200);
     expect(res.body?.data?.title).toBe(newTitle);
   });
 
   it("deletes the movie", async () => {
-    const res = await agent.delete(`/movies/${movieId}`);
+    const res = await agent.delete(`/movies/${movieId}`).set("X-CSRF-Token", csrf);
     expect(res.status).toBe(200);
     const notFound = await agent.get(`/movies/${movieId}`);
     expect(notFound.status).toBe(404);

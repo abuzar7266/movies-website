@@ -94,3 +94,9 @@
 .footerLink:hover {
   text-decoration: underline;
 }
+
+.error {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+  color: hsl(var(--destructive));
+}

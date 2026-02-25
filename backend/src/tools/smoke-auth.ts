@@ -20,6 +20,12 @@ async function main() {
   const base = process.env.API_BASE || "http://localhost:4000";
   const jar: CookieJar = {};
 
+  const hz = await fetch(`${base}/healthz`).catch(() => undefined);
+  console.log("healthz:", hz?.status ?? "failed");
+  if (!hz || !hz.ok) {
+    console.error("backend not healthy");
+  }
+
   const email = `user${Date.now()}@example.com`;
   const password = "pass12345";
   const name = "Smoke User";
@@ -54,6 +60,12 @@ async function main() {
     headers: { cookie: cookieHeader(jar) },
   });
   console.log("users/me:", res.status, await res.text());
+
+  res = await fetch(`${base}/auth/refresh`, {
+    method: "POST",
+    headers: { cookie: cookieHeader(jar) },
+  });
+  console.log("refresh:", res.status);
 
   res = await fetch(`${base}/auth/logout`, {
     method: "POST",

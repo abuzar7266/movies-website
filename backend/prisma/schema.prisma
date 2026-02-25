@@ -36,10 +36,13 @@ model Movie {
   ratings       Rating[]
   averageRating Float    @default(0)
   reviewCount   Int      @default(0)
+  ratingCount   Int      @default(0)
   createdByUser User     @relation("UserMovies", fields: [createdBy], references: [id])
 
   @@unique([title])
   @@index([rank, createdAt])
+  @@index([createdAt])
+  @@index([reviewCount, averageRating, createdAt])
 }
 
 model Review {
@@ -55,6 +58,7 @@ model Review {
 
   @@index([movieId])
   @@index([userId])
+  @@index([movieId, createdAt])
 }
 
 model Rating {
@@ -69,13 +73,14 @@ model Rating {
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([movieId, userId])
+  @@index([userId, movieId])
 }
 
 model Media {
   id          String   @id @default(uuid())
   contentType String
   size        Int
-  data        Bytes
+  data        Bytes?
   ownerUserId String?
   createdAt   DateTime @default(now())
 

@@ -6,6 +6,7 @@ import argon2 from "argon2";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "@auth/jwt.js";
 import { config } from "@config/index.js";
 import { HttpError } from "@middleware/errors.js";
+import { issueCsrfCookie } from "@middleware/csrf.js";
 
 const router = Router();
 
@@ -21,6 +22,7 @@ router.post("/register", validate({ body: registerBody }), async (req, res, next
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
     setCookies(res, access, refresh);
+    issueCsrfCookie(res);
     res.json({ success: true, data: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (e) {
     next(e);
@@ -37,6 +39,7 @@ router.post("/login", validate({ body: loginBody }), async (req, res, next) => {
     const access = signAccessToken(user.id, user.role);
     const refresh = signRefreshToken(user.id, user.role);
     setCookies(res, access, refresh);
+    issueCsrfCookie(res);
     res.json({ success: true, data: { id: user.id, name: user.name, email: user.email, role: user.role } });
   } catch (e) {
     next(e);
@@ -53,6 +56,7 @@ router.post("/refresh", async (req, res, next) => {
     const access = signAccessToken(user.id, role);
     const refresh = signRefreshToken(user.id, role);
     setCookies(res, access, refresh);
+    issueCsrfCookie(res);
     res.json({ success: true });
   } catch (e) {
     next(e);
@@ -62,21 +66,41 @@ router.post("/refresh", async (req, res, next) => {
 router.post("/logout", (req, res) => {
   res.clearCookie("access_token", cookieOpts());
   res.clearCookie("refresh_token", cookieOpts());
+  res.clearCookie("csrf_token", cookieOpts() as any);
+  if (config.isTest) {
+    res.clearCookie("test_user_id", cookieOpts() as any);
+  }
+  res.json({ success: true });
+});
+
+router.get("/csrf", (_req, res) => {
+  issueCsrfCookie(res);
   res.json({ success: true });
 });
 
 function cookieOpts() {
-  return {
+  const isVitest = Boolean(process.env.VITEST || process.env.VITEST_WORKER_ID);
+  const base = {
     httpOnly: true,
     secure: config.cookies.secure,
     sameSite: config.cookies.sameSite,
-    domain: config.cookies.domain,
     path: "/"
   } as const;
+  if (!isVitest && config.cookies.domain) {
+    return { ...base, domain: config.cookies.domain } as const;
+  }
+  return base;
 }
 function setCookies(res: any, access: string, refresh: string) {
   res.cookie("access_token", access, { ...cookieOpts(), maxAge: config.jwt.accessTtlSec * 1000 });
   res.cookie("refresh_token", refresh, { ...cookieOpts(), maxAge: config.jwt.refreshTtlSec * 1000 });
+  if (config.isTest) {
+    try {
+      const { sub } = verifyRefreshToken(refresh);
+      res.cookie("test_user_id", sub, { ...cookieOpts(), httpOnly: true });
+      res.cookie("x_test_user_id", sub, { ...cookieOpts(), httpOnly: false });
+    } catch {}
+  }
 }
 
 export default router;

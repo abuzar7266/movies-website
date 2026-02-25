@@ -6,11 +6,22 @@ import { prisma } from "../../src/db.js";
 
 describe("User rating fetch", () => {
   const agent = request.agent(app);
+  async function getCsrfToken(): Promise<string> {
+    const res = await agent.get("/auth/csrf");
+    expect(res.status).toBe(200);
+    const sc = res.headers["set-cookie"];
+    const arr = Array.isArray(sc) ? sc : typeof sc === "string" ? [sc] : [];
+    const row = arr.find((c) => c.startsWith("csrf_token=")) ?? "";
+    const match = /csrf_token=([^;]+)/.exec(row);
+    if (!match) throw new Error("csrf_token cookie not found");
+    return decodeURIComponent(match[1]);
+  }
   const runId = crypto.randomUUID();
   const email = `rating_get_tester+${runId}@example.com`;
   const password = "pass12345";
   const name = "Rating Getter";
   let movieId: string;
+  let csrf: string;
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -20,7 +31,8 @@ describe("User rating fetch", () => {
       res = await agent.post("/auth/login").send({ email, password });
       expect(res.status).toBe(200);
     }
-    const m = await agent.post("/movies").send({
+    csrf = await getCsrfToken();
+    const m = await agent.post("/movies").set("X-CSRF-Token", csrf).send({
       title: `RGet ${runId}`,
       releaseDate: new Date().toISOString(),
       trailerUrl: "https://example.com",
@@ -41,7 +53,7 @@ describe("User rating fetch", () => {
     const before = await agent.get(`/ratings/${movieId}`);
     expect(before.status).toBe(200);
     expect(before.body?.data?.value).toBe(null);
-    const up = await agent.post("/ratings").send({ movieId, value: 4 });
+    const up = await agent.post("/ratings").set("X-CSRF-Token", csrf).send({ movieId, value: 4 });
     expect(up.status).toBe(200);
     const after = await agent.get(`/ratings/${movieId}`);
     expect(after.status).toBe(200);

@@ -189,7 +189,7 @@ export type MediaGroupByOutputType = {
   id: string
   contentType: string
   size: number
-  data: runtime.Bytes
+  data: runtime.Bytes | null
   ownerUserId: string | null
   createdAt: Date
   _count: MediaCountAggregateOutputType | null
@@ -221,7 +221,7 @@ export type MediaWhereInput = {
   id?: Prisma.StringFilter<"Media"> | string
   contentType?: Prisma.StringFilter<"Media"> | string
   size?: Prisma.IntFilter<"Media"> | number
-  data?: Prisma.BytesFilter<"Media"> | runtime.Bytes
+  data?: Prisma.BytesNullableFilter<"Media"> | runtime.Bytes | null
   ownerUserId?: Prisma.StringNullableFilter<"Media"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Media"> | Date | string
 }
@@ -230,7 +230,7 @@ export type MediaOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   contentType?: Prisma.SortOrder
   size?: Prisma.SortOrder
-  data?: Prisma.SortOrder
+  data?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -242,7 +242,7 @@ export type MediaWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.MediaWhereInput | Prisma.MediaWhereInput[]
   contentType?: Prisma.StringFilter<"Media"> | string
   size?: Prisma.IntFilter<"Media"> | number
-  data?: Prisma.BytesFilter<"Media"> | runtime.Bytes
+  data?: Prisma.BytesNullableFilter<"Media"> | runtime.Bytes | null
   ownerUserId?: Prisma.StringNullableFilter<"Media"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Media"> | Date | string
 }, "id">
@@ -251,7 +251,7 @@ export type MediaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   contentType?: Prisma.SortOrder
   size?: Prisma.SortOrder
-  data?: Prisma.SortOrder
+  data?: Prisma.SortOrderInput | Prisma.SortOrder
   ownerUserId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.MediaCountOrderByAggregateInput
@@ -268,7 +268,7 @@ export type MediaScalarWhereWithAggregatesInput = {
   id?: Prisma.StringWithAggregatesFilter<"Media"> | string
   contentType?: Prisma.StringWithAggregatesFilter<"Media"> | string
   size?: Prisma.IntWithAggregatesFilter<"Media"> | number
-  data?: Prisma.BytesWithAggregatesFilter<"Media"> | runtime.Bytes
+  data?: Prisma.BytesNullableWithAggregatesFilter<"Media"> | runtime.Bytes | null
   ownerUserId?: Prisma.StringNullableWithAggregatesFilter<"Media"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Media"> | Date | string
 }
@@ -277,7 +277,7 @@ export type MediaCreateInput = {
   id?: string
   contentType: string
   size: number
-  data: runtime.Bytes
+  data?: runtime.Bytes | null
   ownerUserId?: string | null
   createdAt?: Date | string
 }
@@ -286,7 +286,7 @@ export type MediaUncheckedCreateInput = {
   id?: string
   contentType: string
   size: number
-  data: runtime.Bytes
+  data?: runtime.Bytes | null
   ownerUserId?: string | null
   createdAt?: Date | string
 }
@@ -295,7 +295,7 @@ export type MediaUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contentType?: Prisma.StringFieldUpdateOperationsInput | string
   size?: Prisma.IntFieldUpdateOperationsInput | number
-  data?: Prisma.BytesFieldUpdateOperationsInput | runtime.Bytes
+  data?: Prisma.NullableBytesFieldUpdateOperationsInput | runtime.Bytes | null
   ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -304,7 +304,7 @@ export type MediaUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contentType?: Prisma.StringFieldUpdateOperationsInput | string
   size?: Prisma.IntFieldUpdateOperationsInput | number
-  data?: Prisma.BytesFieldUpdateOperationsInput | runtime.Bytes
+  data?: Prisma.NullableBytesFieldUpdateOperationsInput | runtime.Bytes | null
   ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -313,7 +313,7 @@ export type MediaCreateManyInput = {
   id?: string
   contentType: string
   size: number
-  data: runtime.Bytes
+  data?: runtime.Bytes | null
   ownerUserId?: string | null
   createdAt?: Date | string
 }
@@ -322,7 +322,7 @@ export type MediaUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contentType?: Prisma.StringFieldUpdateOperationsInput | string
   size?: Prisma.IntFieldUpdateOperationsInput | number
-  data?: Prisma.BytesFieldUpdateOperationsInput | runtime.Bytes
+  data?: Prisma.NullableBytesFieldUpdateOperationsInput | runtime.Bytes | null
   ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -331,7 +331,7 @@ export type MediaUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
   contentType?: Prisma.StringFieldUpdateOperationsInput | string
   size?: Prisma.IntFieldUpdateOperationsInput | number
-  data?: Prisma.BytesFieldUpdateOperationsInput | runtime.Bytes
+  data?: Prisma.NullableBytesFieldUpdateOperationsInput | runtime.Bytes | null
   ownerUserId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -371,8 +371,8 @@ export type MediaSumOrderByAggregateInput = {
   size?: Prisma.SortOrder
 }
 
-export type BytesFieldUpdateOperationsInput = {
-  set?: runtime.Bytes
+export type NullableBytesFieldUpdateOperationsInput = {
+  set?: runtime.Bytes | null
 }
 
 
@@ -422,7 +422,7 @@ export type $MediaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     id: string
     contentType: string
     size: number
-    data: runtime.Bytes
+    data: runtime.Bytes | null
     ownerUserId: string | null
     createdAt: Date
   }, ExtArgs["result"]["media"]>

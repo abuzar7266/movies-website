@@ -1,60 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
-import crypto from "crypto";
 import { validate } from "@middleware/validate.js";
 import { requireAuth } from "@middleware/auth.js";
 import { movies as Movies } from "@services/index.js";
-import { getCacheVersion, getRedisClient } from "@/redisClient.js";
+import { getCacheVersion } from "@/redisClient.js";
+import { sendJsonWithCache } from "@middleware/cacheResponse.js";
 
 const router = Router();
 
 import { createMovieBody as createBody, updateMovieBody as updateBody, movieIdParam as idParam, posterBody } from "@dtos/movies.js";
-
-function etagFor(body: string) {
-  const hash = crypto.createHash("sha1").update(body).digest("hex");
-  return `"sha1-${hash}"`;
-}
-
-async function sendJsonWithCache(
-  req: any,
-  res: any,
-  cacheKey: string,
-  ttlSec: number,
-  cacheControl: string,
-  computeBody: () => Promise<any>
-) {
-  const client = await getRedisClient();
-  if (client) {
-    const cached = await client.get(cacheKey);
-    if (cached) {
-      const etag = etagFor(cached);
-      res.setHeader("Cache-Control", cacheControl);
-      res.setHeader("ETag", etag);
-      if (req.headers["if-none-match"] === etag) {
-        res.status(304).end();
-        return;
-      }
-      res.setHeader("Content-Type", "application/json; charset=utf-8");
-      res.status(200).send(cached);
-      return;
-    }
-  }
-
-  const body = await computeBody();
-  const json = JSON.stringify(body);
-  const etag = etagFor(json);
-  res.setHeader("Cache-Control", cacheControl);
-  res.setHeader("ETag", etag);
-  if (req.headers["if-none-match"] === etag) {
-    res.status(304).end();
-    return;
-  }
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.status(200).send(json);
-  if (client) {
-    client.setEx(cacheKey, ttlSec, json).catch(() => {});
-  }
-}
 
 router.post("/", requireAuth(), validate({ body: createBody }), async (req, res, next) => {
   try {
@@ -133,7 +87,7 @@ router.get("/", async (req, res, next) => {
     const scopeKey = reviewScope ? encodeURIComponent(reviewScope) : "all";
     const minStarsKey = typeof minStarsNum === "number" && !Number.isNaN(minStarsNum) ? String(minStarsNum) : "";
     const cacheKey = `cache:movies:list:v${version}:q=${qKey}&minStars=${minStarsKey}&sort=${sortKey}&scope=${scopeKey}&page=${pageNum}&pageSize=${pageSizeNum}&user=${userKey}`;
-    await sendJsonWithCache(req, res, cacheKey, 30, "private, max-age=30", async () => {
+    await sendJsonWithCache(req, res, cacheKey, 10, "private, max-age=10", async () => {
       const result = await Movies.listMovies({
         q: q,
         minStars: minStarsNum,

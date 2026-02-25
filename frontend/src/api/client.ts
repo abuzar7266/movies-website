@@ -45,6 +45,35 @@ async function request<T>(
 ): Promise<T> {
   const headers = new Headers(init.headers || {});
   headers.set("Accept", "application/json");
+  // Attach CSRF token for unsafe methods when available
+  const method = (init.method || "GET").toUpperCase();
+  if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+    try {
+      const getTokenFromCookies = () => {
+        const m = typeof document !== "undefined" ? document.cookie : "";
+        const match = m?.match(/(?:^|;)\s*csrf_token=([^;]+)/);
+        return match ? decodeURIComponent(match[1]) : "";
+      };
+      let token = getTokenFromCookies();
+      if (!token) {
+        try {
+          await fetch(apiUrl("/auth/csrf"), {
+            method: "GET",
+            credentials: "include",
+            headers: new Headers({ Accept: "application/json" }),
+          });
+        } catch {
+          /* ignore */
+        }
+        token = getTokenFromCookies();
+      }
+      if (token && !headers.has("X-CSRF-Token")) {
+        headers.set("X-CSRF-Token", token);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
   let body = init.body;
   if (init.json !== undefined) {
     headers.set("Content-Type", "application/json");
@@ -106,4 +135,5 @@ export const api = {
   put:  <T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "PUT", json, ...(init || {}) }),
   patch:<T>(path: string, json?: unknown, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "PATCH", json, ...(init || {}) }),
   delete:<T>(path: string, init?: RequestInit & { silentError?: boolean }) => request<T>(path, { method: "DELETE", ...(init || {}) }),
+  request:<T>(path: string, init: RequestInit & { silentError?: boolean }) => request<T>(path, init),
 };

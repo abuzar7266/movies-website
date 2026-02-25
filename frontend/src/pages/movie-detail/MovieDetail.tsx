@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useMovies } from "@context/MovieContext"
 import { useAuth } from "@context/AuthContext"
-import { sampleUsers } from "@data/sample-data"
 import StarRating from "@components/StarRating"
 import ReviewCard from "@components/review/ReviewCard"
 import ReviewForm from "@components/review/ReviewForm"
@@ -17,6 +16,7 @@ import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi
 import type { MovieDTO, ReviewDTO } from "@src/types/api"
 import type { Movie, Review } from "@src/types/movie"
 import styles from "./MovieDetail.module.css"
+import { emitAppEvent } from "@lib/events"
 
 function MovieDetailSkeleton() {
   return (
@@ -160,15 +160,13 @@ function TrailerSection({ title, url }: { title: string; url: string }) {
   );
 }
 
-function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canStartNew, initialRating, onStartNew, onLogin, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
+function ReviewsSection({ reviews, loading, currentUserId, initialRating, initialContent, onStartNew, onSubmit, onCancel, onEdit, onDelete, showReviewForm, editingReview }: {
   reviews: Review[];
   loading?: boolean;
-  isAuthenticated: boolean;
   currentUserId?: string;
-  canStartNew: boolean;
   initialRating?: number;
-  onStartNew: () => void;
-  onLogin: () => void;
+  initialContent?: string;
+  onStartNew?: () => void;
   onSubmit: (rating: number, content: string) => void | Promise<void>;
   onCancel: () => void;
   onEdit: (r: Review) => void;
@@ -180,25 +178,17 @@ function ReviewsSection({ reviews, loading, isAuthenticated, currentUserId, canS
     <section className={styles.section}>
       <div className={styles.reviewsHeader}>
         <h3 className={styles.reviewsTitle}>Reviews ({reviews.length})</h3>
-        {!showReviewForm && (
-          isAuthenticated ? (
-            canStartNew ? (
-              <Button size="sm" onClick={onStartNew}>
-                Write a Review
-              </Button>
-            ) : null
-          ) : (
-            <Button size="sm" variant="outline" onClick={onLogin}>
-              Log in to review
-            </Button>
-          )
+        {!showReviewForm && onStartNew && (
+          <Button size="sm" onClick={onStartNew}>
+            Write a Review
+          </Button>
         )}
       </div>
       {showReviewForm && (
         <div className={styles.reviewFormWrap}>
           <ReviewForm
             initialRating={initialRating}
-            initialContent={editingReview?.content}
+            initialContent={initialContent}
             isEdit={!!editingReview}
             onSubmit={onSubmit}
             onCancel={onCancel}
@@ -233,7 +223,7 @@ function mapMovieDtoToMovie(m: MovieDTO): Movie {
   const posterUrl = candidate
     ? candidate.startsWith("http://") || candidate.startsWith("https://")
       ? candidate
-      : apiUrl(candidate)
+      : (candidate.startsWith("/media/") ? apiUrl(`${candidate}?redirect=1`) : apiUrl(candidate))
     : "https://placehold.co/480x720?text=Poster"
   return {
     id: m.id,
@@ -256,7 +246,7 @@ function mapReviewDtoToReview(r: ReviewDTO): Review {
       ? {
           id: r.user.id,
           name: r.user.name,
-          avatarUrl: r.user.avatarMediaId ? apiUrl(`/media/${r.user.avatarMediaId}`) : undefined,
+          avatarUrl: r.user.avatarMediaId ? apiUrl(`/media/${r.user.avatarMediaId}?redirect=1`) : undefined,
         }
       : undefined,
     rating: 0,
@@ -284,7 +274,16 @@ function useRemoteMovieData(id: string | undefined, reloadKey: number) {
       try {
         const res = await moviesApi.getMovie(id)
         if (cancelled) return
-        setMovie(mapMovieDtoToMovie(res.data))
+        const baseMovie = mapMovieDtoToMovie(res.data)
+        setMovie(baseMovie)
+        if (res.data.posterMediaId) {
+          try {
+            const signed = await mediaApi.signUrl(res.data.posterMediaId, 300)
+            if (!cancelled) setMovie(prev => prev ? ({ ...prev, posterUrl: signed.data.url }) : prev)
+          } catch {
+            /* ignore; fallback already set */
+          }
+        }
         setStats({
           averageRating: res.data.averageRating ?? 0,
           reviewCount: res.data.reviewCount ?? 0,
@@ -324,7 +323,23 @@ function useRemoteReviewsData(id: string | undefined) {
       try {
         const res = await reviewsApi.listByMovie(id, 1, 50)
         if (cancelled) return
-        setReviews(res.data.items.map(mapReviewDtoToReview))
+        const items = res.data.items
+        const ids = Array.from(new Set(items.map(it => it.user?.avatarMediaId || "").filter(Boolean))) as string[]
+        const cache = new Map<string, string>()
+        await Promise.all(ids.map(async (mid) => {
+          try {
+            const s = await mediaApi.signUrl(mid, 300)
+            cache.set(mid, s.data.url)
+          } catch {
+            /* ignore */
+          }
+        }))
+        setReviews(items.map((r) => {
+          const base = mapReviewDtoToReview(r)
+          const mid = r.user?.avatarMediaId || ""
+          const signed = mid ? cache.get(mid) : undefined
+          return signed && base.author ? { ...base, author: { ...base.author, avatarUrl: signed } } : base
+        }))
       } catch {
         if (!cancelled) setReviews([])
       } finally {
@@ -338,16 +353,17 @@ function useRemoteReviewsData(id: string | undefined) {
   return { reviews, setReviews, loading }
 }
 
-function MovieDetail() {
+function MovieDetailMain() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { getMovieById, getReviewsForMovie, getMovieStats, deleteMovie, addReview, updateReview, deleteReview, updateMovie } = useMovies()
+  const { deleteMovie, addReview, updateReview, deleteReview, updateMovie } = useMovies()
   const { user, isAuthenticated } = useAuth()
   const [showLoginDialog, setShowLoginDialog] = useState(false)
 
   const [showReviewForm, setShowReviewForm] = useState(false)
   const [editingReview, setEditingReview] = useState<Review | null>(null)
   const [draftReviewRating, setDraftReviewRating] = useState<number | undefined>(undefined)
+  const [draftReviewContent, setDraftReviewContent] = useState<string | undefined>(undefined)
   const [showEditMovie, setShowEditMovie] = useState(false)
   const reviewsSectionRef = useRef<HTMLDivElement | null>(null)
   const [confirmDeleteMovieOpen, setConfirmDeleteMovieOpen] = useState(false)
@@ -359,8 +375,30 @@ function MovieDetail() {
   const remoteMovie = useRemoteMovieData(id, reloadKey)
   const remoteReviews = useRemoteReviewsData(id)
 
-  const movie = API_BASE ? remoteMovie.movie : getMovieById(id || "")
-  if (API_BASE) {
+  const movie = remoteMovie.movie
+  const reviews = remoteReviews.reviews
+  const stats = remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }
+  const owner = undefined
+  const isOwner = false
+  const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
+  const canStartNewReview = Boolean(user && !hasMyReview)
+  const displayedUserRating = API_BASE ? (hasMyReview ? remoteMovie.myRating : null) : undefined
+
+  useEffect(() => {
+    if (!isAuthenticated || !movie?.id) return
+    try {
+      const raw = sessionStorage.getItem(`draftReview:${movie.id}`)
+      if (raw) {
+        const parsed = JSON.parse(raw) as { rating?: number; content?: string }
+        setDraftReviewRating(parsed.rating ?? 5)
+        setDraftReviewContent(parsed.content ?? "")
+        setShowReviewForm(true)
+        sessionStorage.removeItem(`draftReview:${movie.id}`)
+      }
+    } catch { void 0 }
+  }, [isAuthenticated, movie?.id])
+
+  {
     if (remoteMovie.loading && !movie) return <MovieDetailSkeleton />
     if (remoteMovie.loadFailed && !movie) {
       return (
@@ -386,26 +424,6 @@ function MovieDetail() {
     }
     if (!movie) return <MovieDetailSkeleton />
   }
-  if (!movie) {
-    return (
-      <div className={`${styles.page} ${styles.centerPage}`}>
-        <div className={styles.centerContent}>
-          <h1 className={styles.centerTitle}>Movie not found</h1>
-          <Button variant="ghost" onClick={() => navigate("/")}>
-            <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
-          </Button>
-        </div>
-      </div>
-    )
-  }
-
-  const reviews = API_BASE ? remoteReviews.reviews : getReviewsForMovie(movie.id)
-  const stats = API_BASE ? (remoteMovie.stats || { averageRating: 0, reviewCount: 0, rank: 0 }) : getMovieStats(movie.id)
-  const owner = API_BASE ? undefined : sampleUsers.find((u) => u.id === movie.createdBy)
-  const isOwner = API_BASE ? false : user?.id === movie.createdBy
-  const hasMyReview = Boolean(user && reviews.some((r) => r.userId === user.id))
-  const canStartNewReview = Boolean(user && !hasMyReview)
-  const displayedUserRating = API_BASE ? (hasMyReview ? remoteMovie.myRating : null) : undefined
 
   const deleteMovieConfirmed = async () => {
     if (deleting) return
@@ -414,6 +432,7 @@ function MovieDetail() {
       if (!API_BASE) deleteMovie(movie.id)
       navigate("/")
       toast.success("Movie deleted")
+      emitAppEvent("movie:changed", { movieId: movie.id })
     } finally {
       setDeleting(false)
       setConfirmDeleteMovieOpen(false)
@@ -444,6 +463,7 @@ function MovieDetail() {
         remoteMovie.setMyRating(value);
         remoteMovie.setStats((prev) => ({ averageRating: r.data.averageRating, reviewCount: prev?.reviewCount ?? 0, rank: prev?.rank ?? 0 }));
         toast.success("Rating saved");
+        emitAppEvent("movie:changed", { movieId: movie.id })
       } catch {
         toast.error("Failed to save rating");
       }
@@ -476,6 +496,8 @@ function MovieDetail() {
       }
       toast.success("Movie updated");
       setShowEditMovie(false);
+      emitAppEvent("movie:changed", { movieId: movie.id })
+      emitAppEvent("media:changed", { movieId: movie.id })
     } catch {
       toast.error("Failed to update movie");
     }
@@ -484,6 +506,11 @@ function MovieDetail() {
   const handleSubmitReview = async (rating: number, content: string) => {
     if (!user) {
       setShowLoginDialog(true)
+      setDraftReviewRating(rating)
+      setDraftReviewContent(content)
+      try {
+        if (movie?.id) sessionStorage.setItem(`draftReview:${movie.id}`, JSON.stringify({ rating, content }))
+      } catch { void 0 }
       return
     }
     if (!editingReview && hasMyReview) {
@@ -492,6 +519,10 @@ function MovieDetail() {
       return
     }
     setDraftReviewRating(undefined)
+    setDraftReviewContent(undefined)
+    try {
+      if (movie?.id) sessionStorage.removeItem(`draftReview:${movie.id}`)
+    } catch { void 0 }
     const doLocal = () => {
       if (editingReview) {
         updateReview(editingReview.id, { rating, content })
@@ -520,12 +551,42 @@ function MovieDetail() {
         setEditingReview(null);
         toast.success("Review updated");
       } else {
-        await reviewsApi.createReview({ movieId: movie.id, content });
+        const created = await reviewsApi.createReview({ movieId: movie.id, content });
+        // Optimistic add of the created review with signed avatar
+        try {
+          const r = created.data;
+          let mapped = mapReviewDtoToReview(r);
+          const mid = r.user?.avatarMediaId || "";
+          if (mid) {
+            try {
+              const s = await mediaApi.signUrl(mid, 300);
+              if (mapped.author) mapped = { ...mapped, author: { ...mapped.author, avatarUrl: s.data.url } };
+            } catch { /* ignore */ }
+          }
+          remoteReviews.setReviews(prev => [mapped, ...prev]);
+        } catch { /* ignore */ }
         toast.success("Review added");
         remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: prev.reviewCount + 1 }) : prev)
       }
-      const res = await reviewsApi.listByMovie(movie.id, 1, 50);
-      remoteReviews.setReviews(res.data.items.map(mapReviewDtoToReview));
+      const res = await reviewsApi.listByMovie(movie.id, 1, 50, { noStore: true });
+      {
+        const items = res.data.items;
+        const ids = Array.from(new Set(items.map(it => it.user?.avatarMediaId || "").filter(Boolean))) as string[];
+        const cache = new Map<string, string>();
+        await Promise.all(ids.map(async (mid) => {
+          try {
+            const s = await mediaApi.signUrl(mid, 300);
+            cache.set(mid, s.data.url);
+          } catch { /* ignore */ }
+        }));
+        remoteReviews.setReviews(items.map((r) => {
+          const base = mapReviewDtoToReview(r);
+          const mid = r.user?.avatarMediaId || "";
+          const signed = mid ? cache.get(mid) : undefined;
+          return signed && base.author ? { ...base, author: { ...base.author, avatarUrl: signed } } : base;
+        }));
+      }
+      emitAppEvent("reviews:changed", { movieId: movie.id })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setShowLoginDialog(true);
@@ -583,6 +644,7 @@ function MovieDetail() {
       if (target?.userId === user.id) remoteMovie.setMyRating(null)
       remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: Math.max(0, prev.reviewCount - 1) }) : prev)
       toast.success("Review deleted");
+      emitAppEvent("reviews:changed", { movieId: movie.id })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setShowLoginDialog(true)
@@ -623,22 +685,16 @@ function MovieDetail() {
           <ReviewsSection
             reviews={reviews}
             loading={API_BASE ? remoteReviews.loading : false}
-            isAuthenticated={isAuthenticated}
             currentUserId={user?.id}
-            canStartNew={canStartNewReview}
             initialRating={editingReview ? (API_BASE ? (remoteMovie.myRating ?? 5) : editingReview.rating) : draftReviewRating}
-            onStartNew={() => {
-              if (!canStartNewReview) {
-                toast.error("You can only submit one review per movie")
-                return
-              }
+            initialContent={editingReview?.content ?? draftReviewContent}
+            onStartNew={canStartNewReview ? (() => {
               setEditingReview(null);
               setDraftReviewRating(undefined);
               setShowReviewForm(true);
-            }}
-            onLogin={() => setShowLoginDialog(true)}
+            }) : undefined}
             onSubmit={handleSubmitReview}
-            onCancel={() => { setShowReviewForm(false); setEditingReview(null); setDraftReviewRating(undefined); }}
+            onCancel={() => { setShowReviewForm(false); setEditingReview(null); setDraftReviewRating(undefined); setDraftReviewContent(undefined); }}
             onEdit={handleEditReview}
             onDelete={handleDeleteReview}
             showReviewForm={showReviewForm}
@@ -699,4 +755,21 @@ function MovieDetail() {
   )
 }
 
-export default MovieDetail
+function ServerUnavailableDetail() {
+  const navigate = useNavigate()
+  return (
+    <div className={`${styles.page} ${styles.centerPage}`}>
+      <div className={styles.centerContent}>
+        <h1 className={styles.centerTitle}>Server unavailable</h1>
+        <Button variant="ghost" onClick={() => navigate("/")}>
+          <ArrowLeft size={16} className={styles.deleteIcon} /> Back to Home
+        </Button>
+      </div>
+    </div>
+  )
+}
+
+export default function MovieDetail() {
+  if (!API_BASE) return <ServerUnavailableDetail />
+  return <MovieDetailMain />
+}

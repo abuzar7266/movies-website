@@ -2,11 +2,12 @@ import "dotenv/config";
 import { prisma } from "@/db.js";
 import argon2 from "argon2";
 import { recomputeMovieRanks } from "@services/movies.js";
+import type { Prisma } from "@generated/prisma/client.js";
 
 async function main() {
   const basePwd = process.env.SEED_USER_PASSWORD || "demo1234";
   const runId = process.env.SEED_RUN_ID || `${Date.now()}`;
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.rating.deleteMany({});
     await tx.review.deleteMany({});
     await tx.movie.deleteMany({});
@@ -131,7 +132,7 @@ async function main() {
       releaseDate: new Date("1994-09-23T00:00:00.000Z")
     }
   ];
-  const movieCreators = users.map((u) => u.id);
+  const movieCreators = users.map((u: { id: string }) => u.id);
   const movies = [];
   const baseCreatedAt = Date.now() - 30 * 60_000;
   for (let i = 0; i < 30; i++) {

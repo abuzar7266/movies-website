@@ -19,14 +19,15 @@ import swaggerUi from "swagger-ui-express";
 import { openapi } from "@docs/openapi.js";
 import { config } from "@config/index.js";
 import { metricsMiddleware, metricsHandler } from "@config/metrics.js";
+import { csrfProtection } from "@middleware/csrf.js";
 
 const app = express();
-const isDev = process.env.NODE_ENV === "development";
+const isDev = config.isDev;
 
 app.use(helmet());
 app.use(
   cors({
-    origin: config.cors.origins ? config.cors.origins : true,
+    origin: config.cors.origins,
     credentials: true
   })
 );
@@ -36,19 +37,21 @@ app.use(cookieParser());
 app.use(authenticate);
 app.use(requestId);
 app.use(metricsMiddleware);
-const rlWindowMs = Number(process.env.RATE_LIMIT_WINDOW_MS || 60000);
-const rlLimit = Number(process.env.RATE_LIMIT_LIMIT || 120);
-if (process.env.REDIS_URL) {
-  app.use(redisRateLimit({ windowMs: rlWindowMs, limit: rlLimit }));
-} else {
-  app.use(
-    rateLimit({
-      windowMs: rlWindowMs,
-      limit: rlLimit,
-      standardHeaders: true,
-      legacyHeaders: false
-    })
-  );
+const rlWindowMs = config.rateLimit.windowMs;
+const rlLimit = config.rateLimit.limit;
+if (!config.isTest) {
+  if (config.redisUrl) {
+    app.use(redisRateLimit({ windowMs: rlWindowMs, limit: rlLimit }));
+  } else {
+    app.use(
+      rateLimit({
+        windowMs: rlWindowMs,
+        limit: rlLimit,
+        standardHeaders: true,
+        legacyHeaders: false
+      })
+    );
+  }
 }
 if (isDev) {
   app.use((req, res, next) => {
@@ -58,7 +61,7 @@ if (isDev) {
     next();
   });
 }
-if (process.env.NODE_ENV === "test") {
+if (config.isTest) {
   const testLimiter = rateLimit({ windowMs: 60_000, limit: 3, standardHeaders: false, legacyHeaders: false });
   app.get("/test/rl", testLimiter, (_req, res) => {
     res.json({ success: true });
@@ -77,7 +80,7 @@ app.get("/healthz", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-if (process.env.METRICS_ENABLED !== "false") {
+if (config.metricsEnabled) {
   app.get("/metrics", metricsHandler);
 }
 
@@ -87,6 +90,7 @@ app.get("/openapi.json", (_req, res) => {
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapi));
 
 app.use("/auth", authRouter);
+app.use(csrfProtection);
 app.use("/users", usersRouter);
 app.use("/movies", moviesRouter);
 app.use("/reviews", reviewsRouter);

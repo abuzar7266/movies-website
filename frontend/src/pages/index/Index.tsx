@@ -3,7 +3,6 @@ import { useSearchParams } from "react-router-dom"
 import HeroSection from "@components/HeroSection"
 import FiltersBar from "@components/filters/FiltersBar"
 import MoviesHeader from "@components/movies/MoviesHeader"
-import { useMovies } from "@context/MovieContext"
 import { MovieGrid } from "@components/movies/MovieGrid"
 import { useAuth } from "@context/AuthContext"
 import MovieForm from "@components/movies/MovieForm"
@@ -17,6 +16,7 @@ import type { MovieDTO } from "@src/types/api"
 import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "@api"
 import { DEFAULT_LABELS_EN, makeSortOptions } from "@lib/options"
 import styles from "./Index.module.css"
+import { onAppEvent } from "@lib/events"
 
 const DEFAULT_MIN_STARS: StarsValue = "0"
 const DEFAULT_REVIEW_SCOPE: ReviewScope = "all"
@@ -54,8 +54,7 @@ function parseSortKey(raw: string | null, fallback: SortKey): SortKey {
   return fallback
 }
 
-function Index() {
-  const { addMovie, queryMovies } = useMovies()
+function IndexMain() {
   const { user, isAuthenticated } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get(QUERY_Q) || "")
@@ -74,11 +73,15 @@ function Index() {
   const [remotePageSize, setRemotePageSize] = useState(() => (typeof window === "undefined" ? MAX_REMOTE_PAGE_SIZE : pageSizeForWidth(window.innerWidth)))
   const [recentlyAddedMovieId, setRecentlyAddedMovieId] = useState<string | null>(null)
   const remoteRequestSeq = useRef(0)
+  const signedPosterCacheRef = useRef<Map<string, string>>(new Map())
 
   const resolvePosterUrl = (m: MovieDTO): string => {
-    const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
+    let candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
     if (!candidate) return "https://placehold.co/480x720?text=Poster"
     if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
+    if (candidate.startsWith("/media/")) {
+      candidate = `${candidate}?redirect=1`
+    }
     return apiUrl(candidate)
   }
 
@@ -130,10 +133,9 @@ function Index() {
     setPage((p) => p === 1 ? p : 1)
   }, [searchQuery, minStars, reviewScope, sortBy, wantsAdd, setSearchParams])
 
-  const isRemote = Boolean(API_BASE)
+  // remote-only mode
 
   useEffect(() => {
-    if (!API_BASE) return
     const onResize = () => {
       const next = pageSizeForWidth(window.innerWidth)
       setRemotePageSize((prev) => (prev === next ? prev : next))
@@ -144,29 +146,61 @@ function Index() {
   }, [])
 
   useEffect(() => {
-    if (!API_BASE) return
     setPage(1)
     setRemoteReloadKey((k) => k + 1)
   }, [remotePageSize])
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        setRemoteReloadKey((k) => k + 1)
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [])
+
+  useEffect(() => {
+    let timer: number | undefined
+    const start = () => {
+      if (timer) window.clearInterval(timer)
+      timer = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          setRemoteReloadKey((k) => k + 1)
+        }
+      }, 15000)
+    }
+    start()
+    return () => { if (timer) window.clearInterval(timer) }
+  }, [])
+
+  useEffect(() => {
+    const offMovie = onAppEvent<{ movieId?: string }>("movie:changed", () => {
+      signedPosterCacheRef.current.clear()
+      setRemoteReloadKey((k) => k + 1)
+    })
+    const offMedia = onAppEvent<{ movieId?: string }>("media:changed", () => {
+      signedPosterCacheRef.current.clear()
+      setRemoteReloadKey((k) => k + 1)
+    })
+    const offReviews = onAppEvent<{ movieId?: string }>("reviews:changed", () => {
+      setRemoteReloadKey((k) => k + 1)
+    })
+    return () => {
+      offMovie()
+      offMedia()
+      offReviews()
+    }
+  }, [])
 
   const effectiveReviewScope = useMemo(() => {
     if (!isAuthenticated && (reviewScope === "mine" || reviewScope === "not_mine")) return DEFAULT_REVIEW_SCOPE
     return reviewScope
   }, [isAuthenticated, reviewScope])
 
-  const resultsWithReviewScope = useMemo(() => {
-    if (isRemote) return []
-    return queryMovies({
-      search: searchQuery,
-      minStars: Number(minStars),
-      reviewScope: effectiveReviewScope,
-      sortBy,
-      userId: isAuthenticated ? user?.id : undefined,
-    })
-  }, [searchQuery, minStars, effectiveReviewScope, sortBy, user, queryMovies, isRemote, isAuthenticated])
+  // no local results in remote-only mode
 
   useEffect(() => {
-    if (!API_BASE) return;
     const seq = ++remoteRequestSeq.current
     let active = true
     const run = async () => {
@@ -187,11 +221,35 @@ function Index() {
         params.set("pageSize", String(remotePageSize))
         const res = await moviesApi.listMovies(params)
         if (!active || seq !== remoteRequestSeq.current) return
+        // Sign poster media IDs to get direct URLs when available
+        const cache = signedPosterCacheRef.current
+        const ids = Array.from(
+          new Set(
+            res.data.items.map((m) => m.posterMediaId || "").filter(Boolean)
+          )
+        ) as string[]
+        const need = ids.filter((id) => !cache.has(id))
+        if (need.length) {
+          await Promise.all(
+            need.map(async (id) => {
+              try {
+                const signed = await mediaApi.signUrl(id, 300)
+                cache.set(id, signed.data.url)
+              } catch {
+                // ignore; fallback will be redirect URL
+              }
+            })
+          )
+        }
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
           id: m.id,
           title: m.title,
           releaseDate: new Date(m.releaseDate).toISOString(),
-          posterUrl: resolvePosterUrl(m),
+          posterUrl: (() => {
+            const signed = m.posterMediaId ? signedPosterCacheRef.current.get(m.posterMediaId) : undefined
+            if (signed) return signed
+            return resolvePosterUrl(m)
+          })(),
           trailerUrl: "",
           synopsis: m.synopsis,
           createdBy: m.createdBy,
@@ -252,25 +310,6 @@ function Index() {
       setShowLoginDialog(true)
       return
     }
-    if (!API_BASE) {
-      const success = addMovie({
-        title: data.title,
-        releaseDate: data.releaseDate,
-        posterUrl: data.posterUrl || "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=500",
-        trailerUrl: toEmbedUrl(data.trailerUrl || ""),
-        synopsis: data.synopsis,
-        createdBy: user.id,
-      })
-      if (success) {
-        closeAdd()
-        setFormError("")
-        toast.success("Movie added")
-      } else {
-        setFormError("A movie with this title already exists.")
-        toast.error("Movie already exists")
-      }
-      return
-    }
 
     setFormError("")
     try {
@@ -307,11 +346,18 @@ function Index() {
       toast.error("Failed to add movie")
     }
   }
-  const moviesToShow = API_BASE ? remoteMovies : resultsWithReviewScope
-
-  const sortLabel = useMemo(() => {
-    return makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
-  }, [sortBy])
+  if (remoteLoaded && remoteFailed && remoteMovies.length === 0 && page === 1) {
+    return (
+      <div className={`${styles.page} ${styles.centerPage}`}>
+        <div className={styles.centerContent}>
+          <h1 className={styles.centerTitle}>Failed to connect to server</h1>
+          <button className={styles.retryButton} onClick={() => setRemoteReloadKey((k) => k + 1)}>Retry</button>
+        </div>
+      </div>
+    )
+  }
+  const moviesToShow = remoteMovies
+  const sortLabel = makeSortOptions(DEFAULT_LABELS_EN).find((o) => o.value === sortBy)?.label ?? "Top ranked"
   const canReset = searchQuery !== "" || minStars !== DEFAULT_MIN_STARS || reviewScope !== DEFAULT_REVIEW_SCOPE || sortBy !== DEFAULT_SORT_BY
   return (
     <div className={styles.page}>
@@ -335,13 +381,13 @@ function Index() {
           />
         </div>
         <MovieGrid
-          key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-${API_BASE ? "remote" : "local"}`}
+          key={`${searchQuery}-${minStars}-${reviewScope}-${sortBy}-remote`}
           movies={moviesToShow}
           loading={loadingRemote}
-          loaded={isRemote ? remoteLoaded : true}
-          error={isRemote ? remoteFailed : false}
-          hasMore={API_BASE ? remoteMovies.length < remoteTotal : undefined}
-          onLoadMore={API_BASE ? (() => setPage((p) => p + 1)) : undefined}
+          loaded={remoteLoaded}
+          error={remoteFailed}
+          hasMore={remoteMovies.length < remoteTotal}
+          onLoadMore={() => setPage((p) => p + 1)}
         />
       </section>
       {showAddForm && (
@@ -363,4 +409,19 @@ function Index() {
   )
 }
 
-export default Index
+function ServerUnavailable() {
+  return (
+    <div className={`${styles.page} ${styles.centerPage}`}>
+      <div className={styles.centerContent}>
+        <h1 className={styles.centerTitle}>Server unavailable</h1>
+        <p className={styles.centerSubtitle}>The application requires a running backend. Please check server connection.</p>
+        <button className={styles.retryButton} onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    </div>
+  )
+}
+
+export default function Index() {
+  if (!API_BASE) return <ServerUnavailable />
+  return <IndexMain />
+}

@@ -842,7 +842,8 @@ export const MovieScalarFieldEnum = {
   createdAt: 'createdAt',
   rank: 'rank',
   averageRating: 'averageRating',
-  reviewCount: 'reviewCount'
+  reviewCount: 'reviewCount',
+  ratingCount: 'ratingCount'
 } as const
 
 export type MovieScalarFieldEnum = (typeof MovieScalarFieldEnum)[keyof typeof MovieScalarFieldEnum]

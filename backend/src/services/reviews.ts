@@ -4,11 +4,12 @@ import { prisma } from "@/db.js";
 import { reviewsRepo } from "@repositories/reviews.js";
 import { enqueueMovieRankRecompute } from "@services/movies.js";
 import { bumpCacheVersion } from "@/redisClient.js";
+import type { Prisma } from "@generated/prisma/client.js";
 
 export async function createReview(userId: string, data: { movieId: string; content: string }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const review = await tx.review.create({
       data: { movieId: data.movieId, userId, content: data.content },
       select: reviewSelect
@@ -26,7 +27,7 @@ export async function createReview(userId: string, data: { movieId: string; cont
 }
 
 export async function listReviewsByMovie(movieId: string, page: number, pageSize: number) {
-  const { total, items } = await prisma.$transaction(async (tx) => {
+  const { total, items } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const Reviews = reviewsRepo(tx);
     const total = await Reviews.countByMovie(movieId);
     const items = await Reviews.findManyByMovie(movieId, (page - 1) * pageSize, pageSize);
@@ -47,7 +48,7 @@ export async function updateReview(userId: string, id: string, content: string) 
 }
 
 export async function deleteReview(userId: string, id: string) {
-  const movieId = await prisma.$transaction(async (tx) => {
+  const movieId = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const r = await tx.review.findFirst({ where: { id, userId } });
     if (!r) throw new HttpError(404, "Review not found", "not_found");
     await tx.review.delete({ where: { id } });
