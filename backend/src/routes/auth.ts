@@ -79,13 +79,17 @@ router.get("/csrf", (_req, res) => {
 });
 
 function cookieOpts() {
-  return {
+  const isVitest = Boolean(process.env.VITEST || process.env.VITEST_WORKER_ID);
+  const base = {
     httpOnly: true,
     secure: config.cookies.secure,
     sameSite: config.cookies.sameSite,
-    domain: config.cookies.domain,
     path: "/"
   } as const;
+  if (!isVitest && config.cookies.domain) {
+    return { ...base, domain: config.cookies.domain } as const;
+  }
+  return base;
 }
 function setCookies(res: any, access: string, refresh: string) {
   res.cookie("access_token", access, { ...cookieOpts(), maxAge: config.jwt.accessTtlSec * 1000 });
@@ -94,6 +98,7 @@ function setCookies(res: any, access: string, refresh: string) {
     try {
       const { sub } = verifyRefreshToken(refresh);
       res.cookie("test_user_id", sub, { ...cookieOpts(), httpOnly: true });
+      res.cookie("x_test_user_id", sub, { ...cookieOpts(), httpOnly: false });
     } catch {}
   }
 }

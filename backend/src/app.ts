@@ -39,17 +39,19 @@ app.use(requestId);
 app.use(metricsMiddleware);
 const rlWindowMs = config.rateLimit.windowMs;
 const rlLimit = config.rateLimit.limit;
-if (config.redisUrl) {
-  app.use(redisRateLimit({ windowMs: rlWindowMs, limit: rlLimit }));
-} else {
-  app.use(
-    rateLimit({
-      windowMs: rlWindowMs,
-      limit: rlLimit,
-      standardHeaders: true,
-      legacyHeaders: false
-    })
-  );
+if (!config.isTest) {
+  if (config.redisUrl) {
+    app.use(redisRateLimit({ windowMs: rlWindowMs, limit: rlLimit }));
+  } else {
+    app.use(
+      rateLimit({
+        windowMs: rlWindowMs,
+        limit: rlLimit,
+        standardHeaders: true,
+        legacyHeaders: false
+      })
+    );
+  }
 }
 if (isDev) {
   app.use((req, res, next) => {
