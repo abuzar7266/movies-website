@@ -33,9 +33,7 @@ FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN --mount=type=secret,id=backend_env \
-    set -eux; \
-    set -a; . /run/secrets/backend_env; set +a; \
+RUN set -eux; \
     npm run prisma:generate && npm run build
 
 FROM base AS runner
