@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { HttpError } from "@middleware/errors.js";
 import { config } from "@config/index.js";
 import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Readable } from "node:stream";
 import { bumpCacheVersion } from "@/redisClient.js";
 import type { Prisma } from "@generated/prisma/client.js";
@@ -83,6 +84,17 @@ router.get("/:id", async (req, res, next) => {
     if (!media) throw new HttpError(404, "Media not found", "not_found");
     if (s3 && config.storage.s3 && media.data == null) {
       try {
+        const wantsRedirect = req.query.redirect === "1";
+        if (wantsRedirect) {
+          const url = await getSignedUrl(
+            s3,
+            new GetObjectCommand({ Bucket: config.storage.s3.bucket, Key: id }),
+            { expiresIn: 60 }
+          );
+          res.setHeader("Cache-Control", "private, max-age=60");
+          res.redirect(302, url);
+          return;
+        }
         const head = await s3.send(new HeadObjectCommand({ Bucket: config.storage.s3.bucket, Key: id }));
         const etag = head.ETag;
         if (etag && req.headers["if-none-match"] === etag) {
@@ -111,6 +123,28 @@ router.get("/:id", async (req, res, next) => {
       res.setHeader("ETag", etag);
       res.send(Buffer.from(media.data as Buffer));
     }
+  } catch (e) {
+    next(e);
+  }
+});
+
+router.get("/:id/signed", async (req, res, next) => {
+  try {
+    const id = req.params.id as string;
+    const media = await prisma.media.findUnique({ where: { id } });
+    if (!media) throw new HttpError(404, "Media not found", "not_found");
+    if (s3 && config.storage.s3 && media.data == null) {
+      const expires = Number.parseInt(String(req.query.expires || ""), 10);
+      const expiresIn = Number.isFinite(expires) && expires > 0 && expires <= 3600 ? expires : 300;
+      const url = await getSignedUrl(
+        s3,
+        new GetObjectCommand({ Bucket: config.storage.s3.bucket, Key: id }),
+        { expiresIn }
+      );
+      res.json({ success: true, data: { url, expiresIn } });
+      return;
+    }
+    res.json({ success: true, data: { url: `/media/${id}`, expiresIn: null } });
   } catch (e) {
     next(e);
   }

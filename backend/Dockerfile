@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.4
 FROM node:20-alpine AS base
 WORKDIR /app
 RUN apk add --no-cache openssl
@@ -29,12 +30,13 @@ RUN set -eux; \
     npm ci --no-audit --no-fund
 
 FROM base AS builder
-ARG DATABASE_URL
-ARG DATABASE_URL_TEST
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-RUN DATABASE_URL=$DATABASE_URL DATABASE_URL_TEST=$DATABASE_URL_TEST npm run prisma:generate && npm run build
+RUN --mount=type=secret,id=backend_env \
+    set -eux; \
+    set -a; . /run/secrets/backend_env; set +a; \
+    npm run prisma:generate && npm run build
 
 FROM base AS runner
 ENV NODE_ENV=production

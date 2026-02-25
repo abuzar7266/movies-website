@@ -2,6 +2,14 @@
 
 TypeScript Express API powered by Prisma (PostgreSQL), Zod v4 validation, and OpenAPI generation.
 
+## Recent Updates
+- Added ESLint v9 flat config; lints TS and JS across the backend.
+- Expanded tests: integration coverage for movies filters/sorting, permissions, auth/media error paths; unit tests for middleware and DTOs.
+- Stabilized type checking: explicit Prisma TransactionClient types and alias shims for ESM `.js` path imports.
+- Improved developer scripts: lint, typecheck, build all green on Node 20.19+.
+- Rank recomputation tests and limits: supports `RANK_RECOMPUTE_LIMIT` to cap leaderboard window.
+- Release: v0.2.0 — see [CHANGELOG.md](../CHANGELOG.md) for details.
+
 ## Design & Architecture
 - Express + modular routing under `src/routes`.
 - DTOs in `src/dtos` using Zod v4 for validation and type‑safety.
@@ -55,6 +63,8 @@ src/
 ```
 
 ## Local Setup
+Prerequisite: Node >= 20.19.0
+
 ### With Docker Compose (recommended)
 From repo root:
 ```bash
@@ -84,6 +94,7 @@ Copy `.env.example` to `.env` and edit as needed:
 - `DATABASE_URL=postgres://postgres:postgres@localhost:5432/movieshelf`
 - `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` (required in production)
 - Optional: `REDIS_URL` for rate limiting; otherwise in‑memory limiter is used.
+- Optional: `RANK_RECOMPUTE_LIMIT` to bound the number of ranked movies.
 
 ## Testing
 ```bash
@@ -95,9 +106,101 @@ Run integration tests (requires a reachable Postgres via `DATABASE_URL`):
 npm run test:integration
 ```
 
+To collect coverage with Vitest:
+```bash
+vitest run --config vitest.integration.config.ts --coverage
+```
+The project uses `@vitest/coverage-v8`.
+
 Test layout:
 - Unit: `tests/unit/**/*.test.ts`
 - Integration: `tests/integration/**/*.spec.ts`
+
+## Linting & Formatting
+- ESLint v9 flat config lives in `eslint.config.js`
+- Run lint:
+```bash
+npm run lint
+```
+- Auto-fix:
+```bash
+npm run lint:fix
+```
+- Ignores: `dist/`, `src/generated/`, and `coverage/`
+- Prettier:
+```bash
+npm run format
+```
+
+## CI/CD & Test Workflows
+- Baseline: Node >= 20.19.0 with `npm ci` for deterministic installs.
+- Static checks:
+  - `npm run lint` (ESLint v9 flat config)
+  - `npm run typecheck` (noEmit)
+  - `npm run build` (TS + tsc-alias + Prisma ESM patch)
+- Unit tests (no DB): `npm run test`
+- Integration tests (DB required): provision Postgres + Redis and run `npm run test:integration`
+- Coverage: enable `@vitest/coverage-v8` for integration suites.
+
+Example GitHub Actions job:
+```yaml
+name: CI
+on: [push, pull_request]
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: movieshelf
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s --health-timeout=5s --health-retries=5
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: npm
+      - run: npm ci
+        working-directory: backend
+      - run: npm run prisma:generate
+        working-directory: backend
+      - run: npm run lint && npm run typecheck && npm run build
+        working-directory: backend
+      - name: Unit tests
+        run: npm run test
+        working-directory: backend
+      - name: Integration tests
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/movieshelf
+          REDIS_URL: redis://localhost:6379
+        run: npm run test:integration
+        working-directory: backend
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage
+```
+
+## TypeScript Notes
+- Source uses ESM‑style `.js` specifiers with TS path aliases (e.g. `@/db.js`). A shim at `src/types/alias-compat.d.ts` provides editor/type‑checker compatibility without changing runtime imports.
+- Prisma transactions are annotated with `Prisma.TransactionClient` to satisfy strict type checking.
+
+## How These Changes Improve Scalability
+- Bounded recompute: Ranking updates are restricted by `RANK_RECOMPUTE_LIMIT`, limiting write amplification and avoiding full‑table rewrites as data grows.
+- Smarter caching: Explicit cache versioning (`bumpCacheVersion`) scopes invalidation to movie/review namespaces for predictable performance under write load.
+- Efficient media delivery: ETag/304 support and optional S3 storage reduce bandwidth/latency and move blobs off the database path.
+- Safer concurrency: Service/repository boundaries and transaction typing reduce race conditions during aggregate updates (ratings/reviews).
+- Operational readiness: Consistent lint/build/typecheck on Node 20, with flat ESLint and Vitest coverage, reduces regressions and improves CI signal.
 
 ## Operations
 - Health: `/healthz`

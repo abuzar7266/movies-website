@@ -16,3 +16,13 @@ export async function upload(file: File): Promise<Envelope<UploadResult>> {
     silentError: true,
   });
 }
+
+export interface SignedUrlResult {
+  url: string;
+  expiresIn: number | null;
+}
+
+export async function signUrl(id: string, expiresIn?: number): Promise<Envelope<SignedUrlResult>> {
+  const qs = typeof expiresIn === "number" ? `?expires=${expiresIn}` : "";
+  return api.get<Envelope<SignedUrlResult>>(`/media/${id}/signed${qs}`, { silentError: true });
+}

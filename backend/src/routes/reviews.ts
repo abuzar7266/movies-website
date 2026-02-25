@@ -28,7 +28,8 @@ router.get("/", async (req, res, next) => {
     const pageSize = Number.parseInt(typeof req.query.pageSize === "string" ? req.query.pageSize : "10", 10) || 10;
     const version = await getCacheVersion(`v:reviews:${movieId}`);
     const cacheKey = `cache:reviews:movie:${movieId}:v${version}:page=${page}&pageSize=${pageSize}`;
-    await sendJsonWithCache(req, res, cacheKey, 30, "public, max-age=30", async () => {
+    res.setHeader("Vary", "Cookie");
+    await sendJsonWithCache(req, res, cacheKey, 10, "private, max-age=10", async () => {
       const resData = await Reviews.listReviewsByMovie(movieId, page, pageSize);
       return { success: true, data: resData };
     });

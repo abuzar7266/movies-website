@@ -16,6 +16,7 @@ import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi, ratingsApi, reviewsApi
 import type { MovieDTO, ReviewDTO } from "@src/types/api"
 import type { Movie, Review } from "@src/types/movie"
 import styles from "./MovieDetail.module.css"
+import { emitAppEvent } from "@lib/events"
 
 function MovieDetailSkeleton() {
   return (
@@ -222,7 +223,7 @@ function mapMovieDtoToMovie(m: MovieDTO): Movie {
   const posterUrl = candidate
     ? candidate.startsWith("http://") || candidate.startsWith("https://")
       ? candidate
-      : apiUrl(candidate)
+      : (candidate.startsWith("/media/") ? apiUrl(`${candidate}?redirect=1`) : apiUrl(candidate))
     : "https://placehold.co/480x720?text=Poster"
   return {
     id: m.id,
@@ -245,7 +246,7 @@ function mapReviewDtoToReview(r: ReviewDTO): Review {
       ? {
           id: r.user.id,
           name: r.user.name,
-          avatarUrl: r.user.avatarMediaId ? apiUrl(`/media/${r.user.avatarMediaId}`) : undefined,
+          avatarUrl: r.user.avatarMediaId ? apiUrl(`/media/${r.user.avatarMediaId}?redirect=1`) : undefined,
         }
       : undefined,
     rating: 0,
@@ -273,7 +274,16 @@ function useRemoteMovieData(id: string | undefined, reloadKey: number) {
       try {
         const res = await moviesApi.getMovie(id)
         if (cancelled) return
-        setMovie(mapMovieDtoToMovie(res.data))
+        const baseMovie = mapMovieDtoToMovie(res.data)
+        setMovie(baseMovie)
+        if (res.data.posterMediaId) {
+          try {
+            const signed = await mediaApi.signUrl(res.data.posterMediaId, 300)
+            if (!cancelled) setMovie(prev => prev ? ({ ...prev, posterUrl: signed.data.url }) : prev)
+          } catch {
+            /* ignore; fallback already set */
+          }
+        }
         setStats({
           averageRating: res.data.averageRating ?? 0,
           reviewCount: res.data.reviewCount ?? 0,
@@ -313,7 +323,23 @@ function useRemoteReviewsData(id: string | undefined) {
       try {
         const res = await reviewsApi.listByMovie(id, 1, 50)
         if (cancelled) return
-        setReviews(res.data.items.map(mapReviewDtoToReview))
+        const items = res.data.items
+        const ids = Array.from(new Set(items.map(it => it.user?.avatarMediaId || "").filter(Boolean))) as string[]
+        const cache = new Map<string, string>()
+        await Promise.all(ids.map(async (mid) => {
+          try {
+            const s = await mediaApi.signUrl(mid, 300)
+            cache.set(mid, s.data.url)
+          } catch {
+            /* ignore */
+          }
+        }))
+        setReviews(items.map((r) => {
+          const base = mapReviewDtoToReview(r)
+          const mid = r.user?.avatarMediaId || ""
+          const signed = mid ? cache.get(mid) : undefined
+          return signed && base.author ? { ...base, author: { ...base.author, avatarUrl: signed } } : base
+        }))
       } catch {
         if (!cancelled) setReviews([])
       } finally {
@@ -406,6 +432,7 @@ function MovieDetailMain() {
       if (!API_BASE) deleteMovie(movie.id)
       navigate("/")
       toast.success("Movie deleted")
+      emitAppEvent("movie:changed", { movieId: movie.id })
     } finally {
       setDeleting(false)
       setConfirmDeleteMovieOpen(false)
@@ -436,6 +463,7 @@ function MovieDetailMain() {
         remoteMovie.setMyRating(value);
         remoteMovie.setStats((prev) => ({ averageRating: r.data.averageRating, reviewCount: prev?.reviewCount ?? 0, rank: prev?.rank ?? 0 }));
         toast.success("Rating saved");
+        emitAppEvent("movie:changed", { movieId: movie.id })
       } catch {
         toast.error("Failed to save rating");
       }
@@ -468,6 +496,8 @@ function MovieDetailMain() {
       }
       toast.success("Movie updated");
       setShowEditMovie(false);
+      emitAppEvent("movie:changed", { movieId: movie.id })
+      emitAppEvent("media:changed", { movieId: movie.id })
     } catch {
       toast.error("Failed to update movie");
     }
@@ -527,6 +557,7 @@ function MovieDetailMain() {
       }
       const res = await reviewsApi.listByMovie(movie.id, 1, 50);
       remoteReviews.setReviews(res.data.items.map(mapReviewDtoToReview));
+      emitAppEvent("reviews:changed", { movieId: movie.id })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setShowLoginDialog(true);
@@ -584,6 +615,7 @@ function MovieDetailMain() {
       if (target?.userId === user.id) remoteMovie.setMyRating(null)
       remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: Math.max(0, prev.reviewCount - 1) }) : prev)
       toast.success("Review deleted");
+      emitAppEvent("reviews:changed", { movieId: movie.id })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         setShowLoginDialog(true)

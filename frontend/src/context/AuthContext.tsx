@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 email: me.data.email,
                 role: me.data.role,
                 avatarMediaId,
-                avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
+                avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}?redirect=1`) : undefined,
               },
             };
           });
@@ -123,6 +123,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const uploadRes = await mediaApi.upload(file);
       const updated = await usersApi.updateAvatar(uploadRes.data.id);
       const avatarMediaId = updated.data.avatarMediaId ?? null;
+      let directUrl: string | undefined;
+      if (avatarMediaId) {
+        try {
+          const signed = await mediaApi.signUrl(avatarMediaId, 300);
+          directUrl = signed.data.url;
+        } catch {
+          directUrl = apiUrl(`/media/${avatarMediaId}?redirect=1`);
+        }
+      }
       setAuthState((prev) => {
         if (!prev.user) return prev;
         return {
@@ -134,7 +143,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: updated.data.email,
             role: updated.data.role,
             avatarMediaId,
-            avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
+            avatarUrl: avatarMediaId ? directUrl : undefined,
           },
         };
       });
@@ -156,6 +165,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const me = await usersApi.me();
         if (cancelled) return;
         const avatarMediaId = me.data.avatarMediaId ?? null;
+        let directUrl: string | undefined;
+        if (avatarMediaId) {
+          try {
+            const signed = await mediaApi.signUrl(avatarMediaId, 300);
+            directUrl = signed.data.url;
+          } catch {
+            directUrl = apiUrl(`/media/${avatarMediaId}?redirect=1`);
+          }
+        }
         setAuthState(prev => ({
           user: {
             id: me.data.id,
@@ -163,7 +181,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             email: me.data.email,
             role: me.data.role,
             avatarMediaId,
-            avatarUrl: avatarMediaId ? apiUrl(`/media/${avatarMediaId}`) : undefined,
+            avatarUrl: avatarMediaId ? directUrl : undefined,
             createdAt: prev.user?.createdAt ?? new Date().toISOString(),
           },
           isAuthenticated: true,

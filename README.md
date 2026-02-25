@@ -2,6 +2,21 @@
 
 Full‑stack movie catalog and review app with a TypeScript/Express backend and a Vite/React frontend.
 
+## Recent Updates
+- Backend linting migrated to ESLint v9 flat config; lints TS and JS.
+- Test suite expanded: integration tests for movies filters/sorting, permissions, and error paths; unit tests for middleware and DTOs.
+- TypeScript stability improvements: explicit Prisma transaction types and path‑alias type shims for ESM `.js` imports.
+- Developer experience: Node 20.19+ engines, consistent `lint`, `typecheck`, and `build` scripts.
+- Releases: Backend v0.2.0, Frontend v0.1.0 — see [CHANGELOG.md](./CHANGELOG.md)
+
+## CI/CD Overview
+- Standard pipeline:
+  - Install with `npm ci` (backend and frontend)
+  - Backend: `npm run lint`, `npm run typecheck`, `npm run build`
+  - Backend tests: `npm run test` (unit), then provision Postgres/Redis and `npm run test:integration` (coverage)
+  - Frontend: `npm run lint`, `npm run build`, `npm run test`
+- See backend README for an example GitHub Actions workflow.
+
 ## What’s Inside
 - Backend: Express + Prisma + PostgreSQL, Zod v4 validation, OpenAPI generated from Zod, JWT auth, Prometheus metrics.
 - Frontend: React + Vite, modern UI components, client-side state and sample data for a fast demo UX.
@@ -56,6 +71,11 @@ project/
 ## Development Notes
 - The frontend demo operates client‑side; the backend provides the real API with auth, media, reviews, and ratings. You can develop independently and integrate as needed.
 - Security and operational notes: dev secrets are present only for local use; rotate for any shared or deployed environment.
+- Recommended Node version: >= 20.19.0
+- Lint/format/typecheck (backend):
+  - `npm run lint` / `npm run lint:fix`
+  - `npm run format` / `npm run format:write`
+  - `npm run typecheck`
 
 ## Testing
 ### Frontend

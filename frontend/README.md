@@ -2,6 +2,12 @@
 
 Vite + React SPA that showcases movie discovery, ranking, and reviewing with a modern UI.
 
+## Recent Updates
+- Aligned tooling with backend: ESLint flat config and Vitest are ready to run.
+- Verified scripts: dev, build, lint, and test are configured and pass locally.
+- No breaking UI changes; compatible with backend API at http://localhost:4000.
+- Release: v0.1.0 — see [CHANGELOG.md](../CHANGELOG.md).
+
 ## Design & Architecture
 - Vite + React with file‑scoped components and a small context layer.
 - State:
@@ -43,6 +49,25 @@ cd project/frontend
 npm ci
 npm run dev
 ```
+
+## Commands
+- Build:
+```bash
+npm run build
+```
+- Lint:
+```bash
+npm run lint
+```
+- Test (Vitest):
+```bash
+npm run test
+```
+
+## How These Changes Improve Scalability
+- Consistent lint and test setup reduces defects and enforces code quality as the UI surface grows.
+- Clear API integration points (via contexts and a thin lib layer) allow progressive replacement of demo data with real endpoints without large refactors.
+- Vite build targets modern browsers and enables fast HMR for rapid iteration.
 
 ## Testing
 ```bash

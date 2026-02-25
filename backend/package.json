@@ -2,7 +2,7 @@
   "name": "movieshelf-backend",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "engines": {
     "node": ">=20.19.0"
   },
@@ -30,6 +30,7 @@
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^8.0.0",
     "@aws-sdk/client-s3": "3.996.0",
+    "@aws-sdk/s3-request-presigner": "3.996.0",
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "argon2": "0.44.0",

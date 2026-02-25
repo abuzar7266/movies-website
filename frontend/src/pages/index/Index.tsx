@@ -16,6 +16,7 @@ import type { MovieDTO } from "@src/types/api"
 import { API_BASE, ApiError, apiUrl, mediaApi, moviesApi } from "@api"
 import { DEFAULT_LABELS_EN, makeSortOptions } from "@lib/options"
 import styles from "./Index.module.css"
+import { onAppEvent } from "@lib/events"
 
 const DEFAULT_MIN_STARS: StarsValue = "0"
 const DEFAULT_REVIEW_SCOPE: ReviewScope = "all"
@@ -72,11 +73,15 @@ function IndexMain() {
   const [remotePageSize, setRemotePageSize] = useState(() => (typeof window === "undefined" ? MAX_REMOTE_PAGE_SIZE : pageSizeForWidth(window.innerWidth)))
   const [recentlyAddedMovieId, setRecentlyAddedMovieId] = useState<string | null>(null)
   const remoteRequestSeq = useRef(0)
+  const signedPosterCacheRef = useRef<Map<string, string>>(new Map())
 
   const resolvePosterUrl = (m: MovieDTO): string => {
-    const candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
+    let candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
     if (!candidate) return "https://placehold.co/480x720?text=Poster"
     if (candidate.startsWith("http://") || candidate.startsWith("https://")) return candidate
+    if (candidate.startsWith("/media/")) {
+      candidate = `${candidate}?redirect=1`
+    }
     return apiUrl(candidate)
   }
 
@@ -145,6 +150,25 @@ function IndexMain() {
     setRemoteReloadKey((k) => k + 1)
   }, [remotePageSize])
 
+  useEffect(() => {
+    const offMovie = onAppEvent<{ movieId?: string }>("movie:changed", () => {
+      signedPosterCacheRef.current.clear()
+      setRemoteReloadKey((k) => k + 1)
+    })
+    const offMedia = onAppEvent<{ movieId?: string }>("media:changed", () => {
+      signedPosterCacheRef.current.clear()
+      setRemoteReloadKey((k) => k + 1)
+    })
+    const offReviews = onAppEvent<{ movieId?: string }>("reviews:changed", () => {
+      setRemoteReloadKey((k) => k + 1)
+    })
+    return () => {
+      offMovie()
+      offMedia()
+      offReviews()
+    }
+  }, [])
+
   const effectiveReviewScope = useMemo(() => {
     if (!isAuthenticated && (reviewScope === "mine" || reviewScope === "not_mine")) return DEFAULT_REVIEW_SCOPE
     return reviewScope
@@ -173,11 +197,35 @@ function IndexMain() {
         params.set("pageSize", String(remotePageSize))
         const res = await moviesApi.listMovies(params)
         if (!active || seq !== remoteRequestSeq.current) return
+        // Sign poster media IDs to get direct URLs when available
+        const cache = signedPosterCacheRef.current
+        const ids = Array.from(
+          new Set(
+            res.data.items.map((m) => m.posterMediaId || "").filter(Boolean)
+          )
+        ) as string[]
+        const need = ids.filter((id) => !cache.has(id))
+        if (need.length) {
+          await Promise.all(
+            need.map(async (id) => {
+              try {
+                const signed = await mediaApi.signUrl(id, 300)
+                cache.set(id, signed.data.url)
+              } catch {
+                // ignore; fallback will be redirect URL
+              }
+            })
+          )
+        }
         const mapped: MovieWithStats[] = res.data.items.map((m) => ({
           id: m.id,
           title: m.title,
           releaseDate: new Date(m.releaseDate).toISOString(),
-          posterUrl: resolvePosterUrl(m),
+          posterUrl: (() => {
+            const signed = m.posterMediaId ? signedPosterCacheRef.current.get(m.posterMediaId) : undefined
+            if (signed) return signed
+            return resolvePosterUrl(m)
+          })(),
           trailerUrl: "",
           synopsis: m.synopsis,
           createdBy: m.createdBy,
