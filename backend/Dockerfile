@@ -45,7 +45,7 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 
 EXPOSE 4000
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy --config prisma.config.ts && node dist/server.js"]
