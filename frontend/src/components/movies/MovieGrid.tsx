@@ -25,9 +25,11 @@ interface MovieGridProps {
   loading?: boolean;
   loaded?: boolean;
   error?: boolean;
+  refreshing?: boolean;
+  changedIds?: Set<string>;
 }
 
-export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, loaded, error }: MovieGridProps) {
+export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, loaded, error, refreshing, changedIds }: MovieGridProps) {
   const [pageSize, setPageSize] = useState(() => (typeof window === "undefined" ? MAX_PAGE_SIZE : pageSizeForWidth(window.innerWidth)));
   const [visibleCount, setVisibleCount] = useState(() => (typeof window === "undefined" ? MAX_PAGE_SIZE : pageSizeForWidth(window.innerWidth)));
   const loaderRef = useRef<HTMLDivElement>(null);
@@ -134,7 +136,7 @@ export function MovieGrid({ movies, hasMore: hasMoreProp, onLoadMore, loading, l
         {visible.map((movie, i) => (
           <div
             key={movie.id}
-            className={styles.fadeIn}
+            className={`${styles.fadeIn} ${refreshing && changedIds?.has(movie.id) ? styles.softPulse : ""}`}
             style={{ animationDelay: `${Math.min(i + 1, 6) * 0.05}s` }}
           >
             <MovieCard movie={movie} />

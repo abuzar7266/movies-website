@@ -67,6 +67,8 @@ function IndexMain() {
   const [remoteMovies, setRemoteMovies] = useState<MovieWithStats[]>([])
   const [remoteTotal, setRemoteTotal] = useState(0)
   const [loadingRemote, setLoadingRemote] = useState(false)
+  const [refreshingRemote, setRefreshingRemote] = useState(false)
+  const [changedIds, setChangedIds] = useState<Set<string>>(new Set())
   const [remoteLoaded, setRemoteLoaded] = useState(false)
   const [remoteFailed, setRemoteFailed] = useState(false)
   const [remoteReloadKey, setRemoteReloadKey] = useState(0)
@@ -74,6 +76,9 @@ function IndexMain() {
   const [recentlyAddedMovieId, setRecentlyAddedMovieId] = useState<string | null>(null)
   const remoteRequestSeq = useRef(0)
   const signedPosterCacheRef = useRef<Map<string, string>>(new Map())
+  const reloadModeRef = useRef<"reset" | "background">("reset")
+  const remoteMoviesRef = useRef<MovieWithStats[]>([])
+  useEffect(() => { remoteMoviesRef.current = remoteMovies }, [remoteMovies])
 
   const resolvePosterUrl = (m: MovieDTO): string => {
     let candidate = m.posterUrl || (m.posterMediaId ? `/media/${m.posterMediaId}` : "")
@@ -153,6 +158,7 @@ function IndexMain() {
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === "visible") {
+        reloadModeRef.current = "background"
         setRemoteReloadKey((k) => k + 1)
       }
     }
@@ -166,6 +172,7 @@ function IndexMain() {
       if (timer) window.clearInterval(timer)
       timer = window.setInterval(() => {
         if (document.visibilityState === "visible") {
+          reloadModeRef.current = "background"
           setRemoteReloadKey((k) => k + 1)
         }
       }, 15000)
@@ -177,13 +184,16 @@ function IndexMain() {
   useEffect(() => {
     const offMovie = onAppEvent<{ movieId?: string }>("movie:changed", () => {
       signedPosterCacheRef.current.clear()
+      reloadModeRef.current = "background"
       setRemoteReloadKey((k) => k + 1)
     })
     const offMedia = onAppEvent<{ movieId?: string }>("media:changed", () => {
       signedPosterCacheRef.current.clear()
+      reloadModeRef.current = "background"
       setRemoteReloadKey((k) => k + 1)
     })
     const offReviews = onAppEvent<{ movieId?: string }>("reviews:changed", () => {
+      reloadModeRef.current = "background"
       setRemoteReloadKey((k) => k + 1)
     })
     return () => {
@@ -204,13 +214,20 @@ function IndexMain() {
     const seq = ++remoteRequestSeq.current
     let active = true
     const run = async () => {
-      if (page === 1) {
+      const mode = reloadModeRef.current
+      reloadModeRef.current = "reset"
+      const background = page === 1 && mode === "background"
+      if (page === 1 && !background) {
         setRemoteMovies([])
         setRemoteTotal(0)
         setRemoteLoaded(false)
         setRemoteFailed(false)
       }
-      setLoadingRemote(true)
+      if (background) {
+        setRefreshingRemote(true)
+      } else {
+        setLoadingRemote(true)
+      }
       try {
         const params = new URLSearchParams()
         if (searchQuery) params.set("q", searchQuery)
@@ -258,7 +275,23 @@ function IndexMain() {
           averageRating: m.averageRating ?? 0,
           rank: m.rank ?? 0,
         }))
-        setRemoteMovies(prev => page === 1 ? mapped : [...prev, ...mapped.filter(n => !prev.some(p => p.id === n.id))])
+        if (page === 1) {
+          const prev = remoteMoviesRef.current
+          const limit = Math.min(prev.length, Math.max(remotePageSize, prev.length))
+          const changed = new Set<string>()
+          for (let i = 0; i < Math.min(limit, mapped.length); i++) {
+            const a = prev[i]
+            const b = mapped[i]
+            if (!a || !b) continue
+            if (a.id !== b.id || a.title !== b.title || a.posterUrl !== b.posterUrl || a.averageRating !== b.averageRating || a.reviewCount !== b.reviewCount || a.rank !== b.rank) {
+              changed.add(b.id)
+            }
+          }
+          setChangedIds(changed)
+          setRemoteMovies(mapped)
+        } else {
+          setRemoteMovies(prev => [...prev, ...mapped.filter(n => !prev.some(p => p.id === n.id))])
+        }
         setRemoteTotal(res.data.total ?? mapped.length)
         setRemoteLoaded(true)
         setRemoteFailed(false)
@@ -271,6 +304,7 @@ function IndexMain() {
       } finally {
         if (active && seq === remoteRequestSeq.current) {
           setLoadingRemote(false)
+          setTimeout(() => setRefreshingRemote(false), 300)
         }
       }
     }
@@ -386,6 +420,8 @@ function IndexMain() {
           loading={loadingRemote}
           loaded={remoteLoaded}
           error={remoteFailed}
+          refreshing={refreshingRemote}
+          changedIds={changedIds}
           hasMore={remoteMovies.length < remoteTotal}
           onLoadMore={() => setPage((p) => p + 1)}
         />
