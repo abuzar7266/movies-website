@@ -551,12 +551,41 @@ function MovieDetailMain() {
         setEditingReview(null);
         toast.success("Review updated");
       } else {
-        await reviewsApi.createReview({ movieId: movie.id, content });
+        const created = await reviewsApi.createReview({ movieId: movie.id, content });
+        // Optimistic add of the created review with signed avatar
+        try {
+          const r = created.data;
+          let mapped = mapReviewDtoToReview(r);
+          const mid = r.user?.avatarMediaId || "";
+          if (mid) {
+            try {
+              const s = await mediaApi.signUrl(mid, 300);
+              if (mapped.author) mapped = { ...mapped, author: { ...mapped.author, avatarUrl: s.data.url } };
+            } catch { /* ignore */ }
+          }
+          remoteReviews.setReviews(prev => [mapped, ...prev]);
+        } catch { /* ignore */ }
         toast.success("Review added");
         remoteMovie.setStats((prev) => prev ? ({ ...prev, reviewCount: prev.reviewCount + 1 }) : prev)
       }
-      const res = await reviewsApi.listByMovie(movie.id, 1, 50);
-      remoteReviews.setReviews(res.data.items.map(mapReviewDtoToReview));
+      const res = await reviewsApi.listByMovie(movie.id, 1, 50, { noStore: true });
+      {
+        const items = res.data.items;
+        const ids = Array.from(new Set(items.map(it => it.user?.avatarMediaId || "").filter(Boolean))) as string[];
+        const cache = new Map<string, string>();
+        await Promise.all(ids.map(async (mid) => {
+          try {
+            const s = await mediaApi.signUrl(mid, 300);
+            cache.set(mid, s.data.url);
+          } catch { /* ignore */ }
+        }));
+        remoteReviews.setReviews(items.map((r) => {
+          const base = mapReviewDtoToReview(r);
+          const mid = r.user?.avatarMediaId || "";
+          const signed = mid ? cache.get(mid) : undefined;
+          return signed && base.author ? { ...base, author: { ...base.author, avatarUrl: signed } } : base;
+        }));
+      }
       emitAppEvent("reviews:changed", { movieId: movie.id })
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {

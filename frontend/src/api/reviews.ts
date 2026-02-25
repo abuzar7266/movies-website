@@ -1,9 +1,14 @@
 import type { CreateReviewBody, Envelope, Paginated, ReviewDTO, UpdateReviewBody } from "@src/types/api";
 import { api } from "@api/client";
 
-export async function listByMovie(movieId: string, page = 1, pageSize = 50): Promise<Envelope<Paginated<ReviewDTO>>> {
+export async function listByMovie(
+  movieId: string,
+  page = 1,
+  pageSize = 50,
+  opts?: { noStore?: boolean }
+): Promise<Envelope<Paginated<ReviewDTO>>> {
   const params = new URLSearchParams({ movieId, page: String(page), pageSize: String(pageSize) });
-  return api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?${params.toString()}`);
+  return api.get<Envelope<Paginated<ReviewDTO>>>(`/reviews?${params.toString()}`, opts?.noStore ? { cache: "no-store" } : undefined);
 }
 
 export async function createReview(body: CreateReviewBody): Promise<Envelope<ReviewDTO>> {

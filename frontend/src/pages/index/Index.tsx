@@ -151,6 +151,30 @@ function IndexMain() {
   }, [remotePageSize])
 
   useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        setRemoteReloadKey((k) => k + 1)
+      }
+    }
+    document.addEventListener("visibilitychange", onVisible)
+    return () => document.removeEventListener("visibilitychange", onVisible)
+  }, [])
+
+  useEffect(() => {
+    let timer: number | undefined
+    const start = () => {
+      if (timer) window.clearInterval(timer)
+      timer = window.setInterval(() => {
+        if (document.visibilityState === "visible") {
+          setRemoteReloadKey((k) => k + 1)
+        }
+      }, 15000)
+    }
+    start()
+    return () => { if (timer) window.clearInterval(timer) }
+  }, [])
+
+  useEffect(() => {
     const offMovie = onAppEvent<{ movieId?: string }>("movie:changed", () => {
       signedPosterCacheRef.current.clear()
       setRemoteReloadKey((k) => k + 1)

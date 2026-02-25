@@ -87,7 +87,7 @@ router.get("/", async (req, res, next) => {
     const scopeKey = reviewScope ? encodeURIComponent(reviewScope) : "all";
     const minStarsKey = typeof minStarsNum === "number" && !Number.isNaN(minStarsNum) ? String(minStarsNum) : "";
     const cacheKey = `cache:movies:list:v${version}:q=${qKey}&minStars=${minStarsKey}&sort=${sortKey}&scope=${scopeKey}&page=${pageNum}&pageSize=${pageSizeNum}&user=${userKey}`;
-    await sendJsonWithCache(req, res, cacheKey, 30, "private, max-age=30", async () => {
+    await sendJsonWithCache(req, res, cacheKey, 10, "private, max-age=10", async () => {
       const result = await Movies.listMovies({
         q: q,
         minStars: minStarsNum,

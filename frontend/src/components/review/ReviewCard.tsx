@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 import StarRating from "@components/StarRating";
 import type { Review } from "@src/types/movie";
@@ -14,13 +15,19 @@ export default function ReviewCard({ review, currentUserId, onEdit, onDelete }: 
   const author = review.author;
   const canManage = Boolean(currentUserId && review.userId === currentUserId);
   const initials = (author?.name || "User").split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "U";
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div className={styles.card}>
       <div className={styles.topRow}>
         <div className={styles.authorRow}>
-          {author?.avatarUrl ? (
-            <img src={author.avatarUrl} alt={author.name} className={styles.avatarImg} />
+          {author?.avatarUrl && !imgError ? (
+            <img
+              src={author.avatarUrl}
+              alt={author.name}
+              className={styles.avatarImg}
+              onError={() => setImgError(true)}
+            />
           ) : (
             <div className={styles.avatarFallback}>
               {initials}
