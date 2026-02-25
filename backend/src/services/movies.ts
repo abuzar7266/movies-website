@@ -81,7 +81,7 @@ export async function createMovie(
   const Repo = moviesRepo();
   const exists = await Repo.findUnique({ title: data.title });
   if (exists) throw new HttpError(409, "Movie title already exists", "title_taken");
-  const movie = await prisma.$transaction(async (tx) => {
+  const movie = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const Repo = moviesRepo(tx);
     return Repo.create({
       title: data.title,
@@ -150,7 +150,7 @@ export async function listMovies(opts: {
       : opts.sort === "release_asc"
       ? { releaseDate: "asc" as const }
       : { createdAt: "desc" as const };
-  const { total, items } = await prisma.$transaction(async (tx): Promise<{ total: number; items: MovieListItem[] }> => {
+  const { total, items } = await prisma.$transaction(async (tx: Prisma.TransactionClient): Promise<{ total: number; items: MovieListItem[] }> => {
     const Repo = moviesRepo(tx);
     const total = await Repo.count({ where });
     const items = await Repo.findMany({
@@ -165,19 +165,21 @@ export async function listMovies(opts: {
   const userRatings =
     opts.userId && items.length
       ? await prisma.rating.findMany({
-          where: { userId: opts.userId, movieId: { in: items.map((m) => m.id) } },
+          where: { userId: opts.userId, movieId: { in: items.map((m: MovieListItem) => m.id) } },
           select: { movieId: true, value: true }
         })
       : [];
   const ratingByMovieId = new Map<string, number>();
-  userRatings.forEach((r) => ratingByMovieId.set(r.movieId, r.value));
+  (userRatings as Array<{ movieId: string; value: number }>).forEach((r: { movieId: string; value: number }) =>
+    ratingByMovieId.set(r.movieId, r.value)
+  );
 
-  if (items.some((m) => m.rank === 0)) {
-    const zeroIds = items.filter(m => m.rank === 0).map(m => m.id);
-    const ranks = await Promise.all(zeroIds.map(id => computeRankForMovie(id)));
+  if (items.some((m: MovieListItem) => m.rank === 0)) {
+    const zeroIds = items.filter((m: MovieListItem) => m.rank === 0).map((m: MovieListItem) => m.id);
+    const ranks = await Promise.all(zeroIds.map((id: string) => computeRankForMovie(id)));
     const rankById = new Map<string, number>();
-    zeroIds.forEach((id, idx) => rankById.set(id, ranks[idx]));
-    const patched = items.map((m) => ({
+    zeroIds.forEach((id: string, idx: number) => rankById.set(id, ranks[idx]));
+    const patched = items.map((m: MovieListItem) => ({
       ...m,
       rank: m.rank === 0 ? (rankById.get(m.id) ?? 0) : m.rank,
       myRating: opts.userId ? (ratingByMovieId.get(m.id) ?? null) : undefined
@@ -198,7 +200,7 @@ export async function listMovies(opts: {
     return { items: finalItems, total, page: opts.page, pageSize: opts.pageSize };
   }
   return {
-    items: items.map((m) => ({
+    items: items.map((m: MovieListItem) => ({
       ...m,
       myRating: opts.userId ? (ratingByMovieId.get(m.id) ?? null) : undefined
     })),
@@ -280,7 +282,7 @@ export async function updateMovie(
 
 export async function deleteMovie(userId: string, id: string) {
   await ensureOwnedMovie(userId, id);
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const Repo = moviesRepo(tx);
     await Repo.remove({ id });
   });

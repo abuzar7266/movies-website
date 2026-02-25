@@ -8,6 +8,7 @@ import { config } from "@config/index.js";
 import { S3Client, PutObjectCommand, GetObjectCommand, HeadObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { Readable } from "node:stream";
 import { bumpCacheVersion } from "@/redisClient.js";
+import type { Prisma } from "@generated/prisma/client.js";
 
 const router = Router();
 const upload = multer({
@@ -131,7 +132,7 @@ router.delete("/:id", requireAuth(), async (req, res, next) => {
         // ignore delete errors to avoid leaking DB rows
       }
     }
-    await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.movie.updateMany({ where: { posterMediaId: id }, data: { posterMediaId: null, posterUrl: null } });
       await tx.user.updateMany({ where: { avatarMediaId: id }, data: { avatarMediaId: null } });
       await tx.media.delete({ where: { id } });

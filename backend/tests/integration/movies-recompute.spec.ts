@@ -63,7 +63,7 @@ describe("Movies recompute ranks windowed", () => {
       select: { id: true, rank: true },
       orderBy: { id: "asc" }
     });
-    const byId = new Map(rows.map((r) => [r.id, r.rank]));
+    const byId = new Map(rows.map((r: any) => [r.id, r.rank]));
     expect(byId.get(ids[0])).toBe(0); // outside top-2 -> cleared from 2 to 0
   });
 });

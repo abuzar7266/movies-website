@@ -3,11 +3,12 @@ import { prisma } from "@/db.js";
 import { ratingsRepo } from "@repositories/ratings.js";
 import { enqueueMovieRankRecompute } from "@services/movies.js";
 import { bumpCacheVersion } from "@/redisClient.js";
+import type { Prisma } from "@generated/prisma/client.js";
 
 export async function upsertRating(userId: string, data: { movieId: string; value: number }) {
   const movie = await prisma.movie.findUnique({ where: { id: data.movieId }, select: { id: true } });
   if (!movie) throw new HttpError(404, "Movie not found", "not_found");
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const existing = await tx.rating.findUnique({
       where: { movieId_userId: { movieId: data.movieId, userId } },
       select: { value: true }
