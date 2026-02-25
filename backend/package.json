@@ -10,6 +10,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc -b && tsc-alias -p tsconfig.json && node src/tools/patch-prisma-esm-imports.cjs",
     "start": "node dist/server.js",
+    "start:migrate": "npx prisma migrate deploy --config prisma.config.ts && node dist/server.js",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
