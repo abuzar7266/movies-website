@@ -67,6 +67,14 @@ describe("Media upload, set poster, and delete clears references", () => {
     expect(typeof mediaId).toBe("string");
     expect(up.body.data.url).toBe(`/media/${mediaId}`);
 
+    const first = await agent.get(`/media/${mediaId}`);
+    expect(first.status).toBe(200);
+    const etag = first.headers["etag"];
+    if (etag) {
+      const notModified = await agent.get(`/media/${mediaId}`).set("If-None-Match", etag);
+      expect(notModified.status).toBe(304);
+    }
+
     const setPoster = await agent
       .patch(`/movies/${movieId}/poster`)
       .set("X-CSRF-Token", await getCsrfToken())

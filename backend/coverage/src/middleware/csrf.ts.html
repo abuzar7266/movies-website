@@ -23,16 +23,16 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">57.14% </span>
+                <span class="strong">80.95% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>12/21</span>
+                <span class='fraction'>17/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">27.27% </span>
+                <span class="strong">90.9% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>3/11</span>
+                <span class='fraction'>10/11</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">64.7% </span>
+                <span class="strong">82.35% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>11/17</span>
+                <span class='fraction'>14/17</span>
             </div>
         
             
@@ -61,7 +61,7 @@
             </div>
         </template>
     </div>
-    <div class='status-line medium'></div>
+    <div class='status-line high'></div>
     <pre><table class="coverage">
 <tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
 <a name='L2'></a><a href='#L2'>2</a>
@@ -109,10 +109,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -121,29 +121,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">10x</span>
-<span class="cline-any cline-yes">41x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-yes">41x</span>
-<span class="cline-any cline-yes">41x</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-yes">16x</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-yes">16x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import type { RequestHandler } from "express";
 import crypto from "node:crypto";
@@ -163,28 +163,28 @@ const EXEMPT_PATHS = new Set&lt;string&gt;([
 ]);
 &nbsp;
 export const csrfProtection: RequestHandler = (req, res, next) =&gt; {
-  <span class="missing-if-branch" title="else path not taken" >E</span>if (config.isTest) return next();
-<span class="cstat-no" title="statement not covered" >  if (SAFE_METHODS.has(req.method)) <span class="cstat-no" title="statement not covered" >return next();</span></span>
-  const path = <span class="cstat-no" title="statement not covered" >req.path;</span>
-<span class="cstat-no" title="statement not covered" >  if (EXEMPT_PATHS.has(path)) <span class="cstat-no" title="statement not covered" >return next();</span></span>
-  const cookieToken = <span class="cstat-no" title="statement not covered" >req.cookies?.[CSRF_COOKIE];</span>
-  const headerToken = HEADER_NAMES.map(<span class="fstat-no" title="function not covered" >(n</span>) =&gt; <span class="cstat-no" title="statement not covered" >req.get(n))</span>.find(Boolean);
-  <span class="missing-if-branch" title="if path not taken" >I</span>if (!cookieToken || <span class="branch-1 cbranch-no" title="branch not covered" >!headerToken || <span class="branch-2 cbranch-no" title="branch not covered" >c</span>ookieToken !== headerToken) {</span>
-<span class="cstat-no" title="statement not covered" >    return next(new HttpError(403, "CSRF token invalid or missing", "forbidden"));</span>
+  <span class="missing-if-branch" title="if path not taken" >I</span>if (config.isTest) <span class="cstat-no" title="statement not covered" >return next();</span>
+  if (SAFE_METHODS.has(req.method)) return next();
+  const path = req.path;
+  if (EXEMPT_PATHS.has(path)) return next();
+  const cookieToken = req.cookies?.[CSRF_COOKIE];
+  const headerToken = HEADER_NAMES.map((n) =&gt; req.get(n)).find(Boolean);
+  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    return next(new HttpError(403, "CSRF token invalid or missing", "forbidden"));
   }
-<span class="cstat-no" title="statement not covered" >  next();</span>
+  next();
 };
 &nbsp;
-export function issueCsrfCookie(res: import("express").Response) {
-  const token = crypto.randomBytes(24).toString("hex");
-  res.cookie(CSRF_COOKIE, token, {
+export function <span class="fstat-no" title="function not covered" >issueCsrfCookie(r</span>es: import("express").Response) {
+  const token = <span class="cstat-no" title="statement not covered" >crypto.randomBytes(24).toString("hex");</span>
+<span class="cstat-no" title="statement not covered" >  res.cookie(CSRF_COOKIE, token, {</span>
     httpOnly: false,
     secure: config.cookies.secure,
     sameSite: config.cookies.sameSite,
     domain: config.cookies.domain,
     path: "/"
   });
-  return token;
+<span class="cstat-no" title="statement not covered" >  return token;</span>
 }
 &nbsp;</pre></td></tr></table></pre>
 
@@ -193,7 +193,7 @@ export function issueCsrfCookie(res: import("express").Response) {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-02-25T09:09:56.712Z
+                at 2026-02-25T09:41:32.845Z
             </div>
         <script src="../../prettify.js"></script>
         <script>
