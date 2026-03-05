@@ -17,6 +17,7 @@ This folder contains concise, practical materials to prepare for system design a
 - architecture-diagrams.md — fast C4 diagramming guidance
 - movieshelf-system-design.md — project-specific end-to-end design example
 - testing-qa.md — testing strategy, commands, and QA checklist
+- interview-one-pager.md — concise summary and 2-minute pitch
 
 ## How to Use
 
@@ -31,6 +32,7 @@ This folder contains concise, practical materials to prepare for system design a
 9. Validate production concerns with security-checklist.md and production-readiness.md.
 10. Tailor answers using movieshelf-system-design.md for concrete examples.
 11. Cite testing-qa.md to demonstrate practical QA and test coverage.
+12. Use interview-one-pager.md for quick recall during interviews.
 
 ## Typical Interview Flow
 
