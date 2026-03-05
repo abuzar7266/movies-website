@@ -27,14 +27,14 @@
 - Call out consistency domains and async flows (queues/streams)
 - Highlight hotspots: rate limiting, retries, circuit breakers
 
-## ASCII Diagram Example
+## ASCII Diagram Example (Current Implementation)
 
 ```
-[User] --HTTPS--> [Edge/CDN] --HTTPS--> [API Service]
-                         \--> [Auth Service]
-API Service --gRPC--> [Recommendation Service]
-API Service --SQL-->  [Primary DB] <replicates> [Read Replica]
-API Service --MQ-->   [Worker] --> [Cache] --> [Search Index]
-Observability: [Tracing][Metrics][Logs]
+[User] --HTTPS--> [Edge/CDN] --HTTPS--> [API Gateway]
+API Gateway --HTTPS--> [API Service (Express, REST)]
+API Service --SQL-->  [Postgres]
+API Service --Cache--> [Redis] (cache + optional rate limiting)
+API Service --S3--> [Object Storage/CDN] (media)
+Observability: [/healthz][/metrics][OpenAPI /docs][Structured Logs]
+Security: [JWT Cookies][CSRF][Helmet][Rate Limiting]
 ```
-

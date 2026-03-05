@@ -24,7 +24,7 @@ Use this as a concrete, project-specific example to discuss during interviews. I
 - Storage: ~5M titles; ~2KB metadata/title avg → ~10 GB core metadata
   - Plus indexes (20%) and replicas; images served via CDN/external provider
 
-## 3) API Design (REST/gRPC)
+## 3) API Design (REST)
 
 - Public REST (examples)
   - GET /v1/movies?genre=&year=&cursor= — paginated browse
@@ -36,7 +36,7 @@ Use this as a concrete, project-specific example to discuss during interviews. I
   - POST /v1/movies/{id}/reviews — create review (moderation queue)
 - Internal APIs
   - POST /admin/import/run — trigger or schedule ingest
-  - gRPC between API and recommendation service for low-latency scoring
+  - Optional future: internal recommendation service over HTTP; today served via API using cached computations
 
 ## 4) Data Modeling (Relational + Search + Cache)
 
@@ -61,21 +61,21 @@ Use this as a concrete, project-specific example to discuss during interviews. I
 ASCII C4-like view:
 ```
 [Web/Mobile] --HTTPS--> [Edge/CDN] --HTTPS--> [API Gateway]
-API Gateway --HTTPS--> [MovieShelf API] --gRPC--> [Recommendation Service]
-MovieShelf API --SQL--> [Postgres Primary] <replicates> [Read Replicas]
-MovieShelf API --Cache--> [Redis]
-MovieShelf API --HTTP--> [Search Service (Elastic)]
+API Gateway --HTTPS--> [MovieShelf API (Express, REST)]
+MovieShelf API --SQL--> [Postgres Primary]
+MovieShelf API --Cache--> [Redis] (cache + optional rate limiting)
+MovieShelf API --S3--> [Object Storage/CDN] (media)
 Admin Importer --HTTP--> [Third-Party Provider (TMDB)] -> [Ingest Pipeline]
-Ingest Pipeline --> [Postgres] & [Search Index] & [Image CDN references]
-Observability: [Tracing][Metrics][Logs]
+Observability: [/healthz][/metrics][OpenAPI /docs][Structured Logs]
+Security: [JWT Cookies][CSRF Tokens][Helmet][Rate Limiting]
 ```
 
 ## 6) Data Flows
 
 - Read Path
-  - Browse/details: API checks Redis cache → fallback to Postgres (read replica)
-  - Search: API calls search service; autocomplete backed by n-grams
-  - Recommendations: API calls recommendation service; cache results per user/title
+  - Browse/details: API checks Redis cache → fallback to Postgres
+  - Suggestions: API performs lightweight title search (prefix match) and ranking
+  - Recommendations: computed within API or batch jobs; cached per user/title
 - Write Path
   - Watchlist/ratings/reviews: validate → write to Postgres (transaction) → emit event
   - Events consumed by stream processors to update denormalized views and caches
@@ -90,52 +90,51 @@ Observability: [Tracing][Metrics][Logs]
   - Read replicas for Postgres; mostly read-after-write consistent within seconds
   - Search scaled horizontally via shard/replica tuning; cache popular queries
 - Writes
-  - Queue write spikes (e.g., watchlist bulk adds) with backpressure
   - Idempotent upserts for ratings; dedupe watchlist items by (user_id, movie_id)
-  - Stream processing to fan-out updates to derived tables and caches
+  - Cache versioning keys in Redis to invalidate hot views
+  - Optional future: queue/backpressure for bulk updates
 - Hotspots
   - Trending titles: pre-warm caches; use CDN edge caching for static assets
   - Search: throttle noisy queries; apply per-IP/user rate limits
 
 ## 8) Reliability and Resilience
 
-- Timeouts and retries with jitter; circuit breakers on search/recommendation
-- Bulkheads: isolated connection pools per dependency
-- Graceful degradation: fallback to basic recommendations and cached details
-- Backfill processes rehydrate caches after failures; DLQ for ingest anomalies
+- Timeouts and retries with jitter on external calls (TMDB, S3)
+- Bulkheads: isolated connection pools per dependency (DB, Redis, S3)
+- Graceful degradation: serve cached details; disable noncritical features
+- Cache rehydration via versioning; ingest anomalies logged and retried
 
 ## 9) Security and Privacy
 
-- AuthN: JWT with short TTL; refresh tokens; device-bound for mobile
-- AuthZ: RBAC (admin/user); scoped resource access; tenant isolation if multi-tenant
-- PII minimization; secure logs; encryption at rest/in transit; secret vault
-- Abuse protection: rate limiting, anomaly detection on review/ratings
+- AuthN: JWT cookies (access+refresh); CSRF tokens for state-changing requests
+- AuthZ: role-based (admin/user); scoped resource access
+- PII minimization; secure logs; TLS; secret vault/env management
+- Abuse protection: express-rate-limit or Redis-backed limiter; input validation
 
 ## 10) Observability and Operations
 
-- Metrics: RED on endpoints; cache hit rate; DB/query latencies; search tail latencies
-- Tracing across API → search → recommendation → DB calls
-- Structured logs with correlation IDs; audit sensitive operations
-- CI/CD: canary deploys; feature flags for recommender experiments
-- Runbooks: incident response for search outages, ingest failures, DB failover
+- Metrics: RED on endpoints via Prometheus (/metrics); cache hit rate; DB latencies
+- Structured logs with correlation IDs (pino); audit sensitive operations
+- OpenAPI at /openapi.json and /docs; health at /healthz
+- CI/CD: prisma migrations, build, tests (vitest), canary/blue-green optional
+- Runbooks: ingest failures, DB restart/migrate, rate limit tuning
 
 ## 11) Schema Evolution and Migration
 
-- Expand/contract migrations with backward compatibility for API payloads
-- Blue/green index rebuilds; alias-based switch for search indices
-- Data backfills for new computed fields; guardrails on long migrations
+- Expand/contract migrations (Prisma); backward compatible API payloads
+- Data backfills via scripts/jobs; guardrails on long migrations
 
 ## 12) Cost Awareness
 
-- Cache hot reads to reduce DB/query costs; evaluate search shard count vs latency
-- Use read replicas sized to traffic; autoscaling with cooldowns
+- Cache hot reads to reduce DB/query costs; tune cache TTLs/versioning
+- Postgres sizing for traffic; autoscaling containers with cooldowns
 - Monitor egress from images/CDN; consider image proxy caching if needed
 
 ## 13) Trade-offs
 
-- Elastic search adds operational complexity but improves UX; fallback available
-- Read replicas introduce eventual consistency; acceptable for watchlist reads
-- Personalized recommendations can be async and cached to meet latency budgets
+- External search adds complexity; current simple suggest keeps ops minimal
+- Read-after-write expectations documented; consistent within single node
+- Personalized recommendations computed asynchronously and cached
 
 ## 14) Evolution Plan
 
@@ -143,4 +142,3 @@ Observability: [Tracing][Metrics][Logs]
 - Phase 2: ratings/reviews with moderation; real-time ingest deltas
 - Phase 3: personalized recommendations; A/B testing; multi-region read replicas
 - Phase 4: offline support on mobile; advanced analytics dashboards
-

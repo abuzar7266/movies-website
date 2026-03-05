@@ -16,6 +16,7 @@ This folder contains concise, practical materials to prepare for system design a
 - estimation-examples.md — back-of-the-envelope examples and formulae
 - architecture-diagrams.md — fast C4 diagramming guidance
 - movieshelf-system-design.md — project-specific end-to-end design example
+- testing-qa.md — testing strategy, commands, and QA checklist
 
 ## How to Use
 
@@ -29,6 +30,7 @@ This folder contains concise, practical materials to prepare for system design a
 8. Use estimation-examples.md and architecture-diagrams.md during whiteboard rounds.
 9. Validate production concerns with security-checklist.md and production-readiness.md.
 10. Tailor answers using movieshelf-system-design.md for concrete examples.
+11. Cite testing-qa.md to demonstrate practical QA and test coverage.
 
 ## Typical Interview Flow
 
